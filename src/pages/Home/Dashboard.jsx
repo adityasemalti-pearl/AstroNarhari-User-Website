@@ -4,6 +4,11 @@ import Navbar from '../../components/Navbar';
 import { useAsyncError } from 'react-router-dom';
 import { getDailyHoroscope } from '../../API/homeApis';
 import Horoscope from './Horoscope';
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import { Sparkles, Stars } from "lucide-react";
 
 // --- MOCK DATA ---
 const SERVICES = [
@@ -49,7 +54,7 @@ export default function Dashboard() {
   const [dailyHoroscope, setDailyHoroscope] = useState(null);
 
 
-  const fetchHoroscope = async()=>{
+  const fetchHoroscope = async () => {
     try {
       const res = await getDailyHoroscope();
       setDailyHoroscope(res.data.data)
@@ -58,29 +63,104 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(()=>{
+  useEffect(() => {
     fetchHoroscope()
   })
-  
+
 
   return (
     <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
-      
+
+      {/* ===== Premium Banner Carousel ===== */}
+      <section>
+        <Swiper
+          modules={[Autoplay, Pagination]}
+          autoplay={{ delay: 4500, disableOnInteraction: false }}
+          pagination={{ clickable: true }}
+          loop
+          className="rounded-[32px] overflow-hidden shadow-2xl"
+        >
+          {[
+            {
+              title: "Unlock Your Destiny",
+              subtitle:
+                "Get personalized horoscope predictions and discover what the universe has planned for you.",
+              button: "Explore Horoscope",
+              image:
+                "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1600&q=80",
+            },
+            {
+              title: "Talk To Expert Astrologers",
+              subtitle:
+                "Connect instantly with verified astrologers for guidance in love, career and life.",
+              button: "Consult Now",
+              image:
+                "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80",
+            },
+            {
+              title: "Daily Cosmic Insights",
+              subtitle:
+                "Receive daily celestial guidance, lucky numbers and positive energy updates.",
+              button: "Read Insights",
+              image:
+                "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1600&q=80",
+            },
+          ].map((banner, index) => (
+            <SwiperSlide key={index}>
+              <div
+                className="relative h-[340px] md:h-[420px] bg-cover bg-center"
+                style={{ backgroundImage: `url(${banner.image})` }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1d0829]/95 via-[#2b0c39]/75 to-transparent" />
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+
+                <div className="relative z-10 h-full flex items-center px-8 md:px-16">
+                  <div className="max-w-2xl text-white">
+                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 mb-5">
+                      <Stars size={16} className="text-yellow-300" />
+                      <span className="text-sm tracking-wider uppercase">
+                        Premium Astrology
+                      </span>
+                    </div>
+
+                    <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-5">
+                      {banner.title}
+                    </h1>
+
+                    <p className="text-lg text-gray-200 mb-8 max-w-xl">
+                      {banner.subtitle}
+                    </p>
+
+                    <button className="group px-7 py-3 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 font-semibold hover:scale-105 duration-300 shadow-xl flex items-center gap-2">
+                      <Sparkles size={18} />
+                      {banner.button}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="absolute top-12 right-16 w-44 h-44 rounded-full bg-yellow-400/20 blur-3xl" />
+                <div className="absolute bottom-8 right-40 w-28 h-28 rounded-full bg-purple-400/20 blur-2xl" />
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </section>
       {/* Background Cosmic Gradient Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-200/40 rounded-full blur-[120px]" />
         <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-amber-100/50 rounded-full blur-[140px]" />
       </div>
- 
+
 
       {/* --- MAIN PAGE CONTENT CONTAINER --- */}
       <main className="relative z-10 max-w-7xl mx-auto px-8 py-10 space-y-12">
-        
+
         {/* --- HERO BANNER & HOROSCOPE SECTION --- */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          
+
           {/* Main Daily Celestial Card (8 Columns) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -122,7 +202,7 @@ export default function Dashboard() {
           </motion.div>
 
           {/* Quick Horoscope Switcher Box (4 Columns) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
@@ -131,16 +211,15 @@ export default function Dashboard() {
             <div>
               <h3 className="text-lg font-serif font-semibold text-[#2D123A] mb-2">Explore Zodiacs</h3>
               <p className="text-xs text-slate-500 mb-6">Select your sign for today’s tailored prediction.</p>
-              
+
               <div className="grid grid-cols-3 gap-3">
                 {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagitt.'].map((sign, idx) => (
-                  <button 
+                  <button
                     key={idx}
-                    className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${
-                      sign === 'Leo' 
-                        ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm' 
+                    className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${sign === 'Leo'
+                        ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm'
                         : 'border-slate-100 hover:border-purple-200 text-slate-600 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     <span>✨</span>
                     <span>{sign}</span>
@@ -227,7 +306,7 @@ export default function Dashboard() {
                 <h3 className="text-sm font-bold text-slate-800">{astro.name}</h3>
                 <p className="text-xs text-slate-500 mt-0.5">{astro.spec}</p>
                 <p className="text-[11px] font-medium text-amber-600 mt-1">★ 4.9 • {astro.exp} Exp</p>
-                
+
                 <button className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10">
                   Connect Now
                 </button>
@@ -238,7 +317,7 @@ export default function Dashboard() {
 
         {/* --- COSMIC SHOP & INSIGHTS (TWO-COLUMN DESKTOP GRID) --- */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Cosmic Shop (7 Columns) */}
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
