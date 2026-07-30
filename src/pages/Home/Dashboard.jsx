@@ -67,6 +67,43 @@ export default function Dashboard() {
     fetchHoroscope()
   })
 
+const banners = [
+  {
+    title: "Unlock Your Destiny",
+    subtitle: "Get personalized horoscope predictions.",
+    button: "Explore Horoscope",
+    video:
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+  },
+  {
+    title: "Talk To Expert Astrologers",
+    subtitle: "Connect instantly with verified astrologers.",
+    button: "Consult Now",
+    video:
+      "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4",
+  },
+  {
+  title: "Your Stars Hold the Answers",
+  subtitle:
+    "Discover accurate daily predictions, lucky timings, and cosmic guidance tailored just for you.",
+  button: "View Horoscope",
+  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+},
+{
+  title: "Connect With India's Top Astrologers",
+  subtitle:
+    "Chat or call experienced astrologers for trusted advice on career, marriage, finance, and health.",
+  button: "Talk Now",
+  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+},
+{
+  title: "Generate Your Free Kundli",
+  subtitle:
+    "Unlock your birth chart with detailed planetary insights, doshas, yogas, and future predictions.",
+  button: "Generate Kundli",
+  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+},
+];
 
   return (
     <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
@@ -80,41 +117,25 @@ export default function Dashboard() {
           loop
           className="rounded-[32px] overflow-hidden shadow-2xl"
         >
-          {[
-            {
-              title: "Unlock Your Destiny",
-              subtitle:
-                "Get personalized horoscope predictions and discover what the universe has planned for you.",
-              button: "Explore Horoscope",
-              image:
-                "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1600&q=80",
-            },
-            {
-              title: "Talk To Expert Astrologers",
-              subtitle:
-                "Connect instantly with verified astrologers for guidance in love, career and life.",
-              button: "Consult Now",
-              image:
-                "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1600&q=80",
-            },
-            {
-              title: "Daily Cosmic Insights",
-              subtitle:
-                "Receive daily celestial guidance, lucky numbers and positive energy updates.",
-              button: "Read Insights",
-              image:
-                "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1600&q=80",
-            },
-          ].map((banner, index) => (
+          {banners.map((banner, index) => (
             <SwiperSlide key={index}>
-              <div
-                className="relative h-[340px] md:h-[420px] bg-cover bg-center"
-                style={{ backgroundImage: `url(${banner.image})` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#1d0829]/95 via-[#2b0c39]/75 to-transparent" />
+              <div className="relative h-[340px] md:h-[420px] overflow-hidden rounded-[32px]">
 
+                {/* Background Video */}
+                <video
+                  src={banner.video}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1d0829]/95 via-[#2b0c39]/70 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
 
+                {/* Content */}
                 <div className="relative z-10 h-full flex items-center px-8 md:px-16">
                   <div className="max-w-2xl text-white">
                     <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 mb-5">
@@ -139,6 +160,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
+                {/* Glow Effects */}
                 <div className="absolute top-12 right-16 w-44 h-44 rounded-full bg-yellow-400/20 blur-3xl" />
                 <div className="absolute bottom-8 right-40 w-28 h-28 rounded-full bg-purple-400/20 blur-2xl" />
               </div>
@@ -217,8 +239,8 @@ export default function Dashboard() {
                   <button
                     key={idx}
                     className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${sign === 'Leo'
-                        ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm'
-                        : 'border-slate-100 hover:border-purple-200 text-slate-600 hover:bg-slate-50'
+                      ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm'
+                      : 'border-slate-100 hover:border-purple-200 text-slate-600 hover:bg-slate-50'
                       }`}
                   >
                     <span>✨</span>
