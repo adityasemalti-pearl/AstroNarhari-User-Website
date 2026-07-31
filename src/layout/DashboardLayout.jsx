@@ -14,7 +14,7 @@ export default function DashboardLayout() {
             />
 
             {/* Page Content */}
-            <main className="pt-10 px-5">
+            <main className=" px-5">
                 <Outlet />
             </main>
         </div>

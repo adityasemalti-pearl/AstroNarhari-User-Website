@@ -62,7 +62,9 @@ export default function CosmicInsights() {
 
         <div className="relative">
 
-            <button className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-purple-500/40">
+            <button
+            onClick={()=>navigate('/dashboard/cart')}
+            className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-purple-500/40">
                 <ShoppingCart size={20} strokeWidth={2.2} />
             </button>
 
@@ -390,7 +392,7 @@ export default function CosmicInsights() {
 
                                     </div>
 
-                                    <button className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-800 text-white transition hover:scale-110">
+                                    <button  className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-800 text-white transition hover:scale-110">
                                         🛒
                                     </button>
 

@@ -79,6 +79,29 @@ const Cart = () => {
     useEffect(() => {
         fetchCart();
     }, []);
+
+
+    
+    if (loading) {
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-white">
+            <div className="relative h-16 w-16">
+                {/* Outer Ring */}
+                <div className="absolute inset-0 rounded-full border-4 border-purple-200"></div>
+
+                {/* Animated Ring */}
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#6D28D9] border-r-[#9333EA] animate-spin"></div>
+
+            </div>
+
+            <p className="text-lg font-semibold text-purple-800">
+                Loading items...
+            </p>
+        </div>
+    );
+}
+
+
     if (!cartItems.length) {
         return (
 
@@ -119,6 +142,7 @@ const Cart = () => {
 
         );
     }
+
 
 
 

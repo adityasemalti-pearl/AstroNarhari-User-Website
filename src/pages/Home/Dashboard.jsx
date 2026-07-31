@@ -84,7 +84,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
+    <div className="min-h-screen bg-[#FAF8FC] pt-10 text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
 
       {/* Background Cosmic Gradient Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
