@@ -9,13 +9,15 @@ import ProfilePage from "./pages/ProfilePage/ProfilePage";
 import MatchingMaking from "./pages/Home/MatchMaking";
 import FestivalCalendar from "./pages/Home/FestivalCalender";
 import LiveStream from "./pages/Home/LiveStream";
-import CosmicInsights from "./pages/Home/CosmicInsights";
 import CosmicInsightsDetail from "./pages/Home/CosmicInsightDetails";
 import Astrologers from "./pages/Home/Astrologers";
 import MyBookings from "./pages/Bookings/MyBookings";
 import WalletPage from "./pages/Home/WalletPage";
 import AllProducts from "./pages/Home/AllProducts";
 import Cart from "./pages/Cart/Cart";
+import AboutUs from "./pages/About/AboutUs";
+import CosmicStore from "./pages/Home/CosmicStore";
+import CosmicInsights from "./pages/Home/CosmicInsights";
 
 function App() {
   return (
@@ -32,14 +34,17 @@ function App() {
           <Route path="match" element={<MatchingMaking />} />
           <Route path="festival" element={<FestivalCalendar />} />
           <Route path="live" element={<LiveStream />} />
-          <Route path="cosmic" element={<CosmicInsights />} />
+          <Route path="cosmic" element={<CosmicStore />} />
           <Route path="cosmic-detail/:id" element={<CosmicInsightsDetail />} />
           <Route path="astrologers" element={<Astrologers />} />
           <Route path="my-bookings" element={<MyBookings />} />
           <Route path="my-wallet" element={<WalletPage />} />
           <Route path="products" element={<AllProducts />} />
           <Route path="cart" element={<Cart />} />
+          <Route path="about" element={<AboutUs/>}/>
+          <Route path="articles" element={<CosmicInsights/>}/>
         </Route>
+
       </Routes>
     </BrowserRouter>
   );

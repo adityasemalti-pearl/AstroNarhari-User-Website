@@ -5,6 +5,7 @@ import { Sparkles, Stars } from "lucide-react";
 import video1 from "../../../assets/videos/v1.mp4";
 import video2 from "../../../assets/videos/v2.mp4";
 import video3 from "../../../assets/videos/v3.mp4";
+import { useNavigate } from "react-router-dom";
 
 const BANNERS = [
     {
@@ -30,6 +31,7 @@ const BANNERS = [
 
 export default function HeroBanner() {
     const [current, setCurrent] = useState(0);
+    const navigate = useNavigate()
 
     const videoRefs = useRef([]);
 
@@ -189,7 +191,8 @@ export default function HeroBanner() {
 
                                     <button className="group rounded-full bg-white px-8 py-4 font-semibold text-black transition-all duration-300 hover:scale-105 hover:bg-yellow-300">
 
-                                        <span className="flex items-center gap-2">
+                                        <span
+                                        className="flex items-center gap-2">
 
                                             <Sparkles size={18} />
 
@@ -199,7 +202,9 @@ export default function HeroBanner() {
 
                                     </button>
 
-                                    <button className="rounded-full border border-white/20 bg-white/5 px-8 py-4 text-white backdrop-blur-xl transition-all duration-300 hover:bg-white/10">
+                                    <button
+                                    onClick={()=>navigate('/dashboard/kundali')}
+                                    className="rounded-full border border-white/20 bg-white/5 px-8 py-4 text-white backdrop-blur-xl transition-all duration-300 hover:bg-white/10">
 
                                         Learn More
 

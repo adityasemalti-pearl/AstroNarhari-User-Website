@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
-import { getDailyHoroscope } from '../../API/homeApis';
+import { getAllAstrologers, getDailyHoroscope } from '../../API/homeApis';
 
 import {
   Sparkles, Stars, Compass, Moon, Sun, ShieldCheck,
@@ -10,13 +10,15 @@ import {
 } from 'lucide-react';
 
 import HeroBanner from './comp/HeroBanner';
+import { useNavigate } from 'react-router-dom';
+import { getAllProducts } from '../../API/cosmicApis';
+import FullPageLoader from './comp/FullPageLoader';
 
 // --- MOCK DATA ---
 const SERVICES = [
-  { id: 'kundli', title: 'Kundli Matching', subtitle: 'Detailed birth chart analysis', icon: '✨', badge: 'Popular' },
-  { id: 'matchmaking', title: 'Cosmic Matchmaking', subtitle: 'Find your astrological pair', icon: '💖' },
-  { id: 'horoscope', title: 'Daily Horoscope', subtitle: 'Personalized planetary insights', icon: '📅' },
-  { id: 'festivals', title: 'Panchang & Festivals', subtitle: 'Auspicious times & muhurats', icon: '🪔' },
+  { id: 'kundli', title: 'Kundli Matching', subtitle: 'Detailed birth chart analysis', icon: '✨', badge: 'Popular', link: '/dashboard/kundali' },
+  { id: 'horoscope', title: 'Daily Horoscope', subtitle: 'Personalized planetary insights', icon: '📅', link: '/dashboard/horoscope' },
+  { id: 'festivals', title: 'Panchang & Festivals', subtitle: 'Auspicious times & muhurats', icon: '🪔', link: '/dashboard/festival' },
 ];
 
 const LIVE_ASTROLOGERS = [
@@ -70,10 +72,21 @@ export default function Dashboard() {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [animateText, setAnimateText] = useState(true);
 
+  const navigate = useNavigate()
+
+
+
+  const [astrologers, setAstrologers] = useState([])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState([])
+
+
+
   useEffect(() => {
     const fetchHoroscope = async () => {
       try {
         const res = await getDailyHoroscope();
+
         setDailyHoroscope(res?.data?.data);
       } catch (error) {
         console.error('Failed to fetch horoscope:', error);
@@ -82,6 +95,50 @@ export default function Dashboard() {
 
     fetchHoroscope();
   }, []);
+
+
+  const fetchAllAstrologers = async () => {
+    try {
+      const res = await getAllAstrologers();
+
+      if (res.success) {
+        setAstrologers(res.data?.slice(0, 4));
+      }
+
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+
+  const fetchAllProducts = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllProducts();
+      setProducts(res.data?.data.slice(0, 3) || []);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+
+  useEffect(() => {
+    fetchAllProducts();
+    fetchAllAstrologers()
+  }, [])
+
+  console.log(products)
+
+
+  if (loading) {
+    <FullPageLoader />
+  }
+
 
   return (
     <div className="min-h-screen bg-[#FAF8FC] pt-10 text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
@@ -96,7 +153,7 @@ export default function Dashboard() {
       <main className="relative z-10  mx-auto px-4 md:px-8 ">
 
         {/* Banner Carousel */}
-      <HeroBanner/>
+        <HeroBanner />
 
         {/* HERO BANNER & HOROSCOPE SECTION */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -173,7 +230,7 @@ export default function Dashboard() {
         </section>
 
         {/* SERVICES GRID */}
-        <section className="space-y-6">
+        <section className="space-y-6 pt-10">
           <div className="flex items-end justify-between">
             <div>
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Services</h2>
@@ -184,6 +241,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {SERVICES.map((service) => (
               <motion.div
+                onClick={() => navigate(service.link)}
                 key={service.id}
                 whileHover={{ y: -6 }}
                 transition={{ duration: 0.2 }}
@@ -209,7 +267,7 @@ export default function Dashboard() {
         </section>
 
         {/* LIVE ASTROLOGERS SECTION */}
-        <section className="space-y-6">
+        <section className="space-y-6 pt-10">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -218,13 +276,15 @@ export default function Dashboard() {
               </div>
               <p className="text-xs text-slate-500 mt-1">Connect immediately with verified experts online right now.</p>
             </div>
-            <button className="text-xs font-semibold text-[#52007A] hover:underline">
-              View All Astrologers →
+            <button
+              onClick={() => navigate('/dashboard/astrologers')}
+              className="text-xs font-semibold text-[#52007A] hover:underline">
+              View All Astrologers
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {LIVE_ASTROLOGERS.map((astro) => (
+            {astrologers?.map((astro) => (
               <motion.div
                 key={astro.id}
                 whileHover={{ y: -4 }}
@@ -232,17 +292,17 @@ export default function Dashboard() {
               >
                 <div className="relative mb-3">
                   <img
-                    src={astro.img}
-                    alt={astro.name}
+                    src={astro.profilePic}
+                    alt={astro.fullName}
                     className="w-20 h-20 rounded-full object-cover ring-4 ring-rose-500/20"
                   />
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white tracking-widest uppercase">
                     LIVE
                   </span>
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">{astro.name}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{astro.spec}</p>
-                <p className="text-[11px] font-medium text-amber-600 mt-1">★ 4.9 • {astro.exp} Exp</p>
+                <h3 className="text-sm font-bold text-slate-800">{astro.fullName}</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{astro.specialities}</p>
+                <p className="text-[11px] font-medium text-amber-600 mt-1">★ {astro.averageRating} • {astro.experience} Exp</p>
 
                 <button className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10">
                   Connect Now
@@ -253,21 +313,25 @@ export default function Dashboard() {
         </section>
 
         {/* COSMIC SHOP & INSIGHTS */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-10">
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
-              <button className="text-xs font-semibold text-[#52007A] hover:underline">
-                Explore Store →
+              <button
+                onClick={() => navigate('/dashboard/products')}
+                className="text-xs font-semibold text-[#52007A] hover:underline">
+                Explore Store
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {SHOP_ITEMS.map((item) => (
-                <div key={item.id} className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group">
+              {products?.map((item) => (
+                <div
+                  onClick={() => navigate(`/dashboard/cosmic-detail/${item._id}`)}
+                  key={item.id} className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group cursor-pointer hover:scale-105 duration-300 transition-all">
                   <div>
                     <div className="h-32 rounded-xl overflow-hidden mb-3 bg-slate-50">
-                      <img src={item.img} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     </div>
                     <h4 className="text-xs font-semibold text-slate-800 line-clamp-1">{item.name}</h4>
                     <span className="text-[10px] text-amber-600 font-bold block mt-1">★ {item.rating}</span>
@@ -286,8 +350,10 @@ export default function Dashboard() {
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
-              <button className="text-xs font-semibold text-[#52007A] hover:underline">
-                Read Articles →
+              <button
+              onClick={()=>navigate('/dashboard/articles')}
+              className="text-xs font-semibold text-[#52007A] hover:underline">
+                Read Articles 
               </button>
             </div>
 

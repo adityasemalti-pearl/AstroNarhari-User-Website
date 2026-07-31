@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import Footer from "../components/footer";
 
 
 export default function DashboardLayout() {
@@ -17,6 +18,9 @@ export default function DashboardLayout() {
             <main className=" px-5">
                 <Outlet />
             </main>
+
+
+            <Footer/>
         </div>
     );
 }

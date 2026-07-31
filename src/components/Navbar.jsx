@@ -27,9 +27,13 @@ export default function Navbar({ activeNav, setActiveNav }) {
       name: "Horoscope",
       link: "/dashboard/horoscope"
     },
+    // {
+    //   name: "Live Astrologers",
+    //   link: "/dashboard/astrologers"
+    // },
     {
-      name: "Live Astrologers",
-      link: "/dashboard/astrologers"
+      name: "About Us",
+      link: "/dashboard/about"
     },
     {
       name: "Cosmic Shop",
