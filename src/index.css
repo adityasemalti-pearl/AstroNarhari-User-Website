@@ -28,3 +28,67 @@
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
   }
+
+
+
+
+.swiper-pagination-bullet{
+    width:10px;
+    height:10px;
+    background:#ffffff55;
+    transition:.4s;
+}
+
+.swiper-pagination-bullet-active{
+    width:34px;
+    border-radius:20px;
+    background:linear-gradient(90deg,#FFD54F,#FFB300);
+}
+
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 1s ease forwards;
+}
+
+
+@keyframes slowZoom {
+
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.08);
+  }
+
+}
+
+.animate-slowZoom{
+
+  animation: slowZoom 12s ease-in-out infinite alternate;
+
+}
+
+@keyframes progress{
+
+  from{
+    width:0%;
+  }
+
+  to{
+    width:100%;
+  }
+
+}
+

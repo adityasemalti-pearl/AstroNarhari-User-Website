@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
-import { useAsyncError } from 'react-router-dom';
 import { getDailyHoroscope } from '../../API/homeApis';
-import Horoscope from './Horoscope';
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
-import { Sparkles, Stars } from "lucide-react";
+import {
+  Sparkles, Stars, Compass, Moon, Sun, ShieldCheck,
+  MessageCircle, PhoneCall, ShoppingBag, Eye, Clock,
+  ChevronRight, ArrowUpRight, Flame, Heart, Radio
+} from 'lucide-react';
+
+import { EffectFade, Autoplay, Pagination } from "swiper/modules";
+
+import video1 from '../../assets/videos/v1.mp4'
+import video2 from '../../assets/videos/v2.mp4'
+import video3 from '../../assets/videos/v3.mp4'
 
 // --- MOCK DATA ---
 const SERVICES = [
@@ -48,140 +55,212 @@ const INSIGHTS = [
   },
 ];
 
-export default function Dashboard() {
-
-
-  const [dailyHoroscope, setDailyHoroscope] = useState(null);
-
-
-  const fetchHoroscope = async () => {
-    try {
-      const res = await getDailyHoroscope();
-      setDailyHoroscope(res.data.data)
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  useEffect(() => {
-    fetchHoroscope()
-  })
-
-const banners = [
+const BANNERS = [
   {
     title: "Unlock Your Destiny",
     subtitle: "Get personalized horoscope predictions.",
     button: "Explore Horoscope",
-    video:
-      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+    video: video1,
   },
   {
     title: "Talk To Expert Astrologers",
     subtitle: "Connect instantly with verified astrologers.",
     button: "Consult Now",
-    video:
-      "https://archive.org/download/BigBuckBunny_124/Content/big_buck_bunny_720p_surround.mp4",
+    video: video2,
   },
   {
-  title: "Your Stars Hold the Answers",
-  subtitle:
-    "Discover accurate daily predictions, lucky timings, and cosmic guidance tailored just for you.",
-  button: "View Horoscope",
-  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-},
-{
-  title: "Connect With India's Top Astrologers",
-  subtitle:
-    "Chat or call experienced astrologers for trusted advice on career, marriage, finance, and health.",
-  button: "Talk Now",
-  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-},
-{
-  title: "Generate Your Free Kundli",
-  subtitle:
-    "Unlock your birth chart with detailed planetary insights, doshas, yogas, and future predictions.",
-  button: "Generate Kundli",
-  video: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
-},
+    title: "Your Stars Hold the Answers",
+    subtitle: "Discover accurate daily predictions, lucky timings, and cosmic guidance tailored just for you.",
+    button: "View Horoscope",
+    video: video3,
+  },
 ];
+
+const ZODIAC = [
+  { name: 'Aries', symbol: '♈', dates: 'Mar 21 - Apr 19', element: 'Fire' },
+  { name: 'Taurus', symbol: '♉', dates: 'Apr 20 - May 20', element: 'Earth' },
+  { name: 'Gemini', symbol: '♊', dates: 'May 21 - Jun 20', element: 'Air' },
+  { name: 'Cancer', symbol: '♋', dates: 'Jun 21 - Jul 22', element: 'Water' },
+  { name: 'Leo', symbol: '♌', dates: 'Jul 23 - Aug 22', element: 'Fire' },
+  { name: 'Virgo', symbol: '♍', dates: 'Aug 23 - Sep 22', element: 'Earth' },
+  { name: 'Libra', symbol: '♎', dates: 'Sep 23 - Oct 22', element: 'Air' },
+  { name: 'Scorpio', symbol: '♏', dates: 'Oct 23 - Nov 21', element: 'Water' },
+  { name: 'Sagittarius', symbol: '♐', dates: 'Nov 22 - Dec 21', element: 'Fire' },
+];
+
+export default function Dashboard() {
+  const [dailyHoroscope, setDailyHoroscope] = useState(null);
+
+  const [selectedSign, setSelectedSign] = useState('Leo');
+  const [activeTab, setActiveTab] = useState('all');
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const [animateText, setAnimateText] = useState(true);
+
+  useEffect(() => {
+    const fetchHoroscope = async () => {
+      try {
+        const res = await getDailyHoroscope();
+        setDailyHoroscope(res?.data?.data);
+      } catch (error) {
+        console.error('Failed to fetch horoscope:', error);
+      }
+    };
+
+    fetchHoroscope();
+  }, []);
+
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+
+      setAnimateText(false);
+
+      setTimeout(() => {
+        setCurrentBanner((prev) => (prev + 1) % BANNERS.length);
+        setAnimateText(true);
+      }, 250);
+
+    }, 7000);
+
+    return () => clearInterval(interval);
+
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
 
-      {/* ===== Premium Banner Carousel ===== */}
-      <section>
-        <Swiper
-          modules={[Autoplay, Pagination]}
-          autoplay={{ delay: 4500, disableOnInteraction: false }}
-          pagination={{ clickable: true }}
-          loop
-          className="rounded-[32px] overflow-hidden shadow-2xl"
-        >
-          {banners.map((banner, index) => (
-            <SwiperSlide key={index}>
-              <div className="relative h-[340px] md:h-[420px] overflow-hidden rounded-[32px]">
-
-                {/* Background Video */}
-                <video
-                  src={banner.video}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#1d0829]/95 via-[#2b0c39]/70 to-transparent" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
-                {/* Content */}
-                <div className="relative z-10 h-full flex items-center px-8 md:px-16">
-                  <div className="max-w-2xl text-white">
-                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-full px-4 py-2 mb-5">
-                      <Stars size={16} className="text-yellow-300" />
-                      <span className="text-sm tracking-wider uppercase">
-                        Premium Astrology
-                      </span>
-                    </div>
-
-                    <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-5">
-                      {banner.title}
-                    </h1>
-
-                    <p className="text-lg text-gray-200 mb-8 max-w-xl">
-                      {banner.subtitle}
-                    </p>
-
-                    <button className="group px-7 py-3 rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 font-semibold hover:scale-105 duration-300 shadow-xl flex items-center gap-2">
-                      <Sparkles size={18} />
-                      {banner.button}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Glow Effects */}
-                <div className="absolute top-12 right-16 w-44 h-44 rounded-full bg-yellow-400/20 blur-3xl" />
-                <div className="absolute bottom-8 right-40 w-28 h-28 rounded-full bg-purple-400/20 blur-2xl" />
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-      </section>
       {/* Background Cosmic Gradient Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-200/40 rounded-full blur-[120px]" />
         <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-amber-100/50 rounded-full blur-[140px]" />
       </div>
 
+      {/* MAIN PAGE CONTENT CONTAINER */}
+      <main className="relative z-10  mx-auto px-4 md:px-8 ">
 
-      {/* --- MAIN PAGE CONTENT CONTAINER --- */}
-      <main className="relative z-10 max-w-7xl mx-auto px-8 py-10 space-y-12">
+        {/* Banner Carousel */}
+        <section className="mb-8">
 
-        {/* --- HERO BANNER & HOROSCOPE SECTION --- */}
+          <div className="relative h-[420px] md:h-[92vh] overflow-hidden rounded-[40px]">
+
+            {/* Background Fade */}
+
+            {BANNERS.map((banner, index) => (
+
+              <div
+                key={index}
+                className={`absolute inset-0 transition-all duration-[1800ms] ease-in-out
+        ${currentBanner === index
+                    ? "opacity-100 scale-100 z-20"
+                    : "opacity-0 scale-105 z-10"
+                  }`}
+              >
+
+                <video
+                  src={banner.video}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  className="absolute inset-0 h-full w-full object-cover animate-slowZoom"
+                />
+
+                {/* Overlay */}
+
+                <div className="absolute inset-0 bg-black/40" />
+
+                <div className="absolute inset-0 bg-gradient-to-r from-[#14081d]/90 via-[#231036]/55 to-transparent" />
+
+                <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/70 to-transparent" />
+
+                <div className="absolute -right-32 top-20 h-96 w-96 rounded-full bg-yellow-400/10 blur-[150px]" />
+
+              </div>
+
+            ))}
+
+            {/* CONTENT */}
+
+            <div className="relative z-30 h-full flex items-center px-6 md:px-10">
+
+              <div
+                key={currentBanner}
+                className={`max-w-2xl rounded-[32px]
+        border border-white/10
+        bg-white/5
+        backdrop-blur-2xl
+        p-8 md:p-12
+        shadow-[0_20px_80px_rgba(0,0,0,.45)]
+        transition-all duration-700
+        ${animateText
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-8"
+                  }`}
+              >
+
+                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 mb-6">
+
+                  <Stars
+                    size={16}
+                    className="text-yellow-300"
+                  />
+
+                  <span className="text-xs uppercase tracking-[3px] text-yellow-200">
+                    Premium Astrology
+                  </span>
+
+                </div>
+
+                <h1 className="text-4xl md:text-7xl font-extrabold text-white leading-[1.05]">
+
+                  {BANNERS[currentBanner].title}
+
+                </h1>
+
+                <p className="mt-6 text-white/80 text-lg leading-8">
+
+                  {BANNERS[currentBanner].subtitle}
+
+                </p>
+
+                <div className="mt-10 flex gap-4 flex-wrap">
+
+                  <button className="rounded-full bg-white px-7 py-4 font-semibold text-black hover:bg-yellow-300 transition">
+
+                    {BANNERS[currentBanner].button}
+
+                  </button>
+
+                  <button className="rounded-full border border-white/20 bg-white/5 px-7 py-4 text-white hover:bg-white/10">
+
+                    Learn More
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Progress Bar */}
+
+            {/* <div className="absolute bottom-0 left-0 h-[3px] w-full bg-white/10 z-40">
+
+              <div
+                key={currentBanner}
+                className="h-full bg-yellow-400 animate-progress"
+              />
+
+            </div> */}
+
+          </div>
+
+        </section>
+
+        {/* HERO BANNER & HOROSCOPE SECTION */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-
-          {/* Main Daily Celestial Card (8 Columns) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -194,12 +273,10 @@ const banners = [
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-widest text-amber-300">Daily Alignment</span>
-                  <h1 className="text-3xl font-serif font-bold text-white mt-1">
-                    Namaste, Mystic Traveler
-                  </h1>
+                  <h1 className="text-3xl font-serif font-bold text-white mt-1">Namaste, Mystic Traveler</h1>
                 </div>
                 <span className="bg-white/10 backdrop-blur-md text-amber-300 border border-amber-300/30 text-xs font-semibold px-4 py-1.5 rounded-full tracking-wider uppercase">
-                  {dailyHoroscope?.zodiac} • {dailyHoroscope?.alignment}
+                  {dailyHoroscope?.zodiac || 'Leo'} • {dailyHoroscope?.alignment || 'Balanced'}
                 </span>
               </div>
 
@@ -223,7 +300,6 @@ const banners = [
             </div>
           </motion.div>
 
-          {/* Quick Horoscope Switcher Box (4 Columns) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -235,10 +311,11 @@ const banners = [
               <p className="text-xs text-slate-500 mb-6">Select your sign for today’s tailored prediction.</p>
 
               <div className="grid grid-cols-3 gap-3">
-                {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagitt.'].map((sign, idx) => (
+                {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagitt.'].map((sign) => (
                   <button
-                    key={idx}
-                    className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${sign === 'Leo'
+                    key={sign}
+                    onClick={() => setSelectedSign(sign)}
+                    className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${selectedSign === sign
                       ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm'
                       : 'border-slate-100 hover:border-purple-200 text-slate-600 hover:bg-slate-50'
                       }`}
@@ -254,10 +331,9 @@ const banners = [
               Read Full Horoscope
             </button>
           </motion.div>
-
         </section>
 
-        {/* --- SERVICES GRID --- */}
+        {/* SERVICES GRID */}
         <section className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
@@ -267,7 +343,7 @@ const banners = [
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {SERVICES.map((service, idx) => (
+            {SERVICES.map((service) => (
               <motion.div
                 key={service.id}
                 whileHover={{ y: -6 }}
@@ -293,7 +369,7 @@ const banners = [
           </div>
         </section>
 
-        {/* --- LIVE ASTROLOGERS SECTION --- */}
+        {/* LIVE ASTROLOGERS SECTION */}
         <section className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -337,10 +413,8 @@ const banners = [
           </div>
         </section>
 
-        {/* --- COSMIC SHOP & INSIGHTS (TWO-COLUMN DESKTOP GRID) --- */}
+        {/* COSMIC SHOP & INSIGHTS */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-          {/* Cosmic Shop (7 Columns) */}
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
@@ -370,7 +444,6 @@ const banners = [
             </div>
           </div>
 
-          {/* Cosmic Insights Articles (5 Columns) */}
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
@@ -396,12 +469,11 @@ const banners = [
               ))}
             </div>
           </div>
-
         </section>
 
       </main>
 
-      {/* --- DESKTOP FOOTER --- */}
+      {/* FOOTER */}
       <footer className="mt-20 border-t border-purple-100 bg-white">
         <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
@@ -429,12 +501,13 @@ const banners = [
       <motion.button
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
-        className="fixed bottom-8 right-8 z-50 px-5 py-3 bg. [#52007A] bg-[#52007A] text-white rounded-full shadow-2xl shadow-purple-950/30 flex items-center gap-3 text-xs font-bold cursor-pointer"
+        className="fixed bottom-8 right-8 z-50 px-5 py-3 bg-[#52007A] text-white rounded-full shadow-2xl shadow-purple-950/30 flex items-center gap-3 text-xs font-bold cursor-pointer"
       >
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span>Chat with Astrologer</span>
       </motion.button>
-
     </div>
+
+
   );
 }
