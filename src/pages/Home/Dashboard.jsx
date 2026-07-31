@@ -2,20 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '../../components/Navbar';
 import { getDailyHoroscope } from '../../API/homeApis';
-import { Swiper, SwiperSlide } from "swiper/react";
-import "swiper/css";
-import "swiper/css/pagination";
+
 import {
   Sparkles, Stars, Compass, Moon, Sun, ShieldCheck,
   MessageCircle, PhoneCall, ShoppingBag, Eye, Clock,
   ChevronRight, ArrowUpRight, Flame, Heart, Radio
 } from 'lucide-react';
 
-import { EffectFade, Autoplay, Pagination } from "swiper/modules";
-
-import video1 from '../../assets/videos/v1.mp4'
-import video2 from '../../assets/videos/v2.mp4'
-import video3 from '../../assets/videos/v3.mp4'
+import HeroBanner from './comp/HeroBanner';
 
 // --- MOCK DATA ---
 const SERVICES = [
@@ -55,26 +49,6 @@ const INSIGHTS = [
   },
 ];
 
-const BANNERS = [
-  {
-    title: "Unlock Your Destiny",
-    subtitle: "Get personalized horoscope predictions.",
-    button: "Explore Horoscope",
-    video: video1,
-  },
-  {
-    title: "Talk To Expert Astrologers",
-    subtitle: "Connect instantly with verified astrologers.",
-    button: "Consult Now",
-    video: video2,
-  },
-  {
-    title: "Your Stars Hold the Answers",
-    subtitle: "Discover accurate daily predictions, lucky timings, and cosmic guidance tailored just for you.",
-    button: "View Horoscope",
-    video: video3,
-  },
-];
 
 const ZODIAC = [
   { name: 'Aries', symbol: '♈', dates: 'Mar 21 - Apr 19', element: 'Fire' },
@@ -109,23 +83,6 @@ export default function Dashboard() {
     fetchHoroscope();
   }, []);
 
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-
-      setAnimateText(false);
-
-      setTimeout(() => {
-        setCurrentBanner((prev) => (prev + 1) % BANNERS.length);
-        setAnimateText(true);
-      }, 250);
-
-    }, 7000);
-
-    return () => clearInterval(interval);
-
-  }, []);
-
   return (
     <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
 
@@ -139,125 +96,7 @@ export default function Dashboard() {
       <main className="relative z-10  mx-auto px-4 md:px-8 ">
 
         {/* Banner Carousel */}
-        <section className="mb-8">
-
-          <div className="relative h-[420px] md:h-[92vh] overflow-hidden rounded-[40px]">
-
-            {/* Background Fade */}
-
-            {BANNERS.map((banner, index) => (
-
-              <div
-                key={index}
-                className={`absolute inset-0 transition-all duration-[1800ms] ease-in-out
-        ${currentBanner === index
-                    ? "opacity-100 scale-100 z-20"
-                    : "opacity-0 scale-105 z-10"
-                  }`}
-              >
-
-                <video
-                  src={banner.video}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  className="absolute inset-0 h-full w-full object-cover animate-slowZoom"
-                />
-
-                {/* Overlay */}
-
-                <div className="absolute inset-0 bg-black/40" />
-
-                <div className="absolute inset-0 bg-gradient-to-r from-[#14081d]/90 via-[#231036]/55 to-transparent" />
-
-                <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-t from-black/70 to-transparent" />
-
-                <div className="absolute -right-32 top-20 h-96 w-96 rounded-full bg-yellow-400/10 blur-[150px]" />
-
-              </div>
-
-            ))}
-
-            {/* CONTENT */}
-
-            <div className="relative z-30 h-full flex items-center px-6 md:px-10">
-
-              <div
-                key={currentBanner}
-                className={`max-w-2xl rounded-[32px]
-        border border-white/10
-        bg-white/5
-        backdrop-blur-2xl
-        p-8 md:p-12
-        shadow-[0_20px_80px_rgba(0,0,0,.45)]
-        transition-all duration-700
-        ${animateText
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-8"
-                  }`}
-              >
-
-                <div className="inline-flex items-center gap-2 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-2 mb-6">
-
-                  <Stars
-                    size={16}
-                    className="text-yellow-300"
-                  />
-
-                  <span className="text-xs uppercase tracking-[3px] text-yellow-200">
-                    Premium Astrology
-                  </span>
-
-                </div>
-
-                <h1 className="text-4xl md:text-7xl font-extrabold text-white leading-[1.05]">
-
-                  {BANNERS[currentBanner].title}
-
-                </h1>
-
-                <p className="mt-6 text-white/80 text-lg leading-8">
-
-                  {BANNERS[currentBanner].subtitle}
-
-                </p>
-
-                <div className="mt-10 flex gap-4 flex-wrap">
-
-                  <button className="rounded-full bg-white px-7 py-4 font-semibold text-black hover:bg-yellow-300 transition">
-
-                    {BANNERS[currentBanner].button}
-
-                  </button>
-
-                  <button className="rounded-full border border-white/20 bg-white/5 px-7 py-4 text-white hover:bg-white/10">
-
-                    Learn More
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Progress Bar */}
-
-            {/* <div className="absolute bottom-0 left-0 h-[3px] w-full bg-white/10 z-40">
-
-              <div
-                key={currentBanner}
-                className="h-full bg-yellow-400 animate-progress"
-              />
-
-            </div> */}
-
-          </div>
-
-        </section>
+      <HeroBanner/>
 
         {/* HERO BANNER & HOROSCOPE SECTION */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
