@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, ArrowRight } from "lucide-react";
+import { getCosmicInsights } from "../../API/cosmicApis";
+import { useNavigate } from "react-router-dom";
 
 const blogs = [
   {
@@ -44,7 +46,32 @@ const blogs = [
   },
 ];
 
+
+
 export default function CosmicInsights() {
+
+
+
+
+  const [insights, setInsights] = useState([])
+
+  const navigate = useNavigate()
+
+
+  const fetchInsights = async () => {
+    try {
+      const res = await getCosmicInsights()
+      console.log(res.data)
+      setInsights(res.data.data)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+
+  useEffect(() => {
+    fetchInsights();
+  }, [])
   return (
     <section className="bg-gradient-to-b from-purple-50 to-white py-16">
       <div className="mx-auto max-w-7xl px-5">
@@ -66,18 +93,16 @@ export default function CosmicInsights() {
 
         {/* Blog Cards */}
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {blogs.map((blog) => (
+          {insights.map((blog) => (
             <div
-              key={blog.id}
-              className="group overflow-hidden rounded-3xl border border-purple-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+              key={blog._id}
+              className="group overflow-hidden rounded-3xl bg-white shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
             >
-              <div className="overflow-hidden">
-                <img
-                  src={blog.image}
-                  alt={blog.title}
-                  className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                />
-              </div>
+              <img
+                src={blog.thumbnail}
+                alt={blog.title}
+                className="h-56 w-full object-cover"
+              />
 
               <div className="p-6">
                 <div className="mb-4 flex items-center justify-between">
@@ -87,7 +112,7 @@ export default function CosmicInsights() {
 
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <Calendar size={14} />
-                    {blog.date}
+                    {new Date(blog.publishedDate).toLocaleDateString("en-IN")}
                   </div>
                 </div>
 
@@ -95,11 +120,13 @@ export default function CosmicInsights() {
                   {blog.title}
                 </h3>
 
-                <p className="mb-6 line-clamp-3 text-sm text-gray-600">
-                  {blog.description}
+                <p className="mb-6 text-sm text-gray-500">
+                  By {blog.author?.name} • {blog.readTime}
                 </p>
 
-                <button className="flex items-center gap-2 font-semibold text-purple-700 transition-all group-hover:gap-3">
+                <button
+                onClick={()=>navigate(`/dashboard/articles/${blog.slug}`)}
+                className="flex items-center gap-2 font-semibold text-purple-700 transition-all group-hover:gap-3">
                   Read More
                   <ArrowRight size={18} />
                 </button>
@@ -109,12 +136,13 @@ export default function CosmicInsights() {
         </div>
 
         {/* View All */}
-        <div className="mt-12 text-center">
+        {/* <div className="mt-12 text-center">
           <button className="rounded-full bg-gradient-to-r from-purple-700 to-fuchsia-600 px-8 py-3 font-semibold text-white transition hover:scale-105 hover:shadow-xl">
             View All Blogs
           </button>
-        </div>
+        </div> */}
       </div>
     </section>
   );
 }
+

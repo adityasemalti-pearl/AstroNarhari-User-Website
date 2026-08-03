@@ -50,3 +50,16 @@ export const getCart = ()=>{
 export const updateCartProduct = (data)=>{
     return api.put('/user/cart/update',data)
 }
+
+
+
+export const getCosmicInsights = ()=>{
+    return api.get('/article/list')
+}
+
+
+
+export const getCosmicInsightsDetails = (slug)=>{
+    return api.get(`/article/detail/${slug}`)
+}
+

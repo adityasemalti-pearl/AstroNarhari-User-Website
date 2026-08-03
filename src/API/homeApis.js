@@ -29,3 +29,7 @@ export const getAstrologerById = (id) => {
   return api.get(`/partner/astrologerById/${id}`);
 };
 
+export const festivalCalender = (data) => {
+  return api.post('/match/festivals',data);
+};
+

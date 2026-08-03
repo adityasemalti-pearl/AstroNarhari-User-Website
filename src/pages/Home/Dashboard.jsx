@@ -11,7 +11,7 @@ import {
 
 import HeroBanner from './comp/HeroBanner';
 import { useNavigate } from 'react-router-dom';
-import { getAllProducts } from '../../API/cosmicApis';
+import { getAllProducts, getCosmicInsights } from '../../API/cosmicApis';
 import FullPageLoader from './comp/FullPageLoader';
 
 // --- MOCK DATA ---
@@ -79,6 +79,8 @@ export default function Dashboard() {
   const [astrologers, setAstrologers] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState([])
+    
+  const [insights, setInsights] = useState([])
 
 
 
@@ -127,12 +129,26 @@ export default function Dashboard() {
 
 
 
+
+  
+  
+  const fetchInsights=async()=>{
+    try {
+      const res = await getCosmicInsights()
+      console.log(res.data)
+      setInsights(res.data.data.slice(0,2))
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   useEffect(() => {
     fetchAllProducts();
-    fetchAllAstrologers()
+    fetchAllAstrologers();
+    fetchInsights();
   }, [])
 
-  console.log(products)
+  console.log("ye ai",insights)
 
 
   if (loading) {
@@ -358,12 +374,12 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-4">
-              {INSIGHTS.map((article) => (
-                <div key={article.id} className="bg-white p-3.5 rounded-2xl border border-purple-100/60 shadow-sm flex items-center gap-4 group cursor-pointer">
-                  <img src={article.img} alt={article.title} className="w-24 h-20 rounded-xl object-cover" />
+              {insights.map((article) => (
+                <div key={article._id} className="bg-white p-3.5 rounded-2xl border border-purple-100/60 shadow-sm flex items-center gap-4 group cursor-pointer">
+                  <img src={article.thumbnail} alt={article.title} className="w-24 h-20 rounded-xl object-cover" />
                   <div>
                     <span className="text-[9px] font-bold tracking-widest text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md uppercase">
-                      {article.tag}
+                      {article.category}
                     </span>
                     <h4 className="text-xs font-bold text-slate-800 mt-1.5 line-clamp-2 group-hover:text-[#52007A] transition-colors">
                       {article.title}

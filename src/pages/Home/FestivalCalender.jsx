@@ -1,20 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar as CalendarIcon, 
-  Sparkles, 
-  Clock, 
-  BookOpen, 
-  Bell, 
-  Share2, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Sparkles,
+  Clock,
+  BookOpen,
+  Bell,
+  Share2,
   Filter,
   ArrowRight
 } from 'lucide-react';
 
+import { festivalCalender } from '../../API/homeApis';
+
 export default function FestivalCalendar() {
-  const [selectedMonth, setSelectedMonth] = useState('October');
+
   const [activeCategory, setActiveCategory] = useState('All Events');
   const [selectedDate, setSelectedDate] = useState(15);
 
@@ -69,10 +71,92 @@ export default function FestivalCalendar() {
 
   // Days with festival indicators
   const festivalDays = [4, 10, 15, 23, 24, 28];
+  const currentMonth = new Date().toLocaleString("default", {
+    month: "long",
+  });
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+
+
+  const [formData, setFormData] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    lat: "",
+    lon: "",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+
+  const monthMap = {
+    January: 1,
+    February: 2,
+    March: 3,
+    April: 4,
+    May: 5,
+    June: 6,
+    July: 7,
+    August: 8,
+    September: 9,
+    October: 10,
+    November: 11,
+    December: 12,
+  };
+
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          }));
+        },
+        (err) => {
+          console.log(err);
+        }
+      );
+    }
+  }, []);
+
+  const [loading, setLoading] = useState(false);
+  const [festivals, setFestivals] = useState([]);
+
+  const getFestivalCalendar = async () => {
+    try {
+      setLoading(true);
+
+      console.log("Request Payload =>", formData);
+
+      const res = await festivalCalender(formData);
+
+      console.log("Festival Response =>", res);
+
+      if (res.success) {
+        setFestivals(res.data);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.lat !== "" && formData.lon !== "") {
+      getFestivalCalendar();
+    }
+  }, [
+    formData.month,
+    formData.year,
+    formData.lat,
+    formData.lon,
+    formData.timezone,
+  ]);
 
   return (
     <div className="min-h-screen bg-[#FAF8FF] text-slate-800 font-sans relative overflow-hidden flex flex-col justify-between">
-      
+
       {/* Background Decorative Glows */}
       <div className="absolute top-0 left-1/3 w-[700px] h-[700px] bg-purple-200/30 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
       <div className="absolute bottom-0 right-10 w-[500px] h-[500px] bg-amber-100/40 rounded-full blur-3xl pointer-events-none translate-y-1/3" />
@@ -89,7 +173,9 @@ export default function FestivalCalendar() {
                 Festival Calendar
               </span>
               <span className="text-[10px] tracking-wider text-amber-700 font-semibold uppercase">
-                Vikram Samvat 2080
+                <h2 className="font-serif text-2xl font-bold text-indigo-950">
+                  {selectedMonth} {formData.year}
+                </h2>
               </span>
             </div>
           </div>
@@ -112,10 +198,10 @@ export default function FestivalCalendar() {
 
       {/* Main Content Dashboard */}
       <main className="max-w-7xl mx-auto px-6 py-10 w-full relative z-10 flex-1 space-y-8">
-        
+
         {/* Controls Section: Month Tabs & Category Filters */}
         <div className="space-y-6">
-          
+
           {/* Month Selector Bar */}
           <div className="flex items-center justify-between gap-4 overflow-x-auto pb-2 scrollbar-none">
             <div className="flex items-center gap-2">
@@ -126,12 +212,18 @@ export default function FestivalCalendar() {
                     key={month}
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
-                    onClick={() => setSelectedMonth(month)}
-                    className={`px-6 py-2.5 rounded-2xl text-sm font-semibold transition-all whitespace-nowrap ${
-                      isActive
-                        ? 'bg-gradient-to-r from-purple-900 to-indigo-900 text-amber-300 shadow-lg shadow-purple-950/15'
-                        : 'bg-white/80 text-slate-600 hover:bg-white border border-purple-100/80 shadow-sm'
-                    }`}
+                    onClick={() => {
+                      setSelectedMonth(month);
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        month: monthMap[month],
+                      }));
+                    }}
+                    className={`px-6 py-2.5 rounded-2xl text-sm font-semibold transition-all whitespace-nowrap ${isActive
+                      ? 'bg-gradient-to-r from-purple-900 to-indigo-900 text-amber-300 shadow-lg shadow-purple-950/15'
+                      : 'bg-white/80 text-slate-600 hover:bg-white border border-purple-100/80 shadow-sm'
+                      }`}
                   >
                     {month}
                   </motion.button>
@@ -156,11 +248,10 @@ export default function FestivalCalendar() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/20'
-                      : 'bg-white/60 text-slate-600 hover:bg-white border border-slate-200/60'
-                  }`}
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${isActive
+                    ? 'bg-amber-400 text-slate-950 font-bold shadow-md shadow-amber-400/20'
+                    : 'bg-white/60 text-slate-600 hover:bg-white border border-slate-200/60'
+                    }`}
                 >
                   {cat}
                 </button>
@@ -172,9 +263,9 @@ export default function FestivalCalendar() {
 
         {/* Desktop Split View: Calendar Card (Left) vs Festival Cards (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* LEFT: Calendar Grid Widget (5 Cols on Desktop) */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -225,20 +316,18 @@ export default function FestivalCalendar() {
                   <button
                     key={day}
                     onClick={() => setSelectedDate(day)}
-                    className={`py-3 rounded-2xl relative transition-all flex flex-col items-center justify-center ${
-                      isSelected
-                        ? 'bg-purple-950 text-amber-300 shadow-lg shadow-purple-950/25 font-bold scale-105'
-                        : 'hover:bg-purple-50/80 text-slate-700'
-                    }`}
+                    className={`py-3 rounded-2xl relative transition-all flex flex-col items-center justify-center ${isSelected
+                      ? 'bg-purple-950 text-amber-300 shadow-lg shadow-purple-950/25 font-bold scale-105'
+                      : 'hover:bg-purple-50/80 text-slate-700'
+                      }`}
                   >
                     <span>{day}</span>
-                    
+
                     {/* Event Indicator Dot */}
                     {hasFestival && (
-                      <span 
-                        className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                          isSelected ? 'bg-amber-300' : 'bg-purple-600'
-                        }`} 
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full mt-1 ${isSelected ? 'bg-amber-300' : 'bg-purple-600'
+                          }`}
                       />
                     )}
                   </button>
@@ -262,7 +351,7 @@ export default function FestivalCalendar() {
 
           {/* RIGHT: Festival List / Highlights (7 Cols on Desktop) */}
           <div className="lg:col-span-7 space-y-6">
-            
+
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-serif text-2xl font-bold text-indigo-950">
@@ -289,8 +378,8 @@ export default function FestivalCalendar() {
                   >
                     {/* Event Banner Image */}
                     <div className="w-full md:w-36 h-36 md:h-full rounded-2xl overflow-hidden flex-shrink-0 relative">
-                      <img 
-                        src={event.image} 
+                      <img
+                        src={event.image}
                         alt={event.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
