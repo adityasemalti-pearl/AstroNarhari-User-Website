@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Sun,
@@ -59,6 +59,15 @@ const user = {
 
 export default function ProfileDashboard() {
     const navigate = useNavigate();
+
+    const [profile, setProfile] = useState({});
+    const fetchProfile = async()=>{
+        try {
+            
+        } catch (error) {
+            console.log(error)
+        }
+    }
   return (
     <div className="space-y-8">
       {/* Identity hero */}

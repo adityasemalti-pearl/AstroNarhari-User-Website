@@ -54,7 +54,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
     {
       icon: <User size={18} />,
       label: "My Profile",
-      link: "/dashboard/profile"
+      link: "/dashboard/profile-overview"
     },
     {
       icon: <GitGraph size={18} />,

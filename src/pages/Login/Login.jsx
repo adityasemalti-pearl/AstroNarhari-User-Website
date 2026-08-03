@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { auth } from "../../firebase/firebase";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from "firebase/auth";
+import { verifyOtp } from '../../API/authapis';
+
 export default function Login() {
   const [step, setStep] = useState('login'); // 'login' | 'otp'
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -13,6 +20,72 @@ export default function Login() {
 
   const otpInputsRef = useRef([]);
 
+  const setupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {
+        console.error(e);
+      }
+
+      window.recaptchaVerifier = null;
+    }
+
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: () => { },
+        "expired-callback": () => {
+          console.log("reCAPTCHA expired");
+        },
+      }
+    );
+
+    return window.recaptchaVerifier;
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (phoneNumber.length !== 10) {
+        alert("Enter valid mobile number");
+        return;
+      }
+
+      // Fresh reCAPTCHA every time
+      const appVerifier = setupRecaptcha();
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        `+91${phoneNumber}`,
+        appVerifier
+      );
+
+      window.confirmationResult = confirmation;
+
+      setStep("otp");
+      setTimer(57);
+      setIsTimerActive(true);
+
+    } catch (err) {
+
+      console.error(err);
+
+      // Reset reCAPTCHA on error
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) { }
+
+        window.recaptchaVerifier = null;
+      }
+
+      alert(err.message);
+    }
+  };
   // Countdown timer handler for OTP
   useEffect(() => {
     let interval = null;
@@ -26,14 +99,22 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [isTimerActive, timer]);
 
-  const handleSendOtp = (e) => {
-    e.preventDefault();
-    if (phoneNumber.trim().length >= 10) {
-      setStep('otp');
-      setTimer(57);
-      setIsTimerActive(true);
-    }
-  };
+
+  useEffect(() => {
+    return () => {
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) { }
+
+        window.recaptchaVerifier = null;
+      }
+    };
+  }, []);
+
+
+
+
 
   const handleOtpChange = (value, index) => {
     if (isNaN(value)) return;
@@ -61,6 +142,45 @@ export default function Login() {
     }
   };
 
+  const handleVerifyOtp = async () => {
+    try {
+
+      const code = otp.join("");
+
+      const result =
+        await window.confirmationResult.confirm(code);
+
+      const idToken =
+        await result.user.getIdToken();
+
+      const response = await verifyOtp({
+        idToken
+      });
+
+      localStorage.setItem(
+        "token",
+        response.data.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(response.data.data)
+      );
+
+      navigate("/dashboard");
+
+    } catch (err) {
+
+      console.log(err);
+
+      alert(
+        err?.response?.data?.message ||
+        err.message
+      );
+
+    }
+  };
+
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -69,7 +189,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAFC] p-4 font-sans text-slate-800 antialiased selection:bg-purple-100 selection:text-purple-900">
-      
+
       {/* Background Celestial Aura */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-b from-purple-200/40 via-amber-100/30 to-transparent rounded-full blur-3xl opacity-70" />
@@ -77,10 +197,10 @@ export default function Login() {
 
       {/* Main Card Container */}
       <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_rgba(74,30,92,0.06)] border border-purple-50/60 overflow-hidden transition-all duration-500 ease-out">
-        
+
         {/* Top Header & Branding */}
         <div className="pt-10 pb-6 px-8 text-center flex flex-col items-center">
-          <h1 
+          <h1
             className="text-2xl font-serif font-bold tracking-[0.2em] text-[#4A1E5C] uppercase"
             style={{ fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif" }}
           >
@@ -110,7 +230,7 @@ export default function Login() {
 
         {/* Dynamic Animated Steps */}
         <div className="px-8 pb-10">
-          
+
           {/* STEP 1: LOGIN / REGISTER */}
           {step === 'login' && (
             <div className="animate-fade-in space-y-6">
@@ -167,8 +287,8 @@ export default function Login() {
 
               {/* Social Buttons */}
               <div className="grid grid-cols-2 gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium text-xs transition-all"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -180,8 +300,8 @@ export default function Login() {
                   Google
                 </button>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium text-xs transition-all"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -229,7 +349,7 @@ export default function Login() {
 
               <button
                 type="button"
-                onClick={() => {alert(`Submitted OTP: ${otp.join('')}`); navigate('/dashboard')}}
+                onClick={handleVerifyOtp}
                 className="w-full py-3.5 px-4 bg-[#52007A] hover:bg-[#400060] active:scale-[0.99] text-white font-medium text-sm rounded-2xl shadow-lg shadow-purple-900/15 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
               >
                 <span>Verify & Proceed</span>
@@ -280,6 +400,7 @@ export default function Login() {
         </div>
 
       </div>
+      <div id="recaptcha-container"></div>
     </div>
   );
 }
