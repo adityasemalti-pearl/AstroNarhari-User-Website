@@ -168,6 +168,7 @@ const FAQS = [
 /* ================= main component ================= */
 import  logo from '../../../assets/logo.png'
 import { useNavigate } from "react-router-dom";
+import BackToTop from "../comp/BackToTop";
 export default function AstroSetuLanding() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -693,7 +694,9 @@ export default function AstroSetuLanding() {
             <span>Made with ✦ for seekers across India</span>
           </div>
         </div>
+        <BackToTop/>
       </footer>
+      
     </div>
   );
 }
