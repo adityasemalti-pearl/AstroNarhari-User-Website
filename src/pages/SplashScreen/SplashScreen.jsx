@@ -69,7 +69,7 @@ export default function SplashScreen() {
           className="text-2xl sm:text-3xl font-serif font-semibold tracking-[0.25em] text-[#4A1E5C] uppercase mb-4 pl-[0.25em]"
           style={{ fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif" }}
         >
-          Astronarhari
+          Namah-Astro
         </motion.h1>
 
         {/* Tagline & Divider Lines Animation */}

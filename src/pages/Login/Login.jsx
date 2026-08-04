@@ -399,7 +399,7 @@ export default function Login() {
             className="text-2xl font-serif font-bold tracking-[0.2em] text-[#4A1E5C] uppercase"
             style={{ fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif" }}
           >
-            Astronarhari
+            Namah-Astro
           </h1>
 
           {step === 'login' ? (
