@@ -23,39 +23,44 @@ import MyConsultations from "./pages/ProfilePage/MyConsultations";
 import AccountSettings from "./pages/ProfilePage/AccountSettings";
 import EditProfileDetails from "./pages/ProfilePage/EditProfileDetails";
 import ProfileDashboard from "./pages/ProfilePage/ProfileDashboard";
+import HomePage from "./pages/Home/PublicPages/HomePage";
+import ProtectedRoute from "./pages/ProtectedRoute";
 
 function App() {
   return (
-    <BrowserRouter>
+   <BrowserRouter>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<SplashScreen />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<HomePage />} />
 
-        <Route path="/dashboard" element={<DashboardLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="kundali" element={<KundliPage />} />
-          <Route path="horoscope" element={<Horoscope />} />
-          <Route path="profile" element={<CreateProfilePage />} />
-          <Route path="match" element={<MatchingMaking />} />
-          <Route path="festival" element={<FestivalCalendar />} />
-          <Route path="live" element={<LiveStream />} />
-          <Route path="cosmic" element={<CosmicStore />} />
-          <Route path="cosmic-detail/:id" element={<CosmicProductDetail />} />
-          <Route path="astrologers" element={<Astrologers />} />
-          <Route path="my-bookings" element={<MyBookings />} />
-          <Route path="my-wallet" element={<WalletPage />} />
-          <Route path="products" element={<AllProducts />} />
-          <Route path="cart" element={<Cart />} />
-          <Route path="about" element={<AboutUs />} />
-          <Route path="articles" element={<CosmicInsights />} />
-          <Route path="articles/:slug" element={<CosmicDetail />} />
-          <Route path="profile" element={<CreateProfilePage />} />
-          <Route path="profile-overview" element={<ProfileDashboard />} />
-          <Route path="profile/edit" element={<EditProfileDetails />} />
-          <Route path="settings" element={<AccountSettings />} />
-          <Route path="consultations" element={<MyConsultations />} />
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="kundali" element={<KundliPage />} />
+            <Route path="horoscope" element={<Horoscope />} />
+            <Route path="profile" element={<CreateProfilePage />} />
+            <Route path="match" element={<MatchingMaking />} />
+            <Route path="festival" element={<FestivalCalendar />} />
+            <Route path="live" element={<LiveStream />} />
+            <Route path="cosmic" element={<CosmicStore />} />
+            <Route path="cosmic-detail/:id" element={<CosmicProductDetail />} />
+            <Route path="astrologers" element={<Astrologers />} />
+            <Route path="my-bookings" element={<MyBookings />} />
+            <Route path="my-wallet" element={<WalletPage />} />
+            <Route path="products" element={<AllProducts />} />
+            <Route path="cart" element={<Cart />} />
+            <Route path="about" element={<AboutUs />} />
+            <Route path="articles" element={<CosmicInsights />} />
+            <Route path="articles/:slug" element={<CosmicDetail />} />
+            <Route path="profile-overview" element={<ProfileDashboard />} />
+            <Route path="profile/edit" element={<EditProfileDetails />} />
+            <Route path="settings" element={<AccountSettings />} />
+            <Route path="consultations" element={<MyConsultations />} />
+          </Route>
         </Route>
-
       </Routes>
     </BrowserRouter>
   );

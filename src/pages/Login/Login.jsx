@@ -7,6 +7,7 @@ import {
   signInWithPhoneNumber,
 } from "firebase/auth";
 import { verifyOtp } from '../../API/authapis';
+import ResponseModal from './ResponseModal';
 
 export default function Login() {
   const [step, setStep] = useState('login'); // 'login' | 'otp'
@@ -14,6 +15,13 @@ export default function Login() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(57);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [popup, setPopup] = useState({
+    open: false,
+    type: "success",
+    title: "",
+    message: "",
+    loading: false,
+  });
 
 
   const navigate = useNavigate()
@@ -46,16 +54,28 @@ export default function Login() {
     return window.recaptchaVerifier;
   };
 
+
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    try {
-      if (phoneNumber.length !== 10) {
-        alert("Enter valid mobile number");
-        return;
-      }
+    if (!/^[6-9]\d{9}$/.test(phoneNumber)) {
+      return setPopup({
+        open: true,
+        type: "error",
+        title: "Invalid Number",
+        message: "Please enter a valid mobile number.",
+      });
+    }
 
-      // Fresh reCAPTCHA every time
+    try {
+      setPopup({
+        open: true,
+        type: "loading",
+        title: "Sending OTP",
+        message: "Please wait while we verify your phone.",
+        loading: true,
+      });
+
       const appVerifier = setupRecaptcha();
 
       const confirmation = await signInWithPhoneNumber(
@@ -66,26 +86,89 @@ export default function Login() {
 
       window.confirmationResult = confirmation;
 
-      setStep("otp");
-      setTimer(57);
-      setIsTimerActive(true);
+      setTimeout(() => {
+        setPopup({
+          open: true,
+          type: "success",
+          title: "OTP Sent",
+          message: `Verification code sent to +91 ${phoneNumber}`,
+        });
+
+        setTimeout(() => {
+          setPopup((prev) => ({
+            ...prev,
+            open: false,
+          }));
+
+          setStep("otp");
+          setTimer(57);
+          setIsTimerActive(true);
+        }, 1800);
+      }, 700);
 
     } catch (err) {
 
-      console.error(err);
+      setPopup({
+        open: true,
+        type: "error",
+        title: "OTP Failed",
+        message:
+          err?.message ||
+          "Unable to send OTP.",
+      });
 
-      // Reset reCAPTCHA on error
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
-        } catch (e) { }
+        } catch { }
 
         window.recaptchaVerifier = null;
       }
-
-      alert(err.message);
     }
   };
+
+
+
+  // const handleSendOtp = async (e) => {
+  //   e.preventDefault();
+
+  //   try {
+  //     if (phoneNumber.length !== 10) {
+  //       alert("Enter valid mobile number");
+  //       return;
+  //     }
+
+  //     // Fresh reCAPTCHA every time
+  //     const appVerifier = setupRecaptcha();
+
+  //     const confirmation = await signInWithPhoneNumber(
+  //       auth,
+  //       `+91${phoneNumber}`,
+  //       appVerifier
+  //     );
+
+  //     window.confirmationResult = confirmation;
+
+  //     setStep("otp");
+  //     setTimer(57);
+  //     setIsTimerActive(true);
+
+  //   } catch (err) {
+
+  //     console.error(err);
+
+  //     // Reset reCAPTCHA on error
+  //     if (window.recaptchaVerifier) {
+  //       try {
+  //         window.recaptchaVerifier.clear();
+  //       } catch (e) { }
+
+  //       window.recaptchaVerifier = null;
+  //     }
+
+  //     alert(err.message);
+  //   }
+  // };
   // Countdown timer handler for OTP
   useEffect(() => {
     let interval = null;
@@ -134,16 +217,75 @@ export default function Login() {
     }
   };
 
-  const handleResend = () => {
-    if (timer === 0) {
+  const handleResend = async () => {
+
+    if (timer !== 0) return;
+
+    setPopup({
+      open: true,
+      type: "loading",
+      title: "Resending OTP",
+      message: "Please wait...",
+      loading: true,
+    });
+
+    try {
+
+      const appVerifier = setupRecaptcha();
+
+      const confirmation =
+        await signInWithPhoneNumber(
+          auth,
+          `+91${phoneNumber}`,
+          appVerifier
+        );
+
+      window.confirmationResult =
+        confirmation;
+
+      setPopup({
+        open: true,
+        type: "success",
+        title: "OTP Sent Again",
+        message:
+          "A new verification code has been sent.",
+      });
+
       setTimer(57);
       setIsTimerActive(true);
-      setOtp(['', '', '', '', '', '']);
+
+      setOtp([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+
+    } catch (err) {
+
+      setPopup({
+        open: true,
+        type: "error",
+        title: "Failed",
+        message:
+          err.message,
+      });
     }
   };
 
+
   const handleVerifyOtp = async () => {
     try {
+
+      setPopup({
+        open: true,
+        type: "loading",
+        title: "Verifying",
+        message: "Checking your OTP...",
+        loading: true,
+      });
 
       const code = otp.join("");
 
@@ -153,9 +295,10 @@ export default function Login() {
       const idToken =
         await result.user.getIdToken();
 
-      const response = await verifyOtp({
-        idToken
-      });
+      const response =
+        await verifyOtp({
+          idToken,
+        });
 
       localStorage.setItem(
         "token",
@@ -167,19 +310,71 @@ export default function Login() {
         JSON.stringify(response.data.data)
       );
 
-      navigate("/dashboard");
+      setPopup({
+        open: true,
+        type: "success",
+        title: "Welcome Back ✨",
+        message:
+          "Your account has been verified successfully.",
+      });
+
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 2200);
 
     } catch (err) {
 
-      console.log(err);
-
-      alert(
-        err?.response?.data?.message ||
-        err.message
-      );
-
+      setPopup({
+        open: true,
+        type: "error",
+        title: "Verification Failed",
+        message:
+          err?.response?.data?.message ||
+          "Incorrect OTP. Please try again.",
+      });
     }
   };
+
+
+
+  // const handleVerifyOtp = async () => {
+  //   try {
+
+  //     const code = otp.join("");
+
+  //     const result =
+  //       await window.confirmationResult.confirm(code);
+
+  //     const idToken =
+  //       await result.user.getIdToken();
+
+  //     const response = await verifyOtp({
+  //       idToken
+  //     });
+
+  //     localStorage.setItem(
+  //       "token",
+  //       response.data.token
+  //     );
+
+  //     localStorage.setItem(
+  //       "user",
+  //       JSON.stringify(response.data.data)
+  //     );
+
+  //     navigate("/dashboard");
+
+  //   } catch (err) {
+
+  //     console.log(err);
+
+  //     alert(
+  //       err?.response?.data?.message ||
+  //       err.message
+  //     );
+
+  //   }
+  // };
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -348,6 +543,7 @@ export default function Login() {
               </div>
 
               <button
+              disabled={otp.join("").length!==6}
                 type="button"
                 onClick={handleVerifyOtp}
                 className="w-full py-3.5 px-4 bg-[#52007A] hover:bg-[#400060] active:scale-[0.99] text-white font-medium text-sm rounded-2xl shadow-lg shadow-purple-900/15 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
@@ -367,6 +563,7 @@ export default function Login() {
                 ) : (
                   <button
                     onClick={handleResend}
+                    disabled={phoneNumber.length!==10}
                     className="font-semibold text-[#52007A] hover:underline focus:outline-none"
                   >
                     Resend OTP Code
@@ -401,6 +598,19 @@ export default function Login() {
 
       </div>
       <div id="recaptcha-container"></div>
+      <ResponseModal
+        open={popup.open}
+        type={popup.type}
+        title={popup.title}
+        message={popup.message}
+        loading={popup.loading}
+        onClose={() =>
+          setPopup((prev) => ({
+            ...prev,
+            open: false,
+          }))
+        }
+      />
     </div>
   );
 }
