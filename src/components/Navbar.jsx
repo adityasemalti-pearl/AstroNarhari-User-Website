@@ -99,7 +99,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
               className="text-xl font-serif font-bold tracking-[0.25em] text-[#4A1E5C] uppercase block"
               style={{ fontFamily: "'Cinzel', Georgia, serif" }}
             >
-              Astronarhari
+              Namah Astro
             </span>
             <span className="text-[9px] font-semibold tracking-[0.22em] text-[#C68E28] uppercase">
               Guidance From The Stars

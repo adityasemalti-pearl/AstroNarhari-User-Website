@@ -63,3 +63,9 @@ export const getCosmicInsightsDetails = (slug)=>{
     return api.get(`/article/detail/${slug}`)
 }
 
+
+
+export const getShopBanner = ()=>{
+    return api.get('/product/shop-banners')
+}
+

@@ -25,16 +25,18 @@ import EditProfileDetails from "./pages/ProfilePage/EditProfileDetails";
 import ProfileDashboard from "./pages/ProfilePage/ProfileDashboard";
 import HomePage from "./pages/Home/PublicPages/HomePage";
 import ProtectedRoute from "./pages/ProtectedRoute";
+import PublicRoute from "./pages/PublicRoutes";
 
 function App() {
   return (
-   <BrowserRouter>
+    <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<SplashScreen />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/home" element={<HomePage />} />
-
+        <Route element={<PublicRoute />}>
+          <Route path="/" element={<SplashScreen />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/home" element={<HomePage />} />
+        </Route>
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
