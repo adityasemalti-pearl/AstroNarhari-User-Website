@@ -26,6 +26,7 @@ import ProfileDashboard from "./pages/ProfilePage/ProfileDashboard";
 import HomePage from "./pages/Home/PublicPages/HomePage";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import PublicRoute from "./pages/PublicRoutes";
+import NotFound from "./components/NotFound";
 
 function App() {
   return (
@@ -63,6 +64,7 @@ function App() {
             <Route path="consultations" element={<MyConsultations />} />
           </Route>
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

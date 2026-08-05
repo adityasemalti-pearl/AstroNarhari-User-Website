@@ -31,10 +31,10 @@ export default function Navbar({ activeNav, setActiveNav }) {
     //   name: "Live Astrologers",
     //   link: "/dashboard/astrologers"
     // },
-    {
-      name: "About Us",
-      link: "/dashboard/about"
-    },
+    // {
+    //   name: "About Us",
+    //   link: "/dashboard/about"
+    // },
     {
       name: "Cosmic Shop",
       link: "/dashboard/cosmic"

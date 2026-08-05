@@ -15,6 +15,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { getCategories, getFeaturedProducts, getUserBanners } from "../../API/cosmicApis";
 import { useNavigate } from "react-router-dom";
+import Loader from "../../components/Loader";
 
 export default function CosmicStore() {
 
@@ -23,11 +24,14 @@ export default function CosmicStore() {
     const [banners, setBanners] = useState([])
     const [categories, setCategories] = useState([])
     const [featuredProducts, setFeaturedProducts] = useState([])
+    const [loading, setLoading] = useState(false)
 
     const fetchBanners = async () => {
         try {
+            setLoading(true)
             const res = await getUserBanners()
             setBanners(res.data.data)
+            setLoading(false)
         } catch (error) {
             console.log(error)
         }
@@ -36,8 +40,10 @@ export default function CosmicStore() {
 
     const fetchCategories = async () => {
         try {
+            setLoading(true)
             const res = await getCategories()
             setCategories(res.data.data)
+            setLoading(false)
         } catch (error) {
             console.log(error)
         }
@@ -45,8 +51,10 @@ export default function CosmicStore() {
 
     const fetchFeaturedProducts = async () => {
         try {
+            setLoading(true)
             const res = await getFeaturedProducts()
             setFeaturedProducts(res.data.data)
+            setLoading(false)
         } catch (error) {
             console.log(error)
         }
@@ -58,13 +66,20 @@ export default function CosmicStore() {
         fetchFeaturedProducts();
     }, [])
 
+
+    if (loading) {
+        return (
+            <Loader />
+        )
+    }
+
     return (
 
         <div className="relative">
 
             <button
-            onClick={()=>navigate('/dashboard/cart')}
-            className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-purple-500/40">
+                onClick={() => navigate('/dashboard/cart')}
+                className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-purple-500/40">
                 <ShoppingCart size={20} strokeWidth={2.2} />
             </button>
 
@@ -170,7 +185,7 @@ export default function CosmicStore() {
                 {/* Heading */}
 
                 <div
-                 
+
                     className="flex items-center justify-between mb-10 max-w-6xl mx-auto"
                 >
 
@@ -208,7 +223,7 @@ export default function CosmicStore() {
                             scale: .96
                         }}
 
-                        onClick={()=>navigate('/dashboard/products')}
+                        onClick={() => navigate('/dashboard/products')}
 
                         className="rounded-2xl bg-gradient-to-r from-purple-700 to-violet-600 px-7 py-3 font-semibold text-white shadow-xl"
 
@@ -255,7 +270,7 @@ export default function CosmicStore() {
                                     y: -8
                                 }}
 
-                                className="group w-32 flex-shrink-0 cursor-pointer text-center"
+                                className="group w-32 flex-shrink-0 cursor-pointer text-center mx-auto"
 
                             >
 
@@ -332,10 +347,10 @@ export default function CosmicStore() {
                         </p>
 
                     </div>
-
+                    {/* 
                     <button className="rounded-2xl border border-purple-200 bg-white px-6 py-3 font-semibold text-purple-700 transition hover:bg-purple-700 hover:text-white">
                         View All →
-                    </button>
+                    </button> */}
 
                 </div>
 
@@ -348,11 +363,14 @@ export default function CosmicStore() {
                             whileHover={{ y: -5 }}
                             transition={{ duration: 0.25 }}
                             className="rounded-2xl bg-white border border-slate-200 p-3  w-[300px] shadow-sm hover:shadow-xl"
+
                         >
 
                             {/* Image */}
 
-                            <div className="relative overflow-hidden rounded-2xl bg-slate-100 aspect-square">
+                            <div
+                                onClick={() => navigate(`/dashboard/cosmic-detail/${item._id}`)}
+                                className="relative overflow-hidden rounded-2xl bg-slate-100 aspect-square">
 
                                 <img
                                     src={item.images?.[0]}
@@ -392,8 +410,10 @@ export default function CosmicStore() {
 
                                     </div>
 
-                                    <button  className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-800 text-white transition hover:scale-110">
-                                        🛒
+                                    <button
+                                        onClick={() => navigate('/dashboard/cart')}
+                                        className="flex h-10 w-10 items-center hover:scale-105 duration-200 justify-center rounded-full bg-purple-800 text-white transition hover:scale-110">
+                                        <ShoppingCart />
                                     </button>
 
                                 </div>
