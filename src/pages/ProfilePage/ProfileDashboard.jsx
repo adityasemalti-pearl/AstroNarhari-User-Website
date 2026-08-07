@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Sun,
@@ -13,6 +13,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getUserProfile } from "../../API/authapis";
+import Loader from "../../components/Loader";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -31,45 +33,38 @@ const SERVICES = [
   { id: "language", icon: Languages, label: "Language", desc: "English (India)" },
 ];
 
-const user = {
-  fullName: "Aditya Semalti",
-  email: "aditya.semalti@gmail.com",
-  phone: "+91 9876543210",
 
-  sunSign: "Libra",
-  moonSign: "Cancer",
-  risingSign: "Scorpio",
 
-  walletBalance: 2500,
-
-  gender: "Male",
-  dateOfBirth: "2001-10-18",
-  timeOfBirth: "08:45 AM",
-  placeOfBirth: "Dehradun, Uttarakhand",
-
-  profileImage: "",
-
-  consultations: 12,
-  orders: 8,
-  reports: 15,
-
-  membership: "Premium",
-  language: "English",
-};
 
 export default function ProfileDashboard() {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [profile, setProfile] = useState({});
-    const fetchProfile = async()=>{
-        try {
-            
-        } catch (error) {
-            console.log(error)
-        }
+  const [loading,setLoading] = useState(false)
+
+  const [user, setUser] = useState({});
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      const res = await getUserProfile()
+      setUser(res.data.data)
+      setLoading(false)
+    } catch (error) {
+      console.log(error)
     }
+  }
+
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+
+  if(loading){
+    return (
+      <Loader/>
+    )
+  }
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 my-10">
       {/* Identity hero */}
       <motion.div
         custom={0}
@@ -79,8 +74,12 @@ export default function ProfileDashboard() {
         className="rounded-3xl bg-white border border-purple-100 shadow-xl p-9 flex flex-col md:flex-row md:items-center gap-8"
       >
         <div className="relative shrink-0 mx-auto md:mx-0">
-          <div className="h-28 w-28 rounded-full bg-gradient-to-br from-purple-100 to-white border-4 border-white shadow-lg flex items-center justify-center text-3xl font-serif font-bold text-purple-700">
-            {user.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          <div className="h-28 w-28 rounded-full bg-gradient-to-br from-purple-100 to-white border-4 border-white shadow-lg flex items-center justify-center">
+            <img
+              src={user?.profilePic || "data:image/jpeg;base64,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"}
+              alt="logo"
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-gradient-to-br from-amber-300 to-yellow-400 border-4 border-white flex items-center justify-center shadow-md">
             <Sparkles size={13} className="text-white" />
@@ -88,25 +87,34 @@ export default function ProfileDashboard() {
         </div>
 
         <div className="flex-1 text-center md:text-left">
-          <h2 className="text-2xl font-serif font-bold text-slate-950">{user.fullName}</h2>
-          <p className="text-sm text-slate-500 mt-1">{user.email}</p>
+          <h2 className="text-2xl font-serif font-bold text-slate-950">
+            {user?.fullName || user?.name || "N/A"}
+          </h2>
+
+          <p className="text-sm text-slate-500 mt-1">
+            {user?.email || user?.mobile || "No email available"}
+          </p>
 
           <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold px-3 py-1.5">
-              <Sun size={13} /> {user.sunSign} Sun
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1.5">
-              <Moon size={13} /> {user.moonSign} Moon
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold px-3 py-1.5">
-              <ArrowUpRight size={13} /> {user.risingSign} Rising
-            </span>
+            <div className="flex flex-wrap justify-center md:justify-start gap-2 mt-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold px-3 py-1.5">
+                <Sun size={13} /> {user?.zodiac || "N/A"}
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold px-3 py-1.5">
+                <Moon size={13} /> {user?.gender || "N/A"}
+              </span>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 text-sky-700 text-xs font-semibold px-3 py-1.5">
+                <ArrowUpRight size={13} /> {user?.placeOfBirth || "N/A"}
+              </span>
+            </div>
           </div>
         </div>
 
         <button
           type="button"
-            onClick={() => navigate("/dashboard/profile/edit")}
+          onClick={() => navigate("/dashboard/profile/edit")}
           className="shrink-0 rounded-xl border border-purple-200 text-purple-700 text-sm font-semibold px-5 py-2.5 hover:bg-purple-50 transition-colors"
         >
           Edit Profile
@@ -126,7 +134,7 @@ export default function ProfileDashboard() {
           <div className="relative">
             <p className="text-xs uppercase tracking-[3px] text-purple-200">Wallet Balance</p>
             <p className="text-4xl font-serif font-bold mt-2">
-              &#8377;{user.walletBalance.toLocaleString("en-IN")}
+              ₹{Number(user?.walletBalance || 0).toLocaleString("en-IN")}
             </p>
           </div>
           <button

@@ -1,5 +1,4 @@
-import React, { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react"; import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   Mail,
@@ -12,6 +11,8 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import { editUserProfile, getUserProfile } from "../../API/authapis";
+import Loader from "../../components/Loader";
 
 const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say"];
 
@@ -27,17 +28,17 @@ function Field({ label, icon: Icon, children }) {
   );
 }
 
-export default function EditProfileDetails({ user, onSave }) {
+export default function EditProfileDetails() {
   const [formData, setFormData] = useState({
-    fullName: user.fullName,
-    email: user.email,
-    gender: user.gender,
-    dob: user.dob,
-    tob: user.tob,
-    birthPlace: user.birthPlace,
+    fullName: "",
+    gender: "",
+    dateOfBirth: "",
+    timeOfBirth: "",
+    placeOfBirth: "",
+    profilePic: null,
   });
   const [genderOpen, setGenderOpen] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState(user.avatar);
+  const [avatarPreview, setAvatarPreview] = useState("");
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -46,24 +47,102 @@ export default function EditProfileDetails({ user, onSave }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const [loading, setLoading] = useState(false)
+
+  const [user, setUser] = useState({});
+  const fetchProfile = async () => {
+    try {
+      setLoading(true)
+      const res = await getUserProfile()
+      const data = res.data.data;
+      setUser(data)
+      console.log(data)
+      setFormData({
+        fullName: data.name || "",
+        gender: data.gender || "",
+        dateOfBirth: data.dateOfBirth
+          ? data.dateOfBirth.split("T")[0]
+          : "",
+        timeOfBirth: data.timeOfBirth || "",
+        placeOfBirth: data.placeOfBirth || "",
+        profilePic: data.profilePic,
+      });
+
+      setAvatarPreview(data.profilePic || "");
+      setLoading(false)
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      const payload = new FormData();
+
+      payload.append("fullName", formData.fullName);
+      payload.append("gender", formData.gender);
+      payload.append("dateOfBirth", formData.dateOfBirth);
+      payload.append("timeOfBirth", formData.timeOfBirth);
+      payload.append("placeOfBirth", formData.placeOfBirth);
+     
+      if (formData.profilePic instanceof File) {
+        payload.append("profilePic", formData.profilePic);
+      }
+
+      const res = await editUserProfile(payload);
+
+      if (res.data.success) {
+        setSaved(true);
+        fetchProfile();
+
+        setTimeout(() => {
+          setSaved(false);
+        }, 2500);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) setAvatarPreview(URL.createObjectURL(file));
+
+    if (!file) return;
+
+    setAvatarPreview(URL.createObjectURL(file));
+
+    setFormData((prev) => ({
+      ...prev,
+      profilePic: file,
+    }));
   };
 
-  const handleSave = () => {
-    onSave?.(formData);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2600);
-  };
+
+  if (loading) {
+    return (
+      <Loader />
+    )
+  }
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl space-y-6 my-20 mx-auto">
       <div className="rounded-3xl bg-white border border-purple-100 shadow-xl p-9">
-        <h3 className="text-lg font-serif font-bold text-slate-950 mb-1">
+        <h3 className="text-2xl font-serif font-bold text-slate-950 mb-1 text-center">
           Update Cosmic Identity
         </h3>
-        <p className="text-sm text-slate-500 mb-8">
+        <p className="text-sm text-slate-500 mb-8 text-center">
           Accurate birth details ensure precise chart calculations and readings.
         </p>
 
@@ -72,7 +151,11 @@ export default function EditProfileDetails({ user, onSave }) {
           <div className="relative">
             <div className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-100 to-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <User size={28} className="text-purple-600" />
               )}
@@ -109,7 +192,7 @@ export default function EditProfileDetails({ user, onSave }) {
             />
           </Field>
 
-          <Field label="Email Address" icon={Mail}>
+          {/* <Field label="Email Address" icon={Mail}>
             <input
               name="email"
               type="email"
@@ -117,7 +200,7 @@ export default function EditProfileDetails({ user, onSave }) {
               onChange={handleChange}
               className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
             />
-          </Field>
+          </Field> */}
 
           <div className="space-y-2.5 relative">
             <label className="text-sm font-semibold text-slate-700 block">Gender</label>
@@ -159,9 +242,9 @@ export default function EditProfileDetails({ user, onSave }) {
 
           <Field label="Date of Birth" icon={Calendar}>
             <input
-              name="dob"
+              name="dateOfBirth"
               type="date"
-              value={formData.dob}
+              value={formData.dateOfBirth}
               onChange={handleChange}
               className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
             />
@@ -169,9 +252,9 @@ export default function EditProfileDetails({ user, onSave }) {
 
           <Field label="Time of Birth" icon={Clock3}>
             <input
-              name="tob"
-              type="time"
-              value={formData.tob}
+              name="timeOfBirth"
+              type="text"
+              value={formData.timeOfBirth}
               onChange={handleChange}
               className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
             />
@@ -179,8 +262,8 @@ export default function EditProfileDetails({ user, onSave }) {
 
           <Field label="Place of Birth" icon={MapPin}>
             <input
-              name="birthPlace"
-              value={formData.birthPlace}
+              name="placeOfBirth"
+              value={formData.placeOfBirth}
               onChange={handleChange}
               placeholder="City, Country"
               className="w-full outline-none bg-transparent text-sm text-slate-800 placeholder:text-slate-400 border-none p-0"
@@ -210,12 +293,12 @@ export default function EditProfileDetails({ user, onSave }) {
         >
           SAVE CHANGES
         </motion.button>
-        <button
+        {/* <button
           type="button"
           className="rounded-2xl border border-slate-200 text-slate-600 font-semibold text-sm px-8 py-4 hover:bg-slate-50 transition-colors"
         >
           Cancel
-        </button>
+        </button> */}
       </div>
 
       <AnimatePresence>

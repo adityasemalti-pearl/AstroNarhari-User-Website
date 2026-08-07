@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -13,10 +13,24 @@ import {
   Wallet2,
   ShoppingBag
 } from "lucide-react";
+import { getUserProfile } from "../API/authapis";
 
 export default function Navbar({ activeNav, setActiveNav }) {
 
   const [showProfile, setShowProfile] = React.useState(false);
+
+
+  const [user , setUser] = useState();
+
+  const fetchUser = async()=>{
+    try {
+      const res = await getUserProfile()
+      setUser(res.data.data)
+      
+    } catch (error) {
+      console.log(error)
+    }
+  }
 
   const menu = [
     {
@@ -43,7 +57,6 @@ export default function Navbar({ activeNav, setActiveNav }) {
       name: "Livestream",
       link: "/dashboard/live"
     },
-
   ]
 
   const navigate = useNavigate()

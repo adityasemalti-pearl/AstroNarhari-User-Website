@@ -69,3 +69,25 @@ export const getShopBanner = ()=>{
     return api.get('/product/shop-banners')
 }
 
+
+
+export const addShippingAddress = (data)=>{
+    return api.post('/shipping/add', data)
+}
+
+
+
+export const getMyAddresses = ()=>{
+    return api.get('/shipping/get-my-adddresses')
+}
+
+
+export const updateShippingAddress = (id, data)=>{
+    return api.put(`/shipping/${id}`,data)
+}
+
+
+export const deleteShippingAddress = (id)=>{
+    return api.delete(`/shipping/${id}`)
+}
+

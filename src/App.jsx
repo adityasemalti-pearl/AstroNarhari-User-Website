@@ -27,6 +27,7 @@ import HomePage from "./pages/Home/PublicPages/HomePage";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import PublicRoute from "./pages/PublicRoutes";
 import NotFound from "./components/NotFound";
+import CheckoutPage from "./pages/Cart/Checkout";
 
 function App() {
   return (
@@ -44,7 +45,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="kundali" element={<KundliPage />} />
             <Route path="horoscope" element={<Horoscope />} />
-            <Route path="profile" element={<CreateProfilePage />} />
+            <Route path="create-profile" element={<CreateProfilePage />} />
             <Route path="match" element={<MatchingMaking />} />
             <Route path="festival" element={<FestivalCalendar />} />
             <Route path="live" element={<LiveStream />} />
@@ -62,6 +63,7 @@ function App() {
             <Route path="profile/edit" element={<EditProfileDetails />} />
             <Route path="settings" element={<AccountSettings />} />
             <Route path="consultations" element={<MyConsultations />} />
+            <Route path="checkout" element={<CheckoutPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

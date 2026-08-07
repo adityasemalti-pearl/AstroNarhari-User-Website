@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Heart,
@@ -13,6 +13,7 @@ import {
   Calendar,
   Compass,
 } from "lucide-react";
+import { getDailyHoroscope } from "../../API/homeApis";
 
 export default function Horoscope() {
   const metrics = [
@@ -64,6 +65,22 @@ export default function Horoscope() {
       },
     },
   };
+
+
+  const [horoscope , setHoroscope] = useState();
+
+  const fetchHoroscope = async()=>{
+    try {
+      const res = await getDailyHoroscope()
+      setHoroscope(res.data.data)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(()=>{
+    fetchHoroscope()
+  },[])
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">

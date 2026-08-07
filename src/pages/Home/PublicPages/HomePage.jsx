@@ -655,7 +655,7 @@ export default function AstroSetuLanding() {
                             <li><a href="#services">Kundli</a></li><li><a href="#services">Match Making</a></li><li><a href="#astrologers">Talk to Astrologer</a></li><li><a href="#services">Numerology</a></li>
                         </ul></div>
                         <div className="footer-col"><h5>Contact</h5><ul>
-                            <li>support@Namah-Astro.in</li><li>+91 98765 43210</li><li>Dehradun, India</li>
+                            <li>Admin@namahastro.com</li>
                         </ul></div>
                     </div>
                     <div className="footer-bottom">

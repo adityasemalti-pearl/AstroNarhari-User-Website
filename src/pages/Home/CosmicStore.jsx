@@ -13,9 +13,10 @@ import { Autoplay, Pagination } from "swiper/modules";
 
 import "swiper/css";
 import "swiper/css/pagination";
-import { getCategories, getFeaturedProducts, getUserBanners } from "../../API/cosmicApis";
+import { addToCart, getCategories, getFeaturedProducts, getUserBanners } from "../../API/cosmicApis";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../components/Loader";
+import FloatingCartButton from "../Cart/FloatingCartButton";
 
 export default function CosmicStore() {
 
@@ -66,6 +67,18 @@ export default function CosmicStore() {
         fetchFeaturedProducts();
     }, [])
 
+    const handleAddToCart = async () => {
+            try {
+                const res = await addToCart({
+                    productId: productDetail._id,
+                    quantity: 1,
+                });
+    
+            } catch (error) {
+                console.log(error);
+            }
+        };
+
 
     if (loading) {
         return (
@@ -77,11 +90,7 @@ export default function CosmicStore() {
 
         <div className="relative">
 
-            <button
-                onClick={() => navigate('/dashboard/cart')}
-                className="absolute bottom-4 right-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-700 to-violet-900 text-white shadow-xl transition-all duration-300 hover:scale-110 hover:shadow-purple-500/40">
-                <ShoppingCart size={20} strokeWidth={2.2} />
-            </button>
+            <FloatingCartButton />
 
             <div className="mb-8 text-center">
                 <div className="inline-flex items-center gap-2 rounded-full bg-purple-100 px-5 py-2 text-sm font-semibold text-purple-700">

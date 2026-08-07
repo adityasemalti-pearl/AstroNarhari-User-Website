@@ -31,6 +31,7 @@ import { useParams } from 'react-router-dom';
 import { addToCart, getProductById, getRelatedProducts } from '../../API/cosmicApis';
 import toast from 'react-hot-toast';
 import AddToCartPopup from '../Cart/AddToCartPopUp';
+import Loader from '../../components/Loader';
 
 const INSIGHTS_DATA = {
     'great-conjunction': {
@@ -193,11 +194,13 @@ export default function App() {
 
     const fetchProductDetail = async () => {
         try {
+            setLoading(true)
             const res = await getProductById(id);
 
-            console.log("API:", res.data);
+            console.log("API  jj:", res.data);
 
             setProductDetail(res.data.data);
+            setLoading(false)
         } catch (error) {
             console.error(error);
         }
@@ -205,11 +208,11 @@ export default function App() {
 
     const fetchRelatedProduct = async () => {
         try {
+            setLoading(true)
             const res = await getRelatedProducts(id);
-
             console.log("API:", res.data);
-
             setRelatedProducts(res.data.data);
+            setLoading(false)
         } catch (error) {
             console.error(error);
         }
@@ -243,6 +246,12 @@ export default function App() {
         }
     };
 
+
+    if(loading){
+        return(
+            <Loader/>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[#FDFBF7] text-[#2A2438] font-sans selection:bg-amber-200 selection:text-purple-950 pb-20 relative overflow-x-hidden">
@@ -465,7 +474,7 @@ export default function App() {
                                         <button
                                             onClick={handleAddToCart}
                                             disabled={loading}
-                                            className="flex-1 rounded-2xl border-2 border-purple-900 py-4 font-bold text-purple-900 transition disabled:opacity-60"
+                                            className="flex-1 hover:sacle-105 duration-150 rounded-2xl border-2 border-purple-900 py-4 font-bold text-purple-900 transition-all disabled:opacity-60"
                                         >
                                             {loading ? "Adding..." : "Add to Cart"}
                                         </button>

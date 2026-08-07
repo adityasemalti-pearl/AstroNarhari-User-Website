@@ -319,7 +319,7 @@ export default function Login() {
       });
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/create-profile");
       }, 2200);
 
     } catch (err) {

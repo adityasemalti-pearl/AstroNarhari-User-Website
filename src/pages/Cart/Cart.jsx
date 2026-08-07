@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getCart, updateCartProduct } from "../../API/cosmicApis";
 
 
@@ -9,9 +9,7 @@ const Cart = () => {
     const [loading, setLoading] = useState(true);
     const [updatingProductId, setUpdatingProductId] = useState(null);
 
-
-
-
+    const navigate = useNavigate()
 
     const fetchCart = async () => {
         try {
@@ -30,6 +28,9 @@ const Cart = () => {
             setLoading(false);
         }
     };
+
+
+    
 
 
 
@@ -477,7 +478,9 @@ const Cart = () => {
 
                                     </div>
 
-                                    <button className="w-full rounded-2xl bg-gradient-to-r from-purple-900 to-indigo-900 py-4 text-lg font-bold text-amber-300 transition hover:scale-[1.02]">
+                                    <button
+                                    onClick={()=>navigate('/dashboard/checkout')}
+                                    className="w-full rounded-2xl bg-gradient-to-r from-purple-900 to-indigo-900 py-4 text-lg font-bold text-amber-300 transition hover:scale-[1.02]">
 
                                         Proceed To Checkout
 

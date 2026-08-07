@@ -122,14 +122,14 @@ export default function Footer() {
             <h3 className="mb-6 text-xl font-bold">Contact Us</h3>
 
             <div className="space-y-5 text-gray-400">
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 <FaPhoneAlt className="text-purple-400" />
                 <span>+91 98765 43210</span>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-3">
                 <MdEmail className="text-xl text-purple-400" />
-                <span>support@astronarhari.com</span>
+                <span>Admin@namahastro.com</span>
               </div>
 
               <div className="flex items-center gap-3">

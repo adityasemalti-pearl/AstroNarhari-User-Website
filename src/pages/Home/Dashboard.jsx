@@ -79,7 +79,7 @@ export default function Dashboard() {
   const [astrologers, setAstrologers] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState([])
-    
+
   const [insights, setInsights] = useState([])
 
 
@@ -130,13 +130,13 @@ export default function Dashboard() {
 
 
 
-  
-  
-  const fetchInsights=async()=>{
+
+
+  const fetchInsights = async () => {
     try {
       const res = await getCosmicInsights()
       console.log(res.data)
-      setInsights(res.data.data.slice(0,2))
+      setInsights(res.data.data.slice(0, 2))
     } catch (error) {
       console.log(error)
     }
@@ -148,7 +148,7 @@ export default function Dashboard() {
     fetchInsights();
   }, [])
 
-  console.log("ye ai",insights)
+  console.log("ye ai", insights)
 
 
   if (loading) {
@@ -239,7 +239,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button className="w-full mt-6 py-3 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl shadow-md transition-colors">
+            <button
+              onClick={() => navigate('/dashboard/horoscope')}
+              className="w-full mt-6 py-3 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl shadow-md transition-colors">
               Read Full Horoscope
             </button>
           </motion.div>
@@ -283,7 +285,7 @@ export default function Dashboard() {
         </section>
 
         {/* LIVE ASTROLOGERS SECTION */}
-        <section className="space-y-6 pt-10">
+        <section id='astrologers' className="space-y-6 pt-10">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -367,9 +369,9 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
               <button
-              onClick={()=>navigate('/dashboard/articles')}
-              className="text-xs font-semibold text-[#52007A] hover:underline">
-                Read Articles 
+                onClick={() => navigate('/dashboard/articles')}
+                className="text-xs font-semibold text-[#52007A] hover:underline">
+                Read Articles
               </button>
             </div>
 
@@ -420,6 +422,12 @@ export default function Dashboard() {
 
       {/* Floating Action Chat Button */}
       <motion.button
+        onClick={() => {
+          document.getElementById("astrologers")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         className="fixed bottom-8 right-8 z-50 px-5 py-3 bg-[#52007A] text-white rounded-full shadow-2xl shadow-purple-950/30 flex items-center gap-3 text-xs font-bold cursor-pointer"
