@@ -649,7 +649,7 @@ export default function AstroSetuLanding() {
                             <li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Contact</a></li><li><a href="#">Blog</a></li>
                         </ul></div>
                         <div className="footer-col"><h5>Legal</h5><ul>
-                            <li><a href="#">Privacy Policy</a></li><li><a href="#">Terms & Conditions</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li>
+                            <li><a href="#">Privacy Policy</a></li><li><a href="/terms-n-conditions">Terms & Conditions</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li>
                         </ul></div>
                         <div className="footer-col"><h5>Services</h5><ul>
                             <li><a href="#services">Kundli</a></li><li><a href="#services">Match Making</a></li><li><a href="#astrologers">Talk to Astrologer</a></li><li><a href="#services">Numerology</a></li>

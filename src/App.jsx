@@ -32,6 +32,7 @@ import CheckoutPage from "./pages/Cart/Checkout";
 
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import TermsConditions from "./pages/Home/PublicPages/TermsConditions";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -58,6 +59,7 @@ function App() {
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/terms-n-conditions" element={<TermsConditions />} />
         </Route>
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>

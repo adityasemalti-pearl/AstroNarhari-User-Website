@@ -49,7 +49,7 @@ export default function Footer() {
           {/* Logo */}
           <div>
             <h2 className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-3xl font-extrabold text-transparent">
-              AstroNarhari
+              Namah-Astro
             </h2>
 
             <p className="mt-5 leading-7 text-gray-400">
@@ -132,10 +132,10 @@ export default function Footer() {
                 <span>Admin@namahastro.com</span>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 <FaMapMarkerAlt className="text-lg text-purple-400" />
                 <span>Dehradun, Uttarakhand, India</span>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
@@ -145,9 +145,9 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="flex flex-col items-center justify-between gap-5 text-sm text-gray-400 lg:flex-row">
-          <p>© 2026 AstroNarhari. All Rights Reserved.</p>
+          <p>© 2026 Namah-Astro. All Rights Reserved.</p>
 
-          <div className="flex flex-wrap gap-6">
+          {/* <div className="flex flex-wrap gap-6">
             <span className="cursor-pointer hover:text-purple-400">
               Privacy Policy
             </span>
@@ -159,7 +159,7 @@ export default function Footer() {
             <span className="cursor-pointer hover:text-purple-400">
               Refund Policy
             </span>
-          </div>
+          </div> */}
         </div>
       </div>
     </footer>
