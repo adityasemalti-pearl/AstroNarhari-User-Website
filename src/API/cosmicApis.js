@@ -38,6 +38,12 @@ export const getCoupons = ()=>{
     return api.get(`/coupon/coupons`)
 }
 
+export const applyCoupon = (data)=>{
+    return api.post(`/coupon/coupon/apply`,data)
+}
+
+
+
 export const addToCart = (data)=>{
     return api.post(`/user/cart/add`,data)
 }
@@ -91,3 +97,8 @@ export const deleteShippingAddress = (id)=>{
     return api.delete(`/shipping/${id}`)
 }
 
+
+
+export const createOrder = (data) => {
+    return api.post("/order/orders", data);
+};

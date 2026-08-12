@@ -13,12 +13,14 @@ const BANNERS = [
         subtitle: "Get personalized horoscope predictions.",
         button: "Explore Horoscope",
         video: video1,
+        link: "/dashboard/horoscope"
     },
     {
         title: "Talk To Expert Astrologers",
         subtitle: "Connect instantly with verified astrologers.",
         button: "Consult Now",
         video: video2,
+        link: "/dashboard/astrologers"
     },
     {
         title: "Your Stars Hold the Answers",
@@ -26,6 +28,7 @@ const BANNERS = [
             "Discover accurate daily predictions, lucky timings, and cosmic guidance tailored just for you.",
         button: "View Horoscope",
         video: video3,
+        link: "/dashboard/horoscope"
     },
 ];
 
@@ -189,7 +192,9 @@ export default function HeroBanner() {
 
                                 >
 
-                                    <button className="group rounded-full bg-white px-8 py-4 font-semibold text-black transition-all duration-300 hover:scale-105 hover:bg-yellow-300">
+                                    <button
+                                    onClick={()=>navigate(BANNERS[current].link)}
+                                    className="group rounded-full bg-white px-8 py-4 font-semibold text-black transition-all duration-300 hover:scale-105 hover:bg-yellow-300">
 
                                         <span
                                         className="flex items-center gap-2">

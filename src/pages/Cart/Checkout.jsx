@@ -22,8 +22,12 @@ import {
     updateShippingAddress,
     deleteShippingAddress,
     getCart,
+    getCoupons,
+    applyCoupon,
+    createOrder
 } from "../../API/cosmicApis";
 import AddressModal from "./AddressModal";
+import PaymentResultPopup from "./PaymentResultPopup";
 
 // ---------- helpers ----------
 
@@ -107,6 +111,27 @@ const CheckoutPage = () => {
     const [deletingId, setDeletingId] = useState(null);
     const [error, setError] = useState("");
 
+    const [coupons, setCoupons] = useState([]);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [couponError, setCouponError] = useState("");
+    const [couponSuccess, setCouponSuccess] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [applyingCoupon, setApplyingCoupon] = useState(false);
+    const [couponDropdownOpen, setCouponDropdownOpen] = useState(false);
+    const [paymentResult, setPaymentResult] = useState(null);
+
+    const fetchCoupons = async () => {
+        try {
+            setAddressLoading(true);
+            const res = await getCoupons();
+            setCoupons(res?.data?.data || []);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setAddressLoading(false);
+        }
+    }
+
     const fetchMyAddresses = async () => {
         try {
             setAddressLoading(true);
@@ -144,6 +169,7 @@ const CheckoutPage = () => {
     useEffect(() => {
         fetchMyAddresses();
         fetchCart();
+        fetchCoupons();
     }, []);
 
     const openAddModal = () => {
@@ -203,12 +229,190 @@ const CheckoutPage = () => {
     // ---- order totals ----
     const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.qty, 0);
     const shipping = 0; // free shipping
-    const gstRate = 0.03; // adjust to match actual tax logic
-    const gst = Math.round(subtotal * gstRate);
-    const total = subtotal + shipping + gst;
-
+    const gstRate = 0.03;
+    const discount = appliedCoupon?.discountAmount || 0;
+    const gst = Math.round((subtotal - discount) * gstRate);
+    const total = subtotal - discount + shipping + gst;
     const canProceed =
         !!selectedAddress && cartItems.length > 0 && !cartLoading && !addressLoading;
+
+
+    const handleRazorpayPayment = () => {
+        if (!canProceed) {
+            setError("Please select an address and add products to your cart.");
+            return;
+        }
+
+        if (paymentMethod !== "razorpay") {
+            setError("Please select Razorpay as the payment method.");
+            return;
+        }
+
+        if (!window.Razorpay) {
+            setError("Razorpay SDK failed to load. Please refresh the page.");
+            return;
+        }
+
+        const options = {
+            key: "rzp_test_TE9gEROWqFsafm",
+
+            amount: Math.round(total * 100),
+
+            currency: "INR",
+
+            name: "Namahastro Cosmic shop",
+            description: "Test Order Payment",
+
+            image: "https://yourwebsite.com/logo.png",
+
+            prefill: {
+                name: selectedAddress?.fullName || "Test User",
+                email: "test@example.com",
+                contact: selectedAddress?.mobile || "9999999999",
+            },
+
+            notes: {
+                address: selectedAddress
+                    ? `${selectedAddress.city}, ${selectedAddress.state}`
+                    : "",
+                order_notes: orderNotes,
+            },
+
+            theme: {
+                color: "#7c3aed",
+            },
+
+            // Payment successful
+            handler: async function (response) {
+                console.log("Payment Successful:", response);
+
+                try {
+                    setError("");
+
+                    const orderData = {
+                        paymentMethod: "ONLINE",
+
+                        couponCode: couponCode || undefined,
+
+                        notes: orderNotes,
+
+                        address: {
+                            name: selectedAddress.fullName,
+                            mobile: selectedAddress.mobile,
+
+                            address: [
+                                selectedAddress.houseNo,
+                                selectedAddress.area,
+                                selectedAddress.landmark,
+                            ]
+                                .filter(Boolean)
+                                .join(", "),
+
+                            city: selectedAddress.city,
+                            state: selectedAddress.state,
+                            pincode: selectedAddress.pincode,
+                        },
+
+                        paymentDetails: {
+                            transactionId:
+                                response.razorpay_payment_id,
+                        },
+                    };
+
+                    console.log("Creating Order:", orderData);
+
+                    const result = await createOrder(orderData);
+
+                    console.log("Order Created Successfully:", result);
+
+                    setPaymentResult({
+                        type: "success",
+                        message:
+                            "Your payment was successful and your order has been placed successfully.",
+                        paymentId:
+                            response.razorpay_payment_id,
+                    });
+                    // Optional:
+                    // navigate("/orders");
+
+                } catch (error) {
+                    console.error("Order creation failed:", error);
+
+                    setError(
+                        error?.response?.data?.message ||
+                        "Payment successful but order creation failed."
+                    );
+                }
+            },
+
+            modal: {
+                ondismiss: function () {
+                    console.log("Razorpay checkout closed");
+                },
+            },
+        };
+
+        const razorpay = new window.Razorpay(options);
+
+        razorpay.on("payment.failed", function (response) {
+            console.error("Payment Failed:", response.error);
+
+            setPaymentResult({
+                type: "failure",
+                message:
+                    response.error?.description ||
+                    "Payment failed. Please try again.",
+            });
+        });
+
+        razorpay.open();
+    };
+
+
+
+    const handleApplyCoupon = async () => {
+        setCouponError("");
+        setCouponSuccess("");
+
+        if (!couponCode) {
+            setCouponError("Please select a coupon.");
+            return;
+        }
+
+        try {
+            setApplyingCoupon(true);
+
+            const res = await applyCoupon({
+                code: couponCode,
+                order_amount: subtotal,
+            });
+
+            const data = res?.data?.data || res?.data;
+
+            const discountAmount = Number(
+                data?.discountAmount ?? data?.discount ?? 0
+            );
+
+            setAppliedCoupon({
+                code: data?.code || couponCode,
+                discountAmount,
+            });
+
+            setCouponSuccess(
+                `${data?.code || couponCode} applied successfully. You saved ${currency(
+                    discountAmount
+                )}.`
+            );
+        } catch (err) {
+            console.log(err);
+            setCouponError(
+                err?.response?.data?.message || "Couldn't apply this coupon. Please try again."
+            );
+            setAppliedCoupon(null);
+        } finally {
+            setApplyingCoupon(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#faf8ff] py-10">
@@ -293,11 +497,10 @@ const CheckoutPage = () => {
                                                 <div
                                                     key={id}
                                                     onClick={() => setSelectedAddressId(id)}
-                                                    className={`group relative cursor-pointer rounded-2xl border p-5 transition ${
-                                                        isSelected
-                                                            ? "border-purple-600 bg-purple-50 ring-2 ring-purple-200"
-                                                            : "border-gray-200 bg-white hover:border-purple-300"
-                                                    }`}
+                                                    className={`group relative cursor-pointer rounded-2xl border p-5 transition ${isSelected
+                                                        ? "border-purple-600 bg-purple-50 ring-2 ring-purple-200"
+                                                        : "border-gray-200 bg-white hover:border-purple-300"
+                                                        }`}
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
@@ -313,11 +516,10 @@ const CheckoutPage = () => {
                                                         </div>
 
                                                         <div
-                                                            className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
-                                                                isSelected
-                                                                    ? "border-purple-600 bg-purple-600"
-                                                                    : "border-gray-300"
-                                                            }`}
+                                                            className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${isSelected
+                                                                ? "border-purple-600 bg-purple-600"
+                                                                : "border-gray-300"
+                                                                }`}
                                                         >
                                                             {isSelected && (
                                                                 <Check size={12} className="text-white" />
@@ -381,9 +583,8 @@ const CheckoutPage = () => {
                                         >
                                             {showAllAddresses
                                                 ? "Show less"
-                                                : `Show ${addresses.length - 2} more address${
-                                                      addresses.length - 2 !== 1 ? "es" : ""
-                                                  }`}
+                                                : `Show ${addresses.length - 2} more address${addresses.length - 2 !== 1 ? "es" : ""
+                                                }`}
                                         </button>
                                     )}
                                 </>
@@ -463,33 +664,174 @@ const CheckoutPage = () => {
                                 <div className="rounded-xl bg-purple-100 p-3">
                                     <Tag className="text-purple-700" />
                                 </div>
+
                                 <div>
-                                    <h2 className="text-xl font-bold">Apply Coupon</h2>
+                                    <h2 className="text-xl font-bold">
+                                        Apply Coupon
+                                    </h2>
+
                                     <p className="text-sm text-gray-500">
-                                        Save more on your order
+                                        Choose a coupon and save more on your order
                                     </p>
                                 </div>
                             </div>
 
                             <div className="flex gap-3">
-                                <input
-                                    type="text"
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value)}
-                                    placeholder="Enter Coupon Code"
-                                    className="flex-1 rounded-xl border border-gray-200 px-4 py-3 outline-none focus:border-purple-600"
-                                />
+                                <div className="relative flex-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCouponDropdownOpen((prev) => !prev)}
+                                        className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-left outline-none transition hover:border-purple-300 focus:border-purple-600"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-100">
+                                                <Tag size={17} className="text-purple-600" />
+                                            </div>
+
+                                            <div>
+                                                {couponCode ? (
+                                                    <>
+                                                        <p className="text-sm font-semibold text-gray-800">
+                                                            {couponCode}
+                                                        </p>
+
+                                                        <p className="text-xs text-gray-500">
+                                                            {
+                                                                coupons.find(
+                                                                    (coupon) => coupon.code === couponCode
+                                                                )?.title
+                                                            }
+                                                        </p>
+                                                    </>
+                                                ) : (
+                                                    <p className="text-sm text-gray-500">
+                                                        Select a coupon
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <ChevronRight
+                                            size={18}
+                                            className={`text-gray-400 transition-transform ${couponDropdownOpen ? "rotate-90" : ""
+                                                }`}
+                                        />
+                                    </button>
+
+                                    {couponDropdownOpen && (
+                                        <div className="absolute left-0 right-0 z-50 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-gray-100 bg-white p-2 shadow-xl">
+                                            {coupons.map((coupon) => (
+                                                <button
+                                                    key={coupon._id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCouponCode(coupon.code);
+                                                        setCouponError("");
+                                                        setCouponSuccess("");
+                                                        setCouponDropdownOpen(false);
+                                                    }}
+                                                    className={`mb-1 flex w-full items-center justify-between rounded-xl p-3 text-left transition last:mb-0 ${couponCode === coupon.code
+                                                        ? "bg-purple-50 ring-1 ring-purple-200"
+                                                        : "hover:bg-gray-50"
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-50">
+                                                            <Tag
+                                                                size={17}
+                                                                className="text-green-600"
+                                                            />
+                                                        </div>
+
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm font-bold text-gray-800">
+                                                                    {coupon.code}
+                                                                </p>
+
+                                                                {coupon.discountType === "PERCENTAGE" ? (
+                                                                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-semibold text-purple-700">
+                                                                        {coupon.discountValue}% OFF
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
+                                                                        ₹{coupon.discountValue} OFF
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            <p className="mt-1 text-xs text-gray-500">
+                                                                {coupon.description}
+                                                            </p>
+
+                                                            <p className="mt-1 text-[11px] text-gray-400">
+                                                                Min. order{" "}
+                                                                {currency(coupon.minimumOrderAmount)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {couponCode === coupon.code && (
+                                                        <Check
+                                                            size={18}
+                                                            className="shrink-0 text-purple-600"
+                                                        />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <button
-                                    disabled
-                                    title="Coupons are coming soon"
-                                    className="cursor-not-allowed rounded-xl bg-purple-300 px-6 text-white"
+                                    type="button"
+                                    onClick={handleApplyCoupon}
+                                    disabled={!couponCode || applyingCoupon}
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 font-medium text-white transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:bg-purple-300"
                                 >
-                                    Apply
+                                    {applyingCoupon ? <Loader2 size={16} className="animate-spin" /> : "Apply"}
                                 </button>
                             </div>
-                            <p className="mt-2 text-xs text-gray-400">
-                                Coupon codes are coming soon.
-                            </p>
+
+                            {couponError && (
+                                <p className="mt-2 text-sm text-red-500">
+                                    {couponError}
+                                </p>
+                            )}
+
+                            {couponSuccess && (
+                                <p className="mt-2 text-sm font-medium text-green-600">
+                                    {couponSuccess}
+                                </p>
+                            )}
+
+                            {appliedCoupon && (
+                                <div className="mt-4 flex items-center justify-between rounded-xl bg-green-50 px-4 py-3">
+                                    <div>
+                                        <p className="font-semibold text-green-700">
+                                            {appliedCoupon.code} Applied
+                                        </p>
+
+                                        <p className="text-sm text-green-600">
+                                            You saved{" "}
+                                            {currency(appliedCoupon.discountAmount)}
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAppliedCoupon(null);
+                                            setCouponCode("");
+                                            setCouponError("");
+                                            setCouponSuccess("");
+                                        }}
+                                        className="text-sm font-medium text-red-500 hover:text-red-700"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Payment */}
@@ -575,6 +917,13 @@ const CheckoutPage = () => {
                                         <span>{currency(subtotal)}</span>
                                     </div>
 
+                                    {appliedCoupon && (
+                                        <div className="flex justify-between text-green-600">
+                                            <span>Discount ({appliedCoupon.code})</span>
+                                            <span>- {currency(appliedCoupon.discountAmount)}</span>
+                                        </div>
+                                    )}
+
                                     <div className="flex justify-between">
                                         <span>Shipping</span>
                                         <span className="font-semibold text-green-600">
@@ -596,11 +945,12 @@ const CheckoutPage = () => {
                                 </div>
 
                                 <button
-                                    disabled={!canProceed}
+                                    onClick={handleRazorpayPayment}
+                                    disabled={!canProceed || paymentMethod !== "razorpay"}
                                     title={
                                         !canProceed
                                             ? "Add an address and make sure your cart isn't empty"
-                                            : "Payment integration coming soon"
+                                            : "Proceed with Razorpay test payment"
                                     }
                                     className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-violet-700 py-4 text-lg font-semibold text-white shadow-xl transition hover:scale-[1.02] hover:shadow-purple-300 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                                 >
@@ -655,6 +1005,18 @@ const CheckoutPage = () => {
                     onClose={closeModal}
                     onSave={handleSaveAddress}
                     saving={savingAddress}
+                />
+            )}
+            {paymentResult && (
+                <PaymentResultPopup
+                    type={paymentResult.type}
+                    message={paymentResult.message}
+                    paymentId={paymentResult.paymentId}
+                    countdownStart={10}
+                    onRedirect={() => {
+                        window.location.href = "/my-orders";
+                    }}
+                    onClose={() => setPaymentResult(null)}
                 />
             )}
         </div>

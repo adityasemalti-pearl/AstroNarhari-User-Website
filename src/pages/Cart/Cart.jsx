@@ -129,7 +129,7 @@ const Cart = () => {
                     </p>
 
                     <Link
-                        to="/shop"
+                        to="/dashboard/products"
                         className="inline-block mt-8 px-8 py-4 rounded-2xl bg-purple-900 text-amber-300 font-bold"
                     >
 

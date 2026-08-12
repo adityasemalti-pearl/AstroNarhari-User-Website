@@ -12,7 +12,7 @@ import LiveStream from "./pages/Home/LiveStream";
 import CosmicProductDetail from "./pages/Home/CosmicProductDetails";
 import Astrologers from "./pages/Home/Astrologers";
 import MyBookings from "./pages/Bookings/MyBookings";
-import WalletPage from "./pages/Home/WalletPage";
+
 import AllProducts from "./pages/Home/AllProducts";
 import Cart from "./pages/Cart/Cart";
 import AboutUs from "./pages/About/AboutUs";
@@ -28,6 +28,7 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import PublicRoute from "./pages/PublicRoutes";
 import NotFound from "./components/NotFound";
 import CheckoutPage from "./pages/Cart/Checkout";
+import WalletPage from "./pages/Home/Wallet"
 
 
 import { useEffect } from "react";
@@ -86,6 +87,7 @@ function App() {
             <Route path="settings" element={<AccountSettings />} />
             <Route path="consultations" element={<MyConsultations />} />
             <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="wallet" element={<WalletPage />} />
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

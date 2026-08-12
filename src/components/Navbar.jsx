@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   GitGraph,
   Wallet2,
+  ShoppingCartIcon,
   ShoppingBag
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
@@ -18,19 +19,44 @@ import { getUserProfile } from "../API/authapis";
 export default function Navbar({ activeNav, setActiveNav }) {
 
   const [showProfile, setShowProfile] = React.useState(false);
+  const [cartItems, setCartItems] = useState([]);
 
 
-  const [user , setUser] = useState();
+  const [user, setUser] = useState();
 
-  const fetchUser = async()=>{
+
+  const fetchCart = async () => {
+    try {
+
+      setLoading(true);
+
+      const res = await getCart();
+
+      if (res.data.success) {
+        setCartItems(res.data.data.items);
+      }
+
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUser = async () => {
     try {
       const res = await getUserProfile()
       setUser(res.data.data)
-      
+
     } catch (error) {
       console.log(error)
     }
   }
+
+  useEffect(() => {
+    fetchUser();
+    fetchCart();
+  }, []);
 
   const menu = [
     {
@@ -79,7 +105,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
       label: "My Bookings",
       link: "/dashboard/my-bookings"
     },
-     {
+    {
       icon: <Wallet2 size={18} />,
       label: "My Wallet",
       link: "/dashboard/my-wallet"
@@ -94,7 +120,6 @@ export default function Navbar({ activeNav, setActiveNav }) {
       icon: <ShoppingBag size={18} />,
       label: "My Cart",
       link: "/dashboard/cart"
-
     },
   ]
 
@@ -135,6 +160,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
                   : "text-slate-500 hover:text-purple-900"
                   }`}
               >
+
                 {item.name}
 
                 {isActive && (
@@ -148,9 +174,23 @@ export default function Navbar({ activeNav, setActiveNav }) {
           })}
         </nav>
 
+
+
         {/* Action / Profile CTA */}
         <div className="flex items-center gap-4">
-          <button className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#4A1E5C] bg-purple-50 hover:bg-purple-100 transition-colors">
+          <div
+            onClick={() => navigate("/dashboard/cart")}
+            className="relative cursor-pointer hover:scale-105 duration-200">
+            <ShoppingCartIcon className="w-6 h-6 text-gray-700" />
+
+            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+              {cartItems.length}
+            </span>
+          </div>
+
+          <button
+            onClick={() => navigate("/dashboard/wallet")}
+            className="hidden sm:flex cursor-pointer items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#4A1E5C] bg-purple-50 hover:bg-purple-100 transition-colors">
             <span> Wallet: ₹500</span>
           </button>
 
@@ -166,6 +206,8 @@ export default function Navbar({ activeNav, setActiveNav }) {
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E2B142]/60"
               />
             </div>
+
+
 
             <AnimatePresence>
               {showProfile && (
@@ -197,7 +239,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
                   <div className="py-2">
                     {options.map((item) => (
                       <button
-                      onClick={()=>navigate(item.link)}
+                        onClick={() => navigate(item.link)}
                         key={item.label}
                         className="w-full flex items-center gap-3 px-5 py-3 hover:bg-purple-50 transition-all text-[#4A1E5C]"
                       >
@@ -223,6 +265,8 @@ export default function Navbar({ activeNav, setActiveNav }) {
               )}
             </AnimatePresence>
           </div>
+
+
         </div>
 
       </div>

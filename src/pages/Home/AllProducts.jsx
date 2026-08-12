@@ -15,6 +15,8 @@ import {
 import { getAllCategories, getAllProducts } from "../../API/cosmicApis";
 import { useNavigate } from "react-router-dom";
 
+import FullPageLoader from "../Home/comp/FullPageLoader";
+
 const CATEGORIES = ["All", "Gemstones", "Rudraksha", "Yantras", "Crystals"];
 
 const AllProducts = () => {
@@ -77,6 +79,14 @@ const AllProducts = () => {
 
         return matchSearch && matchCategory;
     });
+
+
+
+    if(loading){
+        return (
+            <FullPageLoader />
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[#FDFBF7] text-slate-800 selection:bg-amber-100 selection:text-amber-900 font-sans relative overflow-hidden">
@@ -427,12 +437,12 @@ const AllProducts = () => {
                         </p>
 
                         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <button className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-950 transition hover:brightness-110 shadow-lg shadow-amber-500/20">
+                            <button
+                            onClick={() => navigate("/dashboard/astrologers")}
+                            className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-950 transition hover:brightness-110 shadow-lg shadow-amber-500/20">
                                 Book Consultation
                             </button>
-                            <button className="w-full sm:w-auto rounded-xl border border-slate-700 bg-slate-800/50 px-8 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-200 transition hover:bg-slate-800">
-                                Learn More
-                            </button>
+                          
                         </div>
                     </div>
                 </motion.div>

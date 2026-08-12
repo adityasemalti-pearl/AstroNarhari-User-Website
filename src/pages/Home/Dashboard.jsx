@@ -64,6 +64,8 @@ const ZODIAC = [
   { name: 'Sagittarius', symbol: '♐', dates: 'Nov 22 - Dec 21', element: 'Fire' },
 ];
 
+
+
 export default function Dashboard() {
   const [dailyHoroscope, setDailyHoroscope] = useState(null);
 
@@ -223,17 +225,20 @@ export default function Dashboard() {
               <p className="text-xs text-slate-500 mb-6">Select your sign for today’s tailored prediction.</p>
 
               <div className="grid grid-cols-3 gap-3">
-                {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagitt.'].map((sign) => (
+                {ZODIAC.map((sign) => (
                   <button
-                    key={sign}
-                    onClick={() => setSelectedSign(sign)}
-                    className={`p-3 rounded-2xl border text-xs font-semibold transition-all flex flex-col items-center gap-1 ${selectedSign === sign
-                      ? 'border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm'
-                      : 'border-slate-100 hover:border-purple-200 text-slate-600 hover:bg-slate-50'
+                    key={sign.name}
+                    onClick={() => setSelectedSign(sign.name)}
+                    className={`rounded-2xl border p-3 text-xs font-semibold transition-all flex flex-col items-center gap-1 ${selectedSign === sign.name
+                        ? "border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm"
+                        : "border-slate-100 text-slate-600 hover:border-purple-200 hover:bg-slate-50"
                       }`}
                   >
-                    <span>✨</span>
-                    <span>{sign}</span>
+                    <span className="text-2xl">
+                      {sign.symbol}
+                    </span>
+
+                    <span>{sign.name}</span>
                   </button>
                 ))}
               </div>

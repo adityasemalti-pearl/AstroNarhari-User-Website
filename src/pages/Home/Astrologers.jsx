@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Search, Star, MessageSquare, Phone, Video, Bell,
     Check,
@@ -47,6 +48,7 @@ import BookAppointmentPopup from './comp/BookingPopup';
 import InsufficientBalancePopup from './comp/InsufficientBalance';
 import BookingConfirmedPopup from './comp/BookingConfirmedPopup';
 import { getAllAstrologers, getAstrologerById } from '../../API/homeApis';
+import { scheduleBooking } from '../../API/bookingApis';
 
 
 
@@ -69,6 +71,8 @@ const ZODIAC_SIGNS = [
 ];
 
 export default function Astrologers() {
+    const navigate = useNavigate();
+
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All Experts');
     const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, ONLINE, BUSY
@@ -97,6 +101,10 @@ export default function Astrologers() {
 
     const [showBooking, setShowBooking] = useState(false)
 
+    // Holds the details of the most recently confirmed booking, so the
+    // confirmation popup can show real data instead of hardcoded values.
+    const [lastBooking, setLastBooking] = useState(null);
+
     // Chat Simulation State
     const [messages, setMessages] = useState([]);
     const [chatInput, setChatInput] = useState('');
@@ -116,6 +124,15 @@ export default function Astrologers() {
         person2Dob: ''
     });
     const [kundliResult, setKundliResult] = useState(null);
+
+
+    const [bookingData, setBookingData] = useState({
+        partnerId: '',
+        date: '',
+        timeSlot: '',
+        duration: '',
+        mode: ''
+    });
 
     const audioCtxRef = useRef(null);
 
@@ -146,8 +163,6 @@ export default function Astrologers() {
             // Audio fallback graceful ignore
         }
     };
-
-
 
 
     useEffect(() => {
@@ -579,7 +594,7 @@ export default function Astrologers() {
                                             key={astrologer._id}
                                             onClick={() => {
                                                 fetchPartnerDetails(astrologer._id);
-                                                setActiveProfileExpert(true)
+                                                setActiveProfileExpert(astrologer);
                                             }}
                                             className="group bg-gradient-to-br from-purple-950 via-[#140A30]/80 to-[#0B051D] rounded-3xl border border-white/10 hover:border-amber-400/50 p-5 relative transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/10 cursor-pointer flex flex-col justify-between"
                                         >
@@ -1270,29 +1285,29 @@ export default function Astrologers() {
 
             {showBooking && (
                 <BookAppointmentPopup
-                    astrologer={{ name: "Acharya Sharma", tag: "Vedic Expert", rating: 4.9, image: "..." }}
+                    astrologer={selectedPartner}
+                    month={new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    fee={selectedPartner?.minRate}
                     onClose={() => setShowBooking(false)}
-                    onProceedToPayment={(data) => {
-
-                        setShowBooking(false);   // Book popup close
-
-                        setShowWallet(true);     // Wallet popup open
-
+                    setShowWallet={setShowWallet}
+                    onProceedToPayment={(details) => {
+                        setLastBooking(details);
+                        setShowSuccess(true);
                     }}
                 />
             )}
 
             {showWallet && (
                 <InsufficientBalancePopup
-                    currentBalance={100}
-                    requiredAmount={125}
+                    currentBalance={walletBalance}
+                    requiredAmount={selectedPartner?.minRate || 0}
                     onClose={() => setShowWallet(false)}
                     onProceed={(amount) => {
                         console.log("Recharge Amount :", amount);
 
                         // Yahan payment page pe redirect kar sakte ho
                         // navigate("/wallet-payment", { state: { amount } });
-                        setShowSuccess(true)
+                        setWalletBalance(prev => prev + amount);
                         setShowWallet(false);
                     }}
                 />
@@ -1301,21 +1316,19 @@ export default function Astrologers() {
             {showSuccess && (
                 <BookingConfirmedPopup
                     astrologer={{
-                        name: "Acharya Sharma",
-                        tag: "Vedic Expert",
-                        rating: 4.9,
-                        image: "https://i.pravatar.cc/150?img=12",
+                        name: selectedPartner?.fullName || "Your Astrologer",
+                        tag: selectedPartner?.tag || "Vedic Expert",
+                        rating: selectedPartner?.averageRating || 0,
+                        image: selectedPartner?.profilePic,
                     }}
                     booking={{
-                        date: "24 July 2026",
-                        time: "10:30 AM",
-                        mode: "Chat",
+                        date: lastBooking?.date || "",
+                        time: lastBooking?.timeSlot || "",
+                        mode: lastBooking?.mode === "call" ? "Voice Call" : "Chat",
                     }}
                     onClose={() => setShowSuccess(false)}
                     onMyBookings={() => {
                         setShowSuccess(false);
-
-                        // React Router
                         navigate("/my-bookings");
                     }}
                 />
