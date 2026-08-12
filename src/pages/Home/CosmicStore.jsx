@@ -146,11 +146,11 @@ export default function CosmicStore() {
 
                                 <div className="max-w-xl px-8 md:px-14 text-white">
 
-                                    <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-wider">
+                                    {/* <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur-md px-4 py-2 text-xs font-semibold uppercase tracking-wider">
 
                                         {item.type}
 
-                                    </span>
+                                    </span> */}
 
                                     <h2 className="mt-5 text-4xl md:text-5xl font-serif font-bold leading-tight">
 
@@ -167,7 +167,9 @@ export default function CosmicStore() {
 
                                     {item.redirectUrl && (
 
-                                        <button className="mt-8 rounded-2xl bg-white px-7 py-3 font-semibold text-purple-700 transition-all hover:scale-105">
+                                        <button
+                                        onClick={()=>navigate(item.redirectUrl)}
+                                        className="mt-8 rounded-2xl bg-white px-7 py-3 font-semibold text-purple-700 transition-all hover:scale-105">
 
                                             Explore Now
 

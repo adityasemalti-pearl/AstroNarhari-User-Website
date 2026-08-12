@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -12,14 +12,17 @@ import {
   GitGraph,
   Wallet2,
   ShoppingCartIcon,
-  ShoppingBag
+  ShoppingBag,X
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
 
 export default function Navbar({ activeNav, setActiveNav }) {
-
   const [showProfile, setShowProfile] = React.useState(false);
   const [cartItems, setCartItems] = useState([]);
+
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+
+  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
 
   const [user, setUser] = useState();
@@ -49,9 +52,30 @@ export default function Navbar({ activeNav, setActiveNav }) {
       setUser(res.data.data)
 
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
+
+  const handleLogout = () => {
+  setShowLogoutPopup(true);
+};
+
+const confirmLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  setShowLogoutPopup(false);
+  navigate("/login");
+};
+
+const cancelLogout = () => {
+  setShowLogoutPopup(false);
+};
+
+
+  useEffect(()=>{
+    fetchUser();
+  },[])
 
   useEffect(() => {
     fetchUser();
@@ -61,11 +85,11 @@ export default function Navbar({ activeNav, setActiveNav }) {
   const menu = [
     {
       name: "Home",
-      link: "/dashboard"
+      link: "/dashboard",
     },
     {
       name: "Horoscope",
-      link: "/dashboard/horoscope"
+      link: "/dashboard/horoscope",
     },
     // {
     //   name: "Live Astrologers",
@@ -77,38 +101,37 @@ export default function Navbar({ activeNav, setActiveNav }) {
     // },
     {
       name: "Cosmic Shop",
-      link: "/dashboard/cosmic"
+      link: "/dashboard/cosmic",
     },
     {
       name: "Livestream",
-      link: "/dashboard/live"
+      link: "/dashboard/live",
     },
-  ]
+  ];
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const location = useLocation();
-
 
   const options = [
     {
       icon: <User size={18} />,
       label: "My Profile",
-      link: "/dashboard/profile-overview"
+      link: "/dashboard/profile-overview",
     },
     {
       icon: <GitGraph size={18} />,
       label: "Generate kundali",
-      link: "/dashboard/kundali"
+      link: "/dashboard/kundali",
     },
     {
       icon: <CalendarCheck size={18} />,
       label: "My Bookings",
-      link: "/dashboard/my-bookings"
+      link: "/dashboard/my-bookings",
     },
     {
       icon: <Wallet2 size={18} />,
       label: "My Wallet",
-      link: "/dashboard/my-wallet"
+      link: "/dashboard/my-wallet",
     },
     // {
     //   icon: <Settings size={18} />,
@@ -121,12 +144,11 @@ export default function Navbar({ activeNav, setActiveNav }) {
       label: "My Cart",
       link: "/dashboard/cart"
     },
-  ]
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-purple-100/60 shadow-sm transition-all">
       <div className="max-w-7xl mx-auto px-8 h-20 flex items-center justify-between">
-
         {/* Logo */}
         <div className="flex items-center gap-3 cursor-pointer">
           <div className="w-10 h-10 rounded-full bg-[#4A1E5C] text-amber-300 flex items-center justify-center font-serif text-xl font-bold shadow-md shadow-purple-900/20">
@@ -148,17 +170,20 @@ export default function Navbar({ activeNav, setActiveNav }) {
         {/* Navigation Links */}
         <nav className="hidden md:flex items-center gap-8">
           {menu.map((item) => {
-
             const isActive = activeNav == item.name;
 
             return (
               <button
                 key={item.name}
-                onClick={() => { navigate(item.link); setActiveNav(item.name) }}
-                className={`relative text-sm font-medium py-2 ${isActive
-                  ? "text-[#4A1E5C] font-semibold "
-                  : "text-slate-500 hover:text-purple-900"
-                  }`}
+                onClick={() => {
+                  navigate(item.link);
+                  setActiveNav(item.name);
+                }}
+                className={`relative text-sm font-medium py-2 ${
+                  isActive
+                    ? "text-[#4A1E5C] font-semibold "
+                    : "text-slate-500 hover:text-purple-900"
+                }`}
               >
 
                 {item.name}
@@ -201,7 +226,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
           >
             <div className="flex items-center gap-2 cursor-pointer">
               <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+              src={user?.profilePic || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlbbdPqXU3wwsJQPwkgU42saoIIg22ct8rNcFV_RU6PA&s=10"}
                 alt="User"
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-[#E2B142]/60"
               />
@@ -227,7 +252,9 @@ export default function Navbar({ activeNav, setActiveNav }) {
                       />
 
                       <div>
-                        <h3 className="font-semibold text-lg">Aditya Semalti</h3>
+                        <h3 className="font-semibold text-lg">
+                          Aditya Semalti
+                        </h3>
                         <p className="text-sm text-purple-100">
                           aditya@email.com
                         </p>
@@ -253,7 +280,9 @@ export default function Navbar({ activeNav, setActiveNav }) {
 
                     <div className="border-t my-2"></div>
 
-                    <button className="w-full flex items-center gap-3 px-5 py-3 hover:bg-red-50 text-red-500 transition-all">
+                    <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-5 py-3 hover:bg-red-50 text-red-500 transition-all">
                       <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center">
                         <LogOut size={18} />
                       </div>
@@ -268,8 +297,54 @@ export default function Navbar({ activeNav, setActiveNav }) {
 
 
         </div>
-
       </div>
+      {showLogoutPopup && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+    <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+
+      {/* Close */}
+      <button
+        onClick={cancelLogout}
+        className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-purple-50 hover:text-purple-600"
+      >
+        <X size={18} />
+      </button>
+
+      {/* Icon */}
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-purple-100">
+        <LogOut className="text-purple-600" size={26} />
+      </div>
+
+      {/* Content */}
+      <div className="text-center">
+        <h2 className="text-xl font-bold text-gray-900">
+          Confirm Logout
+        </h2>
+
+        <p className="mt-2 text-sm text-gray-500">
+          Are you sure you want to logout from your account?
+        </p>
+      </div>
+
+      {/* Buttons */}
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={cancelLogout}
+          className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 font-semibold text-gray-700 transition hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={confirmLogout}
+          className="flex-1 rounded-xl bg-purple-600 px-4 py-3 font-semibold text-white shadow-lg shadow-purple-200 transition hover:bg-purple-700"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </header>
   );
 }
