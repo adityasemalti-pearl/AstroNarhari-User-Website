@@ -129,46 +129,6 @@ export default function Login() {
 
 
 
-  // const handleSendOtp = async (e) => {
-  //   e.preventDefault();
-
-  //   try {
-  //     if (phoneNumber.length !== 10) {
-  //       alert("Enter valid mobile number");
-  //       return;
-  //     }
-
-  //     // Fresh reCAPTCHA every time
-  //     const appVerifier = setupRecaptcha();
-
-  //     const confirmation = await signInWithPhoneNumber(
-  //       auth,
-  //       `+91${phoneNumber}`,
-  //       appVerifier
-  //     );
-
-  //     window.confirmationResult = confirmation;
-
-  //     setStep("otp");
-  //     setTimer(57);
-  //     setIsTimerActive(true);
-
-  //   } catch (err) {
-
-  //     console.error(err);
-
-  //     // Reset reCAPTCHA on error
-  //     if (window.recaptchaVerifier) {
-  //       try {
-  //         window.recaptchaVerifier.clear();
-  //       } catch (e) { }
-
-  //       window.recaptchaVerifier = null;
-  //     }
-
-  //     alert(err.message);
-  //   }
-  // };
   // Countdown timer handler for OTP
   useEffect(() => {
     let interval = null;

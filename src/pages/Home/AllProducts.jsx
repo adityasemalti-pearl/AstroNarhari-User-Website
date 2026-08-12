@@ -73,7 +73,7 @@ const AllProducts = () => {
         const matchCategory =
             !selectedCategory ||
             selectedCategory === "All" ||
-            product.category?._id === selectedCategory._id;
+            product.category?._id === selectedCategory;
 
         return matchSearch && matchCategory;
     });
@@ -205,7 +205,7 @@ const AllProducts = () => {
                                         scale: .95
                                     }}
 
-                                    onClick={() => setSelectedCategory(item.name)}
+                                    onClick={() => setSelectedCategory(item._id)}
 
                                     className="group flex w-28 flex-shrink-0 flex-col items-center"
 
@@ -234,7 +234,7 @@ const AllProducts = () => {
 
                                     <p
 
-                                        className={`mt-3 line-clamp-2 text-center text-sm font-semibold transition ${selectedCategory === item.name
+                                        className={`mt-3 line-clamp-2 text-center text-sm font-semibold transition ${selectedCategory === item._id
                                             ? "text-purple-700"
                                             : "text-slate-700"
                                             }`}
@@ -391,16 +391,7 @@ const AllProducts = () => {
                     )}
                 </div>
 
-                {/* Load More Action */}
-                {/* {!loading && filteredProducts.length > 0 && (
-                    <div className="mt-16 text-center">
-                        <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-8 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-800 shadow-sm transition hover:bg-slate-900 hover:text-white hover:border-slate-900">
-                            <span>View Full Catalog</span>
-                            <ArrowRight size={14} />
-                        </button>
-                    </div>
-                )} */}
-
+                
                 {/* Luxury CTA Banner */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}

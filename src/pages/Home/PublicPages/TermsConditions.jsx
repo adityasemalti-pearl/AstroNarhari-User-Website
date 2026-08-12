@@ -12,7 +12,7 @@ import {
   Globe,
   HelpCircle,
   ChevronRight,
-  Printer,
+  // Printer,
  
   BookOpen,
   Mail,

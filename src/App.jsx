@@ -60,6 +60,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/terms-n-conditions" element={<TermsConditions />} />
+           <Route path="/create-profile" element={<CreateProfilePage />} />
         </Route>
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
@@ -67,7 +68,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="kundali" element={<KundliPage />} />
             <Route path="horoscope" element={<Horoscope />} />
-            <Route path="create-profile" element={<CreateProfilePage />} />
+           
             <Route path="match" element={<MatchingMaking />} />
             <Route path="festival" element={<FestivalCalendar />} />
             <Route path="live" element={<LiveStream />} />
