@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,7 +22,7 @@ export default function Navbar({ activeNav, setActiveNav }) {
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
-  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
+
 
 
   const [user, setUser] = useState();

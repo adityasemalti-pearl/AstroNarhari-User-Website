@@ -1324,7 +1324,7 @@ export default function Astrologers() {
                     booking={{
                         date: lastBooking?.date || "",
                         time: lastBooking?.timeSlot || "",
-                        mode: lastBooking?.mode === "call" ? "Voice Call" : "Chat",
+                        mode: lastBooking?.mode === "call" ? "Voice Calls" : "Chat",
                     }}
                     onClose={() => setShowSuccess(false)}
                     onMyBookings={() => {
