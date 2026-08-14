@@ -1,28 +1,25 @@
-import React, { useEffect, useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
-  Wallet,
-  Calendar,
-  Settings,
   LogOut,
-  ChevronDown,
   CalendarCheck,
   GitGraph,
   Wallet2,
   ShoppingCartIcon,
-  ShoppingBag,X
+  ShoppingBag,X,
+  PackageCheck
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
 
 export default function Navbar({ activeNav, setActiveNav }) {
   const [showProfile, setShowProfile] = React.useState(false);
   const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
-  const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
 
   const [user, setUser] = useState();
@@ -143,6 +140,11 @@ const cancelLogout = () => {
       icon: <ShoppingBag size={18} />,
       label: "My Cart",
       link: "/dashboard/cart"
+    },
+    {
+      icon: <PackageCheck size={18} />,
+      label: "My Orders",
+      link: "/dashboard/orders"
     },
   ];
 

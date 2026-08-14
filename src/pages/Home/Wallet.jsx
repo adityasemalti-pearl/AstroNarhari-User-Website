@@ -80,7 +80,7 @@ export default function WalletPage({ onBack }) {
         setRechargeLoading(true);
 
         // ₹500 -> 50000 paise
-        const amountInPaise = amount;
+        const amountInPaise = amount * 100;
 
         const options = {
             key: "rzp_test_TE9gEROWqFsafm",
