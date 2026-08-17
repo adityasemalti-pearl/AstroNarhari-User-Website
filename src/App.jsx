@@ -32,6 +32,7 @@ import CheckoutPage from "./pages/Cart/Checkout";
 import WalletPage from "./pages/Home/Wallet";
 import Careers from "./pages/Careers/Careers";
 import TermsConditions from "./pages/Home/PublicPages/TermsConditions";
+import MyOrders from "./pages/Cart/MyOrders";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -86,6 +87,7 @@ function App() {
             <Route path="consultations" element={<MyConsultations />} />
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="wallet" element={<WalletPage />} />
+            <Route path="orders" element={<MyOrders />} />
           </Route>
         </Route>
 

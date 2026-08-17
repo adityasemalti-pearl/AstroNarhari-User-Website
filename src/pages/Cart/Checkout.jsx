@@ -1014,7 +1014,7 @@ const CheckoutPage = () => {
                     paymentId={paymentResult.paymentId}
                     countdownStart={10}
                     onRedirect={() => {
-                        window.location.href = "/my-orders";
+                        window.location.href = "/dashboard/orders";
                     }}
                     onClose={() => setPaymentResult(null)}
                 />

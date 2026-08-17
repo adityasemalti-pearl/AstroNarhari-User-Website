@@ -58,6 +58,10 @@ export const updateCartProduct = (data)=>{
 }
 
 
+export const deleteCartProduct = (id)=>{
+    return api.delete(`/user/cart/remove/${id}`)
+}
+
 
 export const getCosmicInsights = ()=>{
     return api.get('/article/list')
@@ -102,3 +106,9 @@ export const deleteShippingAddress = (id)=>{
 export const createOrder = (data) => {
     return api.post("/order/orders", data);
 };
+
+
+export const getMyOrders = () => {
+
+    return api.get("/order/orders");
+}
