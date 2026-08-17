@@ -1620,7 +1620,7 @@ export default function Astrologers() {
           onClose={() => setShowSuccess(false)}
           onMyBookings={() => {
             setShowSuccess(false);
-            navigate("/my-bookings");
+            navigate("/dashboard/my-bookings");
           }}
         />
       )}
