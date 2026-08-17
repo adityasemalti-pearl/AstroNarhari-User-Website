@@ -27,6 +27,7 @@ export default function Dashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const [astroSlide, setAstroSlide] = useState(0);
+  const [insightSlide, setInsightSlide] = useState(0);
   const [selectedAstrologer, setSelectedAstrologer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -47,6 +48,14 @@ export default function Dashboard() {
     }, 4000);
     return () => clearInterval(timer);
   }, [astrologers.length]);
+
+  useEffect(() => {
+    if (insights.length <= 1) return;
+    const timer = setInterval(() => {
+      setInsightSlide((prev) => (prev + 1) % insights.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [insights.length]);
 
   useEffect(() => {
     const fetchHoroscope = async () => {
@@ -77,7 +86,7 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const res = await getAllProducts();
-      setProducts(res.data?.data.slice(0, 4) || []);
+      setProducts(res.data?.data.slice(0, 3) || []);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
@@ -88,7 +97,7 @@ export default function Dashboard() {
   const fetchInsights = async () => {
     try {
       const res = await getCosmicInsights();
-      setInsights(res.data.data.slice(0, 2));
+      setInsights(res.data?.data.slice(0, 3) || []);
     } catch (error) {
       console.log(error);
     }
@@ -356,7 +365,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 items-start">
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
@@ -400,20 +409,39 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 w-full">
               {insights.map((article) => (
-                <div key={article._id} className="bg-white p-3.5 rounded-2xl border border-purple-100/60 shadow-sm flex items-center gap-4 group cursor-pointer">
-                  <img src={article.thumbnail} alt={article.title} className="w-24 h-20 rounded-xl object-cover" />
-                  <div>
-                    <span className="text-[9px] font-bold tracking-widest text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md uppercase">
-                      {article.category}
-                    </span>
-                    <h4 className="text-xs font-bold text-slate-800 mt-1.5 line-clamp-2 group-hover:text-[#52007A] transition-colors">
+                <motion.div 
+                  whileHover={{ y: -3 }}
+                  key={article._id} 
+                  className="bg-white p-3.5 rounded-2xl border border-purple-100/80 shadow-md flex items-center gap-3.5 group cursor-pointer relative overflow-hidden transition-all w-full"
+                >
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-purple-50 rounded-bl-full -z-0 pointer-events-none group-hover:bg-purple-100 transition-colors" />
+                  
+                  <img src={article.thumbnail} alt={article.title} className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shadow-sm shrink-0 z-10" />
+                  
+                  <div className="flex-1 min-w-0 z-10">
+                    <div className="flex items-center justify-between mb-1 gap-2">
+                      <span className="text-[9px] font-extrabold tracking-wider text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full uppercase truncate max-w-[120px]">
+                        {article.category}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-400 shrink-0">⏱ {article.readTime}</span>
+                    </div>
+
+                    <h4 className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-[#52007A] transition-colors w-full">
                       {article.title}
                     </h4>
-                    <p className="text-[10px] text-slate-400 mt-1">⏱ {article.readTime}</p>
+                    
+                    <p className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5 w-full">
+                      {article.subtitle}
+                    </p>
+
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+                      <img src={article.author?.profilePic} alt={article.author?.name} className="w-4 h-4 rounded-full object-cover shrink-0" />
+                      <span className="text-[10px] font-semibold text-slate-600 truncate">{article.author?.name}</span>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>

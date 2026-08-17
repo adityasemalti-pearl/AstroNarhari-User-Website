@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Radio, 
   Eye, 
   Star, 
   Play, 
@@ -12,17 +11,16 @@ import {
   Mic, 
   MicOff, 
   Video, 
-  VideoOff 
+  VideoOff,
+  Radio
 } from 'lucide-react';
 import { getActiveSessions, joinAgoraSession } from '../../API/agoraApi';
 import AgoraRTC from 'agora-rtc-sdk-ng';
 
 export default function LiveStream() {
-  const [activeCategory, setActiveCategory] = useState('All Live');
   const [streams, setStreams] = useState([]);
   const [totalSessions, setTotalSessions] = useState(0);
   const [loading, setLoading] = useState(false);
-
   const [joinedStream, setJoinedStream] = useState(null);
   const [agoraClient, setAgoraClient] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
@@ -34,39 +32,24 @@ export default function LiveStream() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
 
-  const categories = [
-    'All Live', 
-    'Vedic Astrology', 
-    'Tarot Reading', 
-    'Numerology', 
-    'Palmistry', 
-    'Manifestation',
-    'Love & Marriage',
-    'Health',
-    'Love',
-    'Property'
-  ];
-
   useEffect(() => {
     const fetchActiveSessions = async () => {
       setLoading(true);
       try {
-        const categoryParam = activeCategory === 'All Live' ? undefined : activeCategory;
-        const response = await getActiveSessions(categoryParam);
-        
+        const response = await getActiveSessions();
         if (response.data && response.data.success) {
           setStreams(response.data.sessions || []);
           setTotalSessions(response.data.total || 0);
         }
       } catch (error) {
-        console.error('Error fetching active sessions:', error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchActiveSessions();
-  }, [activeCategory]);
+  }, []);
 
   const handleJoinStream = async (stream) => {
     try {
@@ -116,7 +99,7 @@ export default function LiveStream() {
         await client.join(appId, channelName, token, uid);
       }
     } catch (error) {
-      console.error("Error joining stream:", error);
+      console.error(error);
     }
   };
 
@@ -166,94 +149,70 @@ export default function LiveStream() {
   const liveStreamsList = streams.length > 1 ? streams.slice(1) : [];
 
   return (
-    <div className="min-h-screen bg-[#FAF8FF] text-slate-800 font-sans relative flex flex-col justify-between pb-20">
-      
+    <div className="w-full min-h-screen bg-[#FAF8FF] text-slate-800 font-sans relative flex flex-col justify-between pb-20">
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
       <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-amber-100/40 rounded-full blur-3xl pointer-events-none -translate-y-1/2" />
 
-      <header className="w-full bg-white/85 backdrop-blur-md border-b border-purple-100/80 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-2xl bg-rose-600 text-white shadow-md shadow-rose-600/20">
-              <Radio className="w-5 h-5 animate-pulse" />
+      <main className="w-full px-4 sm:px-6 lg:px-12 py-12 relative z-10 flex-1 space-y-10">
+        <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-purple-100">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-purple-900 font-semibold text-xs tracking-widest uppercase">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              <span>Spiritual Guidance</span>
             </div>
-            <div>
-              <h1 className="font-serif tracking-widest text-xl font-bold text-indigo-950 uppercase">
-                Live Now
-              </h1>
-              <p className="text-[11px] text-amber-700 font-semibold tracking-wide">
-                Interactive Cosmic Sessions
-              </p>
-            </div>
+            <h1 className="font-serif text-3xl md:text-5xl font-bold text-indigo-950 tracking-tight">
+              Cosmic Broadcasts
+            </h1>
+            <p className="text-sm md:text-base text-slate-500">
+              Join live interactive sessions with verified spiritual experts.
+            </p>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-2 bg-slate-100/80 border border-slate-200/80 rounded-2xl px-4 py-2 text-xs text-slate-600">
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center gap-2 bg-white/80 border border-purple-100 rounded-2xl px-4 py-3 text-xs text-slate-600 shadow-sm">
               <Search className="w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Search astrologers or topics..." 
+                placeholder="Search experts..." 
                 className="bg-transparent outline-none w-48 placeholder-slate-400"
               />
             </div>
 
-            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-3.5 py-1.5 rounded-full text-xs font-semibold">
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-4 py-3 rounded-2xl text-xs font-semibold shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{totalSessions} Active Sessions</span>
             </div>
           </div>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-10 w-full relative z-10 flex-1 space-y-10">
-        
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
-          {categories.map((cat) => {
-            const isActive = activeCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-5 py-2.5 rounded-2xl text-xs font-semibold transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-gradient-to-r from-purple-950 to-indigo-900 text-amber-300 shadow-lg shadow-purple-950/20 scale-105'
-                    : 'bg-white/80 text-slate-600 hover:bg-white border border-purple-100/80 shadow-sm'
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
-        </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-20">
+          <div className="flex justify-center items-center py-20 w-full">
             <div className="w-8 h-8 border-4 border-purple-950 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : streams.length === 0 ? (
-          <div className="text-center py-20 bg-white/60 rounded-3xl border border-purple-100/80">
-            <p className="text-slate-500 text-sm font-medium">No live streams available for this category.</p>
+          <div className="text-center py-20 bg-white/60 rounded-3xl border border-purple-100/80 w-full">
+            <p className="text-slate-500 text-sm font-medium">No live streams available right now.</p>
           </div>
         ) : (
-          <>
+          <div className="w-full space-y-10">
             {topChoice && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="space-y-4 w-full">
+                <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-amber-500" />
                     <h2 className="font-serif text-2xl font-bold text-indigo-950">
-                      Top Choice
+                      Featured Session
                     </h2>
                   </div>
                   <span className="text-xs font-semibold text-purple-900 bg-purple-50 px-3 py-1 rounded-full border border-purple-100">
-                    Featured Streamer
+                    Top Rated
                   </span>
                 </div>
 
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="relative w-full h-[380px] md:h-[420px] rounded-3xl overflow-hidden shadow-2xl border border-purple-100/80 group cursor-pointer"
+                  className="relative w-full h-[380px] md:h-[480px] rounded-3xl overflow-hidden shadow-2xl border border-purple-100/80 group cursor-pointer"
                 >
                   <img 
                     src={topChoice.image} 
@@ -267,11 +226,11 @@ export default function LiveStream() {
                     <div className="flex items-center gap-3">
                       <span className="bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
                         <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                        LIVE
+                        BROADCASTING
                       </span>
                       <span className="bg-black/40 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 border border-white/20">
                         <Eye className="w-3.5 h-3.5 text-amber-300" />
-                        {topChoice.viewers} Viewing
+                        {topChoice.viewers} Watching
                       </span>
                     </div>
 
@@ -282,10 +241,10 @@ export default function LiveStream() {
 
                   <div className="absolute bottom-6 left-6 right-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div className="space-y-2 text-white max-w-xl">
-                      <h3 className="font-serif text-3xl md:text-4xl font-bold tracking-tight">
+                      <h3 className="font-serif text-3xl md:text-5xl font-bold tracking-tight">
                         {topChoice.name}
                       </h3>
-                      <p className="text-sm text-slate-200 font-normal">
+                      <p className="text-sm md:text-base text-slate-200 font-normal">
                         {topChoice.specialty}
                       </p>
                     </div>
@@ -294,10 +253,10 @@ export default function LiveStream() {
                       onClick={() => handleJoinStream(topChoice.rawData)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-indigo-950 font-bold text-sm rounded-2xl shadow-xl flex items-center gap-2 self-start md:self-auto"
+                      className="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 text-indigo-950 font-bold text-sm rounded-2xl shadow-xl flex items-center gap-2 self-start md:self-auto"
                     >
                       <Play className="w-4 h-4 fill-indigo-950" />
-                      <span>Join Stream</span>
+                      <span>Join Session</span>
                     </motion.button>
                   </div>
                 </motion.div>
@@ -305,17 +264,17 @@ export default function LiveStream() {
             )}
 
             {liveStreamsList.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-purple-100/80 pb-4">
+              <div className="space-y-6 w-full">
+                <div className="flex items-center justify-between border-b border-purple-100/80 pb-4 w-full">
                   <h2 className="font-serif text-2xl font-bold text-indigo-950">
-                    Currently Streaming
+                    All Broadcasts
                   </h2>
                   <span className="text-xs font-medium text-slate-500">
-                    Showing active broadcasts
+                    Available rooms
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                   {liveStreamsList.map((stream, idx) => {
                     const partnerName = stream.partnerId?.fullName || 'Astrologer';
                     const partnerPic = stream.partnerId?.profilePic || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800';
@@ -327,9 +286,9 @@ export default function LiveStream() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
-                        className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden border border-purple-100/80 shadow-lg shadow-purple-950/5 hover:shadow-xl hover:border-purple-200 transition-all group flex flex-col justify-between"
+                        className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden border border-purple-100/80 shadow-lg shadow-purple-950/5 hover:shadow-xl hover:border-purple-200 transition-all group flex flex-col justify-between w-full"
                       >
-                        <div className="relative h-48 w-full overflow-hidden">
+                        <div className="relative h-56 w-full overflow-hidden">
                           <img 
                             src={partnerPic} 
                             alt={partnerName}
@@ -356,7 +315,7 @@ export default function LiveStream() {
                           </div>
                         </div>
 
-                        <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+                        <div className="p-5 space-y-4 flex-1 flex flex-col justify-between w-full">
                           <div className="flex items-center gap-3">
                             <img 
                               src={partnerPic} 
@@ -390,9 +349,8 @@ export default function LiveStream() {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
-
       </main>
 
       <AnimatePresence>
@@ -403,8 +361,7 @@ export default function LiveStream() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-lg flex items-center justify-center p-4 md:p-8"
           >
-            <div className="relative w-full max-w-5xl h-[80vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-purple-500/30 flex flex-col">
-              
+            <div className="relative w-full max-w-6xl h-[85vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-purple-500/30 flex flex-col">
               <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
                 <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
@@ -454,7 +411,6 @@ export default function LiveStream() {
                   Leave Stream
                 </button>
               </div>
-
             </div>
           </motion.div>
         )}
@@ -470,7 +426,7 @@ export default function LiveStream() {
           whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center shadow-2xl shadow-amber-500/40 border-2 border-white ring-4 ring-amber-400/20 group"
-          title="Go Live / Schedule Session"
+          title="Schedule Session"
         >
           <Plus className="w-8 h-8 text-slate-950 stroke-[2.5]" />
         </motion.button>
@@ -479,7 +435,6 @@ export default function LiveStream() {
       <footer className="w-full text-center py-6 border-t border-slate-200/60 text-xs text-slate-400 bg-white/40">
         &copy; {new Date().getFullYear()} Live Astro Network. All spiritual sessions are end-to-end encrypted.
       </footer>
-
     </div>
   );
 }
