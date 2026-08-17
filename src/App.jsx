@@ -35,6 +35,7 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import TermsConditions from "./pages/Home/PublicPages/TermsConditions";
 import MyOrders from "./pages/Cart/MyOrders";
+import Chat from "./pages/Chat/Chat";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -91,6 +92,7 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="orders" element={<MyOrders />} />
+            <Route path="chat/:partnerId" element={<Chat />}/>
           </Route>
         </Route>
         <Route path="*" element={<NotFound />} />

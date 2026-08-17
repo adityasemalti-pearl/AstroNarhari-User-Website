@@ -34,6 +34,7 @@ import {
   sendChatMessage,
   listenToMessages,
 } from "../../firebase/chatService";
+import { myWallet } from "../../API/bookingApis";
 
 const CATEGORIES = [
   "All Experts",
@@ -354,6 +355,21 @@ export default function Astrologers() {
   useEffect(() => {
     fetchAllAstrologers();
   }, [selectedCategory]);
+
+  const [balance, setBalance] = useState(null);
+
+  const fetchWallet = async () => {
+    try {
+      const res = await myWallet();
+      setBalance(res.data.walletBalance);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWallet();
+  }, []);
 
   const filteredAstrologers = useMemo(() => {
     const list = astrologers.filter((astrologer) => {
@@ -841,7 +857,7 @@ export default function Astrologers() {
                       </div>
 
                       {/* Buttons */}
-                      <div className="mt-5 pt-3 border-t border-white/10">
+                      {/* <div className="mt-5 pt-3 border-t border-white/10">
                         {isOffline ? (
                           <button
                             onClick={(e) =>
@@ -884,7 +900,7 @@ export default function Astrologers() {
                             </button>
                           </div>
                         )}
-                      </div>
+                      </div> */}
                     </div>
                   );
                 })}
@@ -1582,6 +1598,7 @@ export default function Astrologers() {
             year: "numeric",
           })}
           fee={selectedPartner?.minRate}
+          balance={balance}
           onClose={() => setShowBooking(false)}
           setShowWallet={setShowWallet}
           onProceedToPayment={(details) => {
@@ -1593,12 +1610,14 @@ export default function Astrologers() {
 
       {showWallet && (
         <InsufficientBalancePopup
-          currentBalance={walletBalance}
+          currentBalance={balance}
           requiredAmount={selectedPartner?.minRate || 0}
           onClose={() => setShowWallet(false)}
           onProceed={(amount) => {
             console.log("Recharge Amount :", amount);
-            setWalletBalance((prev) => prev + amount);
+
+            setBalance((prev) => Number(prev) + Number(amount));
+
             setShowWallet(false);
           }}
         />

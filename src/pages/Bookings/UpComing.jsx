@@ -9,6 +9,8 @@ import {
   Star,
 } from "lucide-react";
 
+import { cancelBooking, rescheduleBooking } from "../../API/bookingApis";
+
 export default function UpcomingBooking({
   astrologer = {
     name: "Acharya Sharma",
@@ -24,10 +26,17 @@ export default function UpcomingBooking({
     startsIn: "01h 24m",
   },
 
+  onChat = () => {},
   onJoin = () => {},
   onReschedule = () => {},
   onCancel = () => {},
 }) {
+
+  const handleCancel =async()=>{
+    
+
+  }
+
   return (
     <div className="overflow-hidden rounded-[30px] border border-purple-100 bg-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
 
@@ -73,7 +82,6 @@ export default function UpcomingBooking({
           </div>
 
           {/* Starts In */}
-
           <div className="rounded-2xl bg-white/15 px-5 py-3 text-center backdrop-blur">
 
             <p className="text-xs uppercase tracking-wider text-purple-100">
@@ -91,13 +99,12 @@ export default function UpcomingBooking({
       </div>
 
       {/* Body */}
-
       <div className="p-6">
 
         {/* Details */}
-
         <div className="grid grid-cols-3 gap-4">
 
+          {/* Date */}
           <div className="rounded-2xl bg-purple-50 p-4 text-center">
 
             <CalendarDays
@@ -115,6 +122,7 @@ export default function UpcomingBooking({
 
           </div>
 
+          {/* Time */}
           <div className="rounded-2xl bg-purple-50 p-4 text-center">
 
             <Clock3
@@ -132,6 +140,7 @@ export default function UpcomingBooking({
 
           </div>
 
+          {/* Mode */}
           <div className="rounded-2xl bg-purple-50 p-4 text-center">
 
             <MessageCircle
@@ -151,33 +160,54 @@ export default function UpcomingBooking({
 
         </div>
 
-        {/* Join */}
+        {/* Chat + Join Buttons */}
+        <div className="mt-7 grid grid-cols-2 gap-3">
 
-        <button
-          onClick={onJoin}
-          className="group mt-7 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-violet-700 via-purple-700 to-fuchsia-700 text-white shadow-lg transition-all hover:scale-[1.02]"
-        >
+          {/* Chat */}
+          <button
+            onClick={onChat}
+            className="group flex h-14 items-center justify-center gap-2 rounded-2xl border-2 border-purple-200 bg-purple-50 text-purple-700 transition-all duration-300 hover:border-purple-300 hover:bg-purple-100 hover:shadow-md"
+          >
 
-          <Sparkles
-            size={20}
-            className="group-hover:rotate-12 transition"
-          />
+            <MessageCircle
+              size={20}
+              className="transition-transform duration-300 group-hover:scale-110"
+            />
 
-          <span className="font-semibold">
-            Join Conversation
-          </span>
+            <span className="font-semibold">
+              Chat
+            </span>
 
-          <ArrowRight
-            size={18}
-            className="group-hover:translate-x-1 transition"
-          />
+          </button>
 
-        </button>
+          {/* Join */}
+          <button
+            onClick={onJoin}
+            className="group flex h-14 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-700 via-purple-700 to-fuchsia-700 text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+          >
+
+            <Sparkles
+              size={20}
+              className="transition group-hover:rotate-12"
+            />
+
+            <span className="font-semibold">
+              Join
+            </span>
+
+            <ArrowRight
+              size={18}
+              className="transition group-hover:translate-x-1"
+            />
+
+          </button>
+
+        </div>
 
         {/* Bottom Buttons */}
+        <div className="mt-4 grid grid-cols-2 gap-4">
 
-        <div className="mt-5 grid grid-cols-2 gap-4">
-
+          {/* Reschedule */}
           <button
             onClick={onReschedule}
             className="flex h-12 items-center justify-center gap-2 rounded-xl border border-purple-200 bg-purple-50 font-medium text-purple-700 transition hover:bg-purple-100"
@@ -189,6 +219,7 @@ export default function UpcomingBooking({
 
           </button>
 
+          {/* Cancel */}
           <button
             onClick={onCancel}
             className="flex h-12 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 font-medium text-red-600 transition hover:bg-red-100"
@@ -203,6 +234,7 @@ export default function UpcomingBooking({
         </div>
 
       </div>
+
     </div>
   );
 }

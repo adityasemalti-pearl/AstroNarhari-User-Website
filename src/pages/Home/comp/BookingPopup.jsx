@@ -60,7 +60,9 @@ const DURATIONS = [15, 30, 45];
 // instead of always assuming August 2026 like the original hardcoded string.
 const buildISODate = (day, monthLabel) => {
   const fallbackYear = new Date().getFullYear();
-  const [monthName, yearStr] = (monthLabel || `August ${fallbackYear}`).split(" ");
+  const [monthName, yearStr] = (monthLabel || `August ${fallbackYear}`).split(
+    " ",
+  );
   const year = yearStr || fallbackYear;
 
   const parsedMonth = new Date(`${monthName} 1, ${year}`);
@@ -74,6 +76,7 @@ export default function BookAppointmentPopup({
   month,
   fee,
   originalFee,
+  balance,
   onClose,
   onProceedToPayment,
   setShowWallet,
@@ -87,18 +90,38 @@ export default function BookAppointmentPopup({
 
   // Fall back to the astrologer's own rate if no fee prop was passed in,
   // so the footer never shows "₹undefined".
-  const displayMonth = month || new Date().toLocaleString("default", { month: "long", year: "numeric" });
+  const displayMonth =
+    month ||
+    new Date().toLocaleString("default", { month: "long", year: "numeric" });
   const displayFee = fee ?? astrologer?.minRate ?? 0;
 
- const handleProceed = async () => {
+  const handleProceed = async () => {
     try {
+      const currentBalance = Number(balance) || 0;
+      const minimumRate = Number(displayFee) || 0;
+
+      if (currentBalance < minimumRate) {
+        setShowWallet(true);
+        return;
+      }
+
+      if (!astrologer?._id) {
+        console.error("Partner ID is missing");
+        alert("Astrologer information is missing.");
+        return;
+      }
       if (!astrologer?._id) {
         console.error("Partner ID is missing");
         alert("Astrologer information is missing.");
         return;
       }
 
-      if (!selectedDate || !selectedTime || !selectedDuration || !consultationMode) {
+      if (
+        !selectedDate ||
+        !selectedTime ||
+        !selectedDuration ||
+        !consultationMode
+      ) {
         alert("Please select all booking details.");
         return;
       }
@@ -127,8 +150,6 @@ export default function BookAppointmentPopup({
         return;
       }
 
-      
-
       onProceedToPayment?.({
         astrologer,
         date: payload.date,
@@ -144,7 +165,8 @@ export default function BookAppointmentPopup({
       // Backend often sends "insufficient balance" as an error response
       // (e.g. 400/402 status), not inside a success `response` object.
       // Catch that case here too, or the wallet popup never shows.
-      const backendMessage = error?.response?.data?.message || error?.message || "";
+      const backendMessage =
+        error?.response?.data?.message || error?.message || "";
 
       if (backendMessage.toLowerCase().includes("insufficient balance")) {
         setShowWallet(true);
@@ -199,10 +221,7 @@ export default function BookAppointmentPopup({
             </span>
 
             <div className="mt-1 flex items-center gap-1 text-xs font-medium text-gray-700">
-              <Star
-                size={12}
-                className="fill-amber-400 text-amber-400"
-              />
+              <Star size={12} className="fill-amber-400 text-amber-400" />
               {astrologer?.averageRating}
             </div>
           </div>
@@ -211,9 +230,7 @@ export default function BookAppointmentPopup({
         {/* Select Date */}
         <div className="mb-5 px-5">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-gray-900">
-              Select Date
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-900">Select Date</h3>
 
             <span className="text-xs text-gray-500">{displayMonth}</span>
           </div>
@@ -226,15 +243,14 @@ export default function BookAppointmentPopup({
                 <button
                   key={d.date}
                   onClick={() => setSelectedDate(d.date)}
-                  className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-medium transition-colors ${isSelected
+                  className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-2.5 text-xs font-medium transition-colors ${
+                    isSelected
                       ? "bg-purple-700 text-white"
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                    }`}
+                  }`}
                 >
                   <span>{d.day}</span>
-                  <span className="text-sm font-semibold">
-                    {d.date}
-                  </span>
+                  <span className="text-sm font-semibold">{d.date}</span>
                 </button>
               );
             })}
@@ -264,12 +280,13 @@ export default function BookAppointmentPopup({
                         key={time}
                         disabled={disabled}
                         onClick={() => setSelectedTime(time)}
-                        className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${disabled
+                        className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
+                          disabled
                             ? "cursor-not-allowed border-gray-100 bg-gray-50 text-gray-300"
                             : isSelected
                               ? "border-purple-700 bg-purple-700 text-white"
                               : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
-                          }`}
+                        }`}
                       >
                         {time}
                       </button>
@@ -295,10 +312,11 @@ export default function BookAppointmentPopup({
                 <button
                   key={mins}
                   onClick={() => setSelectedDuration(mins)}
-                  className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${isSelected
+                  className={`flex-1 rounded-lg border py-2 text-xs font-medium transition-colors ${
+                    isSelected
                       ? "border-purple-700 bg-purple-700 text-white"
                       : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
-                    }`}
+                  }`}
                 >
                   {mins} Mins
                 </button>
@@ -317,10 +335,11 @@ export default function BookAppointmentPopup({
             {/* Chat */}
             <button
               onClick={() => setConsultationMode("chat")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${consultationMode === "chat"
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                consultationMode === "chat"
                   ? "border-purple-700 bg-purple-700 text-white"
                   : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
-                }`}
+              }`}
             >
               <MessageCircle size={16} />
               Chat
@@ -329,10 +348,11 @@ export default function BookAppointmentPopup({
             {/* Voice */}
             <button
               onClick={() => setConsultationMode("voice")}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${consultationMode === "voice"
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                consultationMode === "voice"
                   ? "border-purple-700 bg-purple-700 text-white"
                   : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
-                }`}
+              }`}
             >
               <Phone size={16} />
               Voice Call
@@ -344,9 +364,7 @@ export default function BookAppointmentPopup({
         <div className="border-t border-gray-100 px-5 py-4">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-500">
-                Consultation Fee
-              </p>
+              <p className="text-xs text-gray-500">Consultation Fee</p>
 
               <div className="flex items-baseline gap-1.5">
                 {originalFee && (
@@ -362,9 +380,7 @@ export default function BookAppointmentPopup({
             </div>
 
             <div className="text-right">
-              <p className="text-xs text-gray-500">
-                Selected Slot
-              </p>
+              <p className="text-xs text-gray-500">Selected Slot</p>
 
               <p className="text-sm font-medium text-gray-900">
                 {displayMonth.split(" ")[0]} {selectedDate}, {selectedTime}
