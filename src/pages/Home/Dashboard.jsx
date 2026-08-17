@@ -1,96 +1,57 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import Navbar from '../../components/Navbar';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getAllAstrologers, getDailyHoroscope } from '../../API/homeApis';
-
-import {
-  Sparkles, Stars, Compass, Moon, Sun, ShieldCheck,
-  MessageCircle, PhoneCall, ShoppingBag, Eye, Clock,
-  ChevronRight, ArrowUpRight, Flame, Heart, Radio
-} from 'lucide-react';
-
-import HeroBanner from './comp/HeroBanner';
 import { useNavigate } from 'react-router-dom';
 import { getAllProducts, getCosmicInsights } from '../../API/cosmicApis';
 import FullPageLoader from './comp/FullPageLoader';
+import AstrologerModal from '../../Models/AstrologerModal';
 
-// --- MOCK DATA ---
 const SERVICES = [
-  { id: 'kundli', title: 'Kundli Matching', subtitle: 'Detailed birth chart analysis', icon: '✨', badge: 'Popular', link: '/dashboard/kundali' },
-  { id: 'horoscope', title: 'Daily Horoscope', subtitle: 'Personalized planetary insights', icon: '📅', link: '/dashboard/horoscope' },
-  { id: 'festivals', title: 'Panchang & Festivals', subtitle: 'Auspicious times & muhurats', icon: '🪔', link: '/dashboard/festival' },
+  { id: 'kundli', title: 'Kundli Matching', subtitle: 'Detailed birth chart analysis', icon: '✨', badge: 'Popular', link: '/dashboard/kundali', bg: 'from-amber-500/10 to-purple-500/10' },
+  { id: 'horoscope', title: 'Daily Horoscope', subtitle: 'Personalized planetary insights', icon: '📅', link: '/dashboard/horoscope', bg: 'from-purple-500/10 to-indigo-500/10' },
 ];
 
-const LIVE_ASTROLOGERS = [
-  { id: 1, name: 'Pandit Ravi', spec: 'Vedic & Palmistry', exp: '18 Yrs', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80' },
-  { id: 2, name: 'Acharya Meena', spec: 'Tarot & Numerology', exp: '12 Yrs', img: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80' },
-  { id: 3, name: 'Dr. Shastri', spec: 'Vastu & Astrology', exp: '22 Yrs', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80' },
-  { id: 4, name: 'Tarot Priya', spec: 'Psychic Reader', exp: '9 Yrs', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80' },
+const DUMMY_BANNERS = [
+  { id: 1, image: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1600&auto=format&fit=crop&q=80' },
+  { id: 2, image: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=1600&auto=format&fit=crop&q=80' },
+  { id: 3, image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1600&auto=format&fit=crop&q=80' }
 ];
-
-const SHOP_ITEMS = [
-  { id: 1, name: 'Healing Amethyst Cluster', price: '₹1,299', rating: '4.9', img: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=400&auto=format&fit=crop&q=80' },
-  { id: 2, name: 'Yearly Destiny Horoscope Report', price: '₹499', rating: '5.0', img: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&auto=format&fit=crop&q=80' },
-  { id: 3, name: 'Natural Yellow Sapphire (Pukhraj)', price: '₹4,999', rating: '4.8', img: 'https://images.unsplash.com/photo-1615109398623-88346a601842?w=400&auto=format&fit=crop&q=80' },
-];
-
-const INSIGHTS = [
-  {
-    id: 1,
-    tag: 'RITUALS',
-    title: 'How the Full Moon in Aries Impacts Your Career Alignment',
-    readTime: '4 min read',
-    img: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=500&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 2,
-    tag: 'TRANSITS',
-    title: 'Surviving Saturn Return: A Complete Celestial Guide',
-    readTime: '6 min read',
-    img: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=500&auto=format&fit=crop&q=80',
-  },
-];
-
-
-const ZODIAC = [
-  { name: 'Aries', symbol: '♈', dates: 'Mar 21 - Apr 19', element: 'Fire' },
-  { name: 'Taurus', symbol: '♉', dates: 'Apr 20 - May 20', element: 'Earth' },
-  { name: 'Gemini', symbol: '♊', dates: 'May 21 - Jun 20', element: 'Air' },
-  { name: 'Cancer', symbol: '♋', dates: 'Jun 21 - Jul 22', element: 'Water' },
-  { name: 'Leo', symbol: '♌', dates: 'Jul 23 - Aug 22', element: 'Fire' },
-  { name: 'Virgo', symbol: '♍', dates: 'Aug 23 - Sep 22', element: 'Earth' },
-  { name: 'Libra', symbol: '♎', dates: 'Sep 23 - Oct 22', element: 'Air' },
-  { name: 'Scorpio', symbol: '♏', dates: 'Oct 23 - Nov 21', element: 'Water' },
-  { name: 'Sagittarius', symbol: '♐', dates: 'Nov 22 - Dec 21', element: 'Fire' },
-];
-
-
 
 export default function Dashboard() {
   const [dailyHoroscope, setDailyHoroscope] = useState(null);
+  const [astrologers, setAstrologers] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [insights, setInsights] = useState([]);
+  const [banners, setBanners] = useState(DUMMY_BANNERS);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  const [selectedSign, setSelectedSign] = useState('Leo');
-  const [activeTab, setActiveTab] = useState('all');
-  const [currentBanner, setCurrentBanner] = useState(0);
-  const [animateText, setAnimateText] = useState(true);
+  const [astroSlide, setAstroSlide] = useState(0);
+  const [selectedAstrologer, setSelectedAstrologer] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
 
-
-  const [astrologers, setAstrologers] = useState([])
-  const [products, setProducts] = useState([])
-  const [loading, setLoading] = useState([])
-
-  const [insights, setInsights] = useState([])
-
-
+  useEffect(() => {
+    if (astrologers.length <= 1) return;
+    const timer = setInterval(() => {
+      setAstroSlide((prev) => (prev + 1) % astrologers.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [astrologers.length]);
 
   useEffect(() => {
     const fetchHoroscope = async () => {
       try {
         const res = await getDailyHoroscope();
-
         setDailyHoroscope(res?.data?.data);
       } catch (error) {
         console.error('Failed to fetch horoscope:', error);
@@ -100,27 +61,23 @@ export default function Dashboard() {
     fetchHoroscope();
   }, []);
 
-
   const fetchAllAstrologers = async () => {
     try {
       const res = await getAllAstrologers();
-
       if (res.success) {
-        setAstrologers(res.data?.slice(0, 4));
+        const onlineAstrologers = res.data.filter((item) => item.isOnline);
+        setAstrologers(onlineAstrologers);
       }
-
-
     } catch (error) {
       console.log(error);
     }
   };
 
-
   const fetchAllProducts = async () => {
     try {
       setLoading(true);
       const res = await getAllProducts();
-      setProducts(res.data?.data.slice(0, 3) || []);
+      setProducts(res.data?.data.slice(0, 4) || []);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
@@ -128,221 +85,284 @@ export default function Dashboard() {
     }
   };
 
-
-
-
-
-
-
   const fetchInsights = async () => {
     try {
-      const res = await getCosmicInsights()
-      console.log(res.data)
-      setInsights(res.data.data.slice(0, 2))
+      const res = await getCosmicInsights();
+      setInsights(res.data.data.slice(0, 2));
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
 
   useEffect(() => {
     fetchAllProducts();
     fetchAllAstrologers();
     fetchInsights();
-  }, [])
+  }, []);
 
-  console.log("ye ai", insights)
+  const handleOpenModal = (astro) => {
+    setSelectedAstrologer(astro);
+    setIsModalOpen(true);
+  };
 
+  const handleCloseModal = () => {
+    setSelectedAstrologer(null);
+    setIsModalOpen(false);
+  };
 
   if (loading) {
-    <FullPageLoader />
+    return <FullPageLoader />;
   }
 
-
   return (
-    <div className="min-h-screen bg-[#FAF8FC] pt-10 text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950">
-
-      {/* Background Cosmic Gradient Effects */}
+    <div className="min-h-screen bg-[#FAF8FC] text-slate-800 font-sans antialiased selection:bg-purple-200 selection:text-purple-950 overflow-x-hidden">
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-purple-200/40 rounded-full blur-[120px]" />
         <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] bg-amber-100/50 rounded-full blur-[140px]" />
       </div>
 
-      {/* MAIN PAGE CONTENT CONTAINER */}
-      <main className="relative z-10  mx-auto px-4 md:px-8 ">
+      <div className="w-full relative shadow-xl">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+          className="relative w-full h-[280px] sm:h-[400px] md:h-[480px] bg-[#2B0C39] overflow-hidden"
+        >
+          {banners.length > 0 && (
+            <div className="relative w-full h-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.8 }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <img
+                    src={banners[currentSlide]?.image}
+                    alt="Banner Slide"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                </motion.div>
+              </AnimatePresence>
 
-        {/* Banner Carousel */}
-        <HeroBanner />
-
-        {/* HERO BANNER & HOROSCOPE SECTION */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="lg:col-span-8 rounded-3xl bg-gradient-to-br from-[#5A1F75] via-[#4A1E5C] to-[#2B0C39] p-8 text-white relative overflow-hidden shadow-2xl shadow-purple-950/15 flex flex-col justify-between"
-          >
-            <div className="absolute top-0 right-0 w-96 h-96 bg-amber-300/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <span className="text-xs font-bold uppercase tracking-widest text-amber-300">Daily Alignment</span>
-                  <h1 className="text-3xl font-serif font-bold text-white mt-1">Namaste, Mystic Traveler</h1>
-                </div>
-                <span className="bg-white/10 backdrop-blur-md text-amber-300 border border-amber-300/30 text-xs font-semibold px-4 py-1.5 rounded-full tracking-wider uppercase">
-                  {dailyHoroscope?.zodiac || 'Leo'} • {dailyHoroscope?.alignment || 'Balanced'}
-                </span>
-              </div>
-
-              <p className="text-slate-200/90 text-sm leading-relaxed max-w-2xl font-light mb-8">
-                The Sun in your sign grants you unparalleled creative vitality today. Trust your intuition in matters of the heart—a cosmic alignment suggests a meaningful encounter is on the horizon. Radiate confidence, but remain grounded in your truth.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Lucky Color', value: 'Celestial Gold' },
-                { label: 'Lucky Number', value: '88' },
-                { label: 'Rasi Planet', value: 'Sun' },
-                { label: 'Element', value: 'Fire 🔥' },
-              ].map((stat, idx) => (
-                <div key={idx} className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-3 text-center">
-                  <span className="block text-[10px] uppercase font-semibold text-purple-200">{stat.label}</span>
-                  <span className="text-sm font-bold text-amber-300 mt-0.5 block">{stat.value}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="lg:col-span-4 bg-white rounded-3xl p-6 border border-purple-100/80 shadow-xl shadow-purple-900/5 flex flex-col justify-between"
-          >
-            <div>
-              <h3 className="text-lg font-serif font-semibold text-[#2D123A] mb-2">Explore Zodiacs</h3>
-              <p className="text-xs text-slate-500 mb-6">Select your sign for today’s tailored prediction.</p>
-
-              <div className="grid grid-cols-3 gap-3">
-                {ZODIAC.map((sign) => (
+              <div className="absolute bottom-6 left-0 right-0 flex justify-center items-center gap-2.5 z-20">
+                {banners.map((_, idx) => (
                   <button
-                    key={sign.name}
-                    onClick={() => setSelectedSign(sign.name)}
-                    className={`rounded-2xl border p-3 text-xs font-semibold transition-all flex flex-col items-center gap-1 ${selectedSign === sign.name
-                        ? "border-[#52007A] bg-purple-50 text-[#52007A] shadow-sm"
-                        : "border-slate-100 text-slate-600 hover:border-purple-200 hover:bg-slate-50"
-                      }`}
-                  >
-                    <span className="text-2xl">
-                      {sign.symbol}
-                    </span>
-
-                    <span>{sign.name}</span>
-                  </button>
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'w-10 bg-amber-300' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
+                  />
                 ))}
               </div>
             </div>
+          )}
+        </motion.div>
+      </div>
 
-            <button
-              onClick={() => navigate('/dashboard/horoscope')}
-              className="w-full mt-6 py-3 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl shadow-md transition-colors">
-              Read Full Horoscope
-            </button>
-          </motion.div>
-        </section>
-
-        {/* SERVICES GRID */}
-        <section className="space-y-6 pt-10">
+      <main className="relative z-10 w-full px-4 sm:px-6 lg:px-10 py-10">
+        <section className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Services</h2>
-              <p className="text-xs text-slate-500 mt-1">Unlock answers through authentic ancient Vedic practices.</p>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Services</h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">Unlock answers through authentic ancient Vedic practices.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl">
             {SERVICES.map((service) => (
               <motion.div
                 onClick={() => navigate(service.link)}
                 key={service.id}
-                whileHover={{ y: -6 }}
+                whileHover={{ y: -6, scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white p-6 rounded-3xl border border-purple-100/60 shadow-lg shadow-purple-900/5 hover:shadow-xl hover:shadow-purple-900/10 transition-all cursor-pointer group relative overflow-hidden"
+                className={`bg-gradient-to-br ${service.bg} bg-white p-8 rounded-3xl border border-purple-100 shadow-xl shadow-purple-950/5 hover:shadow-2xl hover:shadow-purple-950/15 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between`}
               >
+                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-purple-200/20 rounded-full blur-2xl group-hover:bg-purple-300/40 transition-all pointer-events-none" />
+                
                 {service.badge && (
-                  <span className="absolute top-4 right-4 bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="absolute top-5 right-5 bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                     {service.badge}
                   </span>
                 )}
-                <div className="w-14 h-14 rounded-2xl bg-purple-50 group-hover:bg-[#52007A] text-purple-900 group-hover:text-amber-300 flex items-center justify-center text-2xl transition-all duration-300 mb-4">
-                  {service.icon}
+
+                <div>
+                  <div className="w-16 h-16 rounded-2xl bg-white shadow-md group-hover:bg-[#52007A] text-purple-900 group-hover:text-amber-300 flex items-center justify-center text-3xl transition-all duration-300 mb-6">
+                    {service.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 group-hover:text-[#52007A] transition-colors">
+                    {service.title}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                    {service.subtitle}
+                  </p>
                 </div>
-                <h3 className="text-base font-bold text-slate-800 group-hover:text-[#52007A] transition-colors">
-                  {service.title}
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  {service.subtitle}
-                </p>
+
+                <div className="flex items-center gap-2 mt-6 text-xs font-bold text-[#52007A] group-hover:translate-x-1 transition-transform">
+                  <span>Explore Now</span>
+                  <span>→</span>
+                </div>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* LIVE ASTROLOGERS SECTION */}
-        <section id='astrologers' className="space-y-6 pt-10">
+        <section id='astrologers' className="space-y-6 pt-12">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Live Astrologers</h2>
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Online Astrologers</h2>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
               </div>
-              <p className="text-xs text-slate-500 mt-1">Connect immediately with verified experts online right now.</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">Connect immediately with verified experts available online right now.</p>
             </div>
             <button
               onClick={() => navigate('/dashboard/astrologers')}
-              className="text-xs font-semibold text-[#52007A] hover:underline">
+              className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
               View All Astrologers
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {astrologers?.map((astro) => (
+          <div className="hidden lg:grid grid-cols-5 gap-6">
+            {astrologers?.slice(0, 5).map((astro) => (
               <motion.div
-                key={astro.id}
+                key={astro._id}
                 whileHover={{ y: -4 }}
-                className="bg-white p-5 rounded-3xl border border-purple-100/80 shadow-md flex flex-col items-center text-center relative"
+                className="bg-white p-5 rounded-3xl border border-purple-100 shadow-md flex flex-col justify-between relative group"
               >
-                <div className="relative mb-3">
-                  <img
-                    src={astro.profilePic}
-                    alt={astro.fullName}
-                    className="w-20 h-20 rounded-full object-cover ring-4 ring-rose-500/20"
-                  />
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full border border-white tracking-widest uppercase">
-                    LIVE
-                  </span>
-                </div>
-                <h3 className="text-sm font-bold text-slate-800">{astro.fullName}</h3>
-                <p className="text-xs text-slate-500 mt-0.5">{astro.specialities}</p>
-                <p className="text-[11px] font-medium text-amber-600 mt-1">★ {astro.averageRating} • {astro.experience} Exp</p>
+                <div>
+                  <div className="flex justify-end mb-2">
+                    <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="text-[10px] font-bold text-emerald-700 tracking-wider">ONLINE</span>
+                    </span>
+                  </div>
 
-                <button className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-medium text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10">
+                  <div className="flex flex-col items-center text-center">
+                    <img
+                      src={astro.profilePic || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                      alt={astro.fullName}
+                      onClick={() => handleOpenModal(astro)}
+                      className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-100 group-hover:ring-purple-300 transition-all shadow-sm cursor-pointer"
+                    />
+                    <h3
+                      onClick={() => handleOpenModal(astro)}
+                      className="text-sm font-bold text-slate-800 mt-3 truncate w-full px-2 cursor-pointer hover:text-[#52007A]"
+                    >
+                      {astro.fullName}
+                    </h3>
+                    <p className="text-[11px] font-medium text-purple-600 mt-0.5">{astro.experience} Years Exp.</p>
+                    
+                    <div className="flex flex-wrap justify-center items-center gap-1 mt-3 min-h-[32px] overflow-hidden">
+                      {astro.specialties?.slice(0, 3).map((spec, index) => (
+                        <span key={index} className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold">
+                          {spec}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-full border-t border-slate-100 my-3"></div>
+
+                  <div className="flex items-center justify-between text-xs px-1">
+                    <span className="font-bold text-slate-700">₹{astro.minRate ? astro.minRate : 0}/min</span>
+                    <span className="text-slate-500 truncate max-w-[110px] text-right">{astro.languages?.join(", ")}</span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleOpenModal(astro)}
+                  className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10 cursor-pointer"
+                >
                   Connect Now
                 </button>
               </motion.div>
             ))}
           </div>
+
+          <div className="block lg:hidden relative overflow-hidden py-2">
+            <div className="flex justify-center">
+              {astrologers.length > 0 && (
+                <motion.div
+                  key={astrologers[astroSlide]?._id}
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -50 }}
+                  transition={{ duration: 0.5 }}
+                  className="bg-white p-5 rounded-3xl border border-purple-100 shadow-md flex flex-col justify-between relative group w-full max-w-xs"
+                >
+                  <div>
+                    <div className="flex justify-end mb-2">
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span className="text-[10px] font-bold text-emerald-700 tracking-wider">ONLINE</span>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center">
+                      <img
+                        src={astrologers[astroSlide]?.profilePic || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                        alt={astrologers[astroSlide]?.fullName}
+                        onClick={() => handleOpenModal(astrologers[astroSlide])}
+                        className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-100 group-hover:ring-purple-300 transition-all shadow-sm cursor-pointer"
+                      />
+                      <h3
+                        onClick={() => handleOpenModal(astrologers[astroSlide])}
+                        className="text-sm font-bold text-slate-800 mt-3 truncate w-full px-2 cursor-pointer hover:text-[#52007A]"
+                      >
+                        {astrologers[astroSlide]?.fullName}
+                      </h3>
+                      <p className="text-[11px] font-medium text-purple-600 mt-0.5">{astrologers[astroSlide]?.experience} Years Exp.</p>
+                      
+                      <div className="flex flex-wrap justify-center items-center gap-1 mt-3 min-h-[32px] overflow-hidden">
+                        {astrologers[astroSlide]?.specialties?.slice(0, 3).map((spec, index) => (
+                          <span key={index} className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold">
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="w-full border-t border-slate-100 my-3"></div>
+
+                    <div className="flex items-center justify-between text-xs px-1">
+                      <span className="font-bold text-slate-700">₹{astrologers[astroSlide]?.minRate ? astrologers[astroSlide]?.minRate : 0}/min</span>
+                      <span className="text-slate-500 truncate max-w-[110px] text-right">{astrologers[astroSlide]?.languages?.join(", ")}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenModal(astrologers[astroSlide])}
+                    className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10 cursor-pointer"
+                  >
+                    Connect Now
+                  </button>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="flex justify-center items-center gap-2 mt-4">
+              {astrologers.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setAstroSlide(idx)}
+                  className={`h-2 rounded-full transition-all duration-300 ${astroSlide === idx ? 'w-8 bg-[#52007A]' : 'w-2 bg-slate-300'}`}
+                />
+              ))}
+            </div>
+          </div>
         </section>
 
-        {/* COSMIC SHOP & INSIGHTS */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-10">
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12">
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
               <button
                 onClick={() => navigate('/dashboard/products')}
-                className="text-xs font-semibold text-[#52007A] hover:underline">
+                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
                 Explore Store
               </button>
             </div>
@@ -351,7 +371,7 @@ export default function Dashboard() {
               {products?.map((item) => (
                 <div
                   onClick={() => navigate(`/dashboard/cosmic-detail/${item._id}`)}
-                  key={item.id} className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group cursor-pointer hover:scale-105 duration-300 transition-all">
+                  key={item._id} className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group cursor-pointer hover:scale-105 duration-300 transition-all">
                   <div>
                     <div className="h-32 rounded-xl overflow-hidden mb-3 bg-slate-50">
                       <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -361,7 +381,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
                     <span className="text-xs font-bold text-[#4A1E5C]">{item.price}</span>
-                    <button className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-[#52007A] text-xs font-semibold rounded-lg transition-colors">
+                    <button className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-[#52007A] text-xs font-semibold rounded-lg transition-colors cursor-pointer">
                       Buy
                     </button>
                   </div>
@@ -372,10 +392,10 @@ export default function Dashboard() {
 
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
               <button
                 onClick={() => navigate('/dashboard/articles')}
-                className="text-xs font-semibold text-[#52007A] hover:underline">
+                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
                 Read Articles
               </button>
             </div>
@@ -398,12 +418,10 @@ export default function Dashboard() {
             </div>
           </div>
         </section>
-
       </main>
 
-      {/* FOOTER */}
-      <footer className="mt-20 border-t border-purple-100 bg-white">
-        <div className="max-w-7xl mx-auto px-8 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="mt-20 border-t border-purple-100 bg-white w-full">
+        <div className="w-full px-6 lg:px-12 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-[#4A1E5C] text-amber-300 flex items-center justify-center font-serif text-base font-bold">
               ☾
@@ -425,7 +443,6 @@ export default function Dashboard() {
         </div>
       </footer>
 
-      {/* Floating Action Chat Button */}
       <motion.button
         onClick={() => {
           document.getElementById("astrologers")?.scrollIntoView({
@@ -440,8 +457,12 @@ export default function Dashboard() {
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span>Chat with Astrologer</span>
       </motion.button>
+
+      <AstrologerModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        astrologer={selectedAstrologer}
+      />
     </div>
-
-
   );
 }
