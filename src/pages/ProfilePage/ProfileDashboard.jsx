@@ -16,6 +16,9 @@ import { useNavigate } from "react-router-dom";
 import { getUserProfile } from "../../API/authapis";
 import Loader from "../../components/Loader";
 
+
+import {myWallet} from '../../API/bookingApis'
+
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   show: (i) => ({
@@ -26,9 +29,8 @@ const fadeUp = {
 };
 
 const SERVICES = [
-  { id: "consultations", icon: CalendarClock, label: "My Consultations", desc: "Upcoming & past sessions" },
-  { id: "orders", icon: Package, label: "My Orders", desc: "Gemstones, pujas & reports" },
-  { id: "edit-profile", icon: UserCog, label: "Profile Settings", desc: "Birth details & identity" },
+  { id: "consultations", icon: CalendarClock, label: "My Consultations", desc: "Upcoming & past sessions"  },
+  { id: "orders", icon: Package, label: "My Orders", desc: "Gemstones, pujas & reports"  },
   { id: "support", icon: LifeBuoy, label: "Help & Support", desc: "We're here for you" },
   { id: "language", icon: Languages, label: "Language", desc: "English (India)" },
 ];
@@ -53,8 +55,20 @@ export default function ProfileDashboard() {
     }
   }
 
+
+  const[balance, setBalance] = useState(null)
+  const fetchWallet = async()=>{
+    try {
+      const res = await myWallet()
+      setBalance(res.data.walletBalance || res.data.data.walletBalance)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   useEffect(() => {
     fetchProfile()
+    fetchWallet()
   }, [])
 
 
@@ -134,10 +148,12 @@ export default function ProfileDashboard() {
           <div className="relative">
             <p className="text-xs uppercase tracking-[3px] text-purple-200">Wallet Balance</p>
             <p className="text-4xl font-serif font-bold mt-2">
-              ₹{Number(user?.walletBalance || 0).toLocaleString("en-IN")}
+              ₹{Number(balance || 0).toLocaleString("en-IN")}
             </p>
           </div>
           <button
+          onClick={()=>navigate('/dashboard/wallet')
+          }
             type="button"
             className="relative rounded-xl bg-white text-purple-800 text-sm font-bold px-6 py-3 hover:bg-purple-50 transition-colors shadow-lg"
           >
@@ -167,7 +183,7 @@ export default function ProfileDashboard() {
             <motion.button
               key={s.id}
               type="button"
-              onClick={() => navigate('/dashboard/settings')}
+              onClick={() => navigate(`/dashboard/${s.id}`)}
               whileHover={{ y: -4, scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
               className="text-left rounded-2xl bg-white border border-purple-100 shadow-md hover:shadow-xl p-6 flex items-start gap-4 transition-shadow"

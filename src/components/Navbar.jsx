@@ -12,6 +12,7 @@ import {
   PackageCheck
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
+import {getCart} from '../API/cosmicApis'
 
 export default function Navbar({ activeNav, setActiveNav }) {
   const [showProfile, setShowProfile] = React.useState(false);
@@ -70,9 +71,6 @@ const cancelLogout = () => {
 };
 
 
-  useEffect(()=>{
-    fetchUser();
-  },[])
 
   useEffect(() => {
     fetchUser();
@@ -249,16 +247,16 @@ const cancelLogout = () => {
                   <div className="bg-gradient-to-r from-[#4A1E5C] to-[#7B3FA6] p-5 text-white">
                     <div className="flex items-center gap-3">
                       <img
-                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
+                        src={user?.profilePic || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlbbdPqXU3wwsJQPwkgU42saoIIg22ct8rNcFV_RU6PA&s=10"}
                         className="w-14 h-14 rounded-full border-2 border-white"
                       />
 
                       <div>
                         <h3 className="font-semibold text-lg">
-                          Aditya Semalti
+                         {user?.fullName}
                         </h3>
                         <p className="text-sm text-purple-100">
-                          aditya@email.com
+                          {user?.email}
                         </p>
                       </div>
                     </div>
