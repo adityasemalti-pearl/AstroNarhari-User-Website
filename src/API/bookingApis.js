@@ -9,7 +9,6 @@ export const getMyBookings =  () => {
     return api.get('/bookings/user/my-bookings' )
 }
 
-
 export const cancelBooking =  (id) => {
     return api.post('/bookings/user/cancel' , id)
 }

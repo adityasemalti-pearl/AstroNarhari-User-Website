@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
 import {getCart} from '../API/cosmicApis'
+import { myWallet } from "../API/bookingApis";
 
 export default function Navbar({ activeNav, setActiveNav }) {
   const [showProfile, setShowProfile] = React.useState(false);
@@ -70,9 +71,22 @@ const cancelLogout = () => {
   setShowLogoutPopup(false);
 };
 
+const [balance,setBalance] = useState(null)
+
+
+const fetchWallet = async()=>{
+  try {
+    const res = await myWallet()
+    setBalance(res.data.walletBalance)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 
 
   useEffect(() => {
+    fetchWallet();
     fetchUser();
     fetchCart();
   }, []);
@@ -216,7 +230,7 @@ const cancelLogout = () => {
           <button
             onClick={() => navigate("/dashboard/wallet")}
             className="hidden sm:flex cursor-pointer items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#4A1E5C] bg-purple-50 hover:bg-purple-100 transition-colors">
-            <span> Wallet: ₹500</span>
+            <span> Wallet: ₹ {balance}</span>
           </button>
 
           <div

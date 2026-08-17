@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+
 import SplashScreen from "./pages/SplashScreen/SplashScreen";
 import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Home/Dashboard";
@@ -12,7 +14,6 @@ import LiveStream from "./pages/Home/LiveStream";
 import CosmicProductDetail from "./pages/Home/CosmicProductDetails";
 import Astrologers from "./pages/Home/Astrologers";
 import MyBookings from "./pages/Bookings/MyBookings";
-
 import AllProducts from "./pages/Home/AllProducts";
 import Cart from "./pages/Cart/Cart";
 import AboutUs from "./pages/About/AboutUs";
@@ -28,14 +29,14 @@ import ProtectedRoute from "./pages/ProtectedRoute";
 import PublicRoute from "./pages/PublicRoutes";
 import NotFound from "./components/NotFound";
 import CheckoutPage from "./pages/Cart/Checkout";
-import WalletPage from "./pages/Home/Wallet"
-
-
-import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import WalletPage from "./pages/Home/Wallet";
+import Careers from "./pages/Careers/Careers";
 import TermsConditions from "./pages/Home/PublicPages/TermsConditions";
 import MyOrders from "./pages/Cart/MyOrders";
 import Chat from "./pages/Chat/Chat";
+import ContactUs from "./pages/Home/PublicPages/Contact";
+import CookiePolicy from "./pages/Home/PublicPages/CookiePolicy";
+import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -51,27 +52,29 @@ const ScrollToTop = () => {
   return null;
 };
 
-
 function App() {
   return (
     <BrowserRouter>
-    <ScrollToTop/>
+      <ScrollToTop />
       <Routes>
-        {/* Public Routes */}
         <Route element={<PublicRoute />}>
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/terms-n-conditions" element={<TermsConditions />} />
-           <Route path="/create-profile" element={<CreateProfilePage />} />
+          <Route path="/create-profile" element={<CreateProfilePage />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
         </Route>
-        {/* Protected Routes */}
+
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<DashboardLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="kundali" element={<KundliPage />} />
             <Route path="horoscope" element={<Horoscope />} />
-           
             <Route path="match" element={<MatchingMaking />} />
             <Route path="festival" element={<FestivalCalendar />} />
             <Route path="live" element={<LiveStream />} />
@@ -83,6 +86,7 @@ function App() {
             <Route path="products" element={<AllProducts />} />
             <Route path="cart" element={<Cart />} />
             <Route path="about" element={<AboutUs />} />
+            <Route path="careers" element={<Careers />} />
             <Route path="articles" element={<CosmicInsights />} />
             <Route path="articles/:slug" element={<CosmicDetail />} />
             <Route path="profile-overview" element={<ProfileDashboard />} />
@@ -95,6 +99,7 @@ function App() {
             <Route path="chat/:partnerId" element={<Chat />}/>
           </Route>
         </Route>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
