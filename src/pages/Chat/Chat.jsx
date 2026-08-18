@@ -27,6 +27,7 @@ export default function Chat() {
   const { partnerId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  console.log("Partner ID:", partnerId);
 
   const partner = location.state?.partner;
   const bookingId = location.state?.bookingId;

@@ -97,6 +97,12 @@ export default function BookAppointmentPopup({
 
   const handleProceed = async () => {
     try {
+
+      console.log("🔥 ===== BOOKING CHECK =====");
+console.log("🔥 BALANCE RECEIVED IN POPUP:", balance);
+console.log("🔥 ASTRO MIN RATE:", astrologer?.minRate);
+console.log("🔥 FEE:", fee);
+console.log("🔥 DISPLAY FEE:", displayFee);
       const currentBalance = Number(balance) || 0;
       const minimumRate = Number(displayFee) || 0;
 
@@ -110,11 +116,9 @@ export default function BookAppointmentPopup({
         alert("Astrologer information is missing.");
         return;
       }
-      if (!astrologer?._id) {
-        console.error("Partner ID is missing");
-        alert("Astrologer information is missing.");
-        return;
-      }
+      console.log("🔥 BOOKING BALANCE:", balance);
+console.log("🔥 BOOKING ASTRO RATE:", astrologer?.minRate);
+console.log("🔥 DISPLAY FEE:", displayFee);
 
       if (
         !selectedDate ||
@@ -127,16 +131,17 @@ export default function BookAppointmentPopup({
       }
 
       setLoading(true);
-
       const payload = {
-        partnerId: astrologer._id,
+        partnerId: astrologer?._id,
         date: buildISODate(selectedDate, displayMonth),
         timeSlot: selectedTime,
         duration: selectedDuration,
         mode: consultationMode === "voice" ? "Voice Call" : "Chat",
       };
 
-      console.log("Booking Payload:", payload);
+      console.log("🔥 ASTROLOGER OBJECT IN BOOKING:", astrologer);
+      console.log("🔥 ASTROLOGER ID:", astrologer?._id);
+      console.log("🔥 FINAL PAYLOAD:", payload);
 
       const response = await scheduleBooking(payload);
 
@@ -156,15 +161,13 @@ export default function BookAppointmentPopup({
         timeSlot: selectedTime,
         duration: selectedDuration,
         mode: payload.mode,
+        minRate: displayFee,
       });
 
       onClose();
     } catch (error) {
       console.error("Booking API Error:", error);
 
-      // Backend often sends "insufficient balance" as an error response
-      // (e.g. 400/402 status), not inside a success `response` object.
-      // Catch that case here too, or the wallet popup never shows.
       const backendMessage =
         error?.response?.data?.message || error?.message || "";
 

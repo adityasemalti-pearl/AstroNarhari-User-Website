@@ -22,6 +22,7 @@ export default function WalletPage({ onBack }) {
     const [balance, setBalance] = useState(0);
     const [selectedAmount, setSelectedAmount] = useState(500);
     const [customAmount, setCustomAmount] = useState("");
+    
 
     const [loadingBalance, setLoadingBalance] = useState(true);
     const [rechargeLoading, setRechargeLoading] = useState(false);
@@ -35,7 +36,9 @@ export default function WalletPage({ onBack }) {
 
             const response = await myWallet();
 
-            console.log("Wallet Response:", response);
+            console.log("🔥 FULL WALLET RESPONSE:", response);
+console.log("🔥 WALLET DATA:", response?.data);
+console.log("🔥 WALLET BALANCE:", response?.data?.balance);
 
             // If your api interceptor returns response.data
             if (response?.data?.walletBalance !== undefined) {

@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react"; import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
-  Mail,
   Calendar,
   Clock3,
   MapPin,
@@ -11,17 +11,34 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { editUserProfile, getUserProfile } from "../../API/authapis";
+
+import {
+  editUserProfile,
+  getUserProfile,
+} from "../../API/authapis";
+
 import Loader from "../../components/Loader";
 
-const GENDER_OPTIONS = ["Female", "Male", "Non-binary", "Prefer not to say"];
+const GENDER_OPTIONS = [
+  "Female",
+  "Male",
+  "Non-binary",
+  "Prefer not to say",
+];
 
 function Field({ label, icon: Icon, children }) {
   return (
     <div className="space-y-2.5">
-      <label className="text-sm font-semibold text-slate-700 block">{label}</label>
-      <div className="relative flex items-center border border-slate-200 rounded-xl px-4 h-13 py-3.5 group focus-within:border-purple-400 transition-colors">
-        <Icon size={18} className="text-slate-400 mr-3 group-focus-within:text-purple-500 transition-colors shrink-0" />
+      <label className="block text-sm font-semibold text-slate-700">
+        {label}
+      </label>
+
+      <div className="relative flex h-13 items-center rounded-xl border border-slate-200 px-4 py-3.5 transition-colors group focus-within:border-purple-400">
+        <Icon
+          size={18}
+          className="mr-3 shrink-0 text-slate-400 transition-colors group-focus-within:text-purple-500"
+        />
+
         {children}
       </div>
     </div>
@@ -29,291 +46,521 @@ function Field({ label, icon: Icon, children }) {
 }
 
 export default function EditProfileDetails() {
+  const fileInputRef = useRef(null);
+
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [genderOpen, setGenderOpen] = useState(false);
+
+  // Image preview URL
+  const [avatarPreview, setAvatarPreview] = useState("");
+
   const [formData, setFormData] = useState({
     fullName: "",
     gender: "",
     dateOfBirth: "",
     timeOfBirth: "",
     placeOfBirth: "",
-    profilePic: null,
+    profilePic: "",
   });
-  const [genderOpen, setGenderOpen] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState("");
-  const [saved, setSaved] = useState(false);
-  const fileInputRef = useRef(null);
+
+  // --------------------------------------------------
+  // HANDLE INPUT CHANGE
+  // --------------------------------------------------
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const [loading, setLoading] = useState(false)
+  // --------------------------------------------------
+  // FETCH USER PROFILE
+  // --------------------------------------------------
 
-  const [user, setUser] = useState({});
   const fetchProfile = async () => {
-    try {
-      setLoading(true)
-      const res = await getUserProfile()
-      const data = res.data.data;
-      setUser(data)
-      console.log(data)
-      setFormData({
-        fullName: data.name || "",
-        gender: data.gender || "",
-        dateOfBirth: data.dateOfBirth
-          ? data.dateOfBirth.split("T")[0]
-          : "",
-        timeOfBirth: data.timeOfBirth || "",
-        placeOfBirth: data.placeOfBirth || "",
-        profilePic: data.profilePic,
-      });
-
-      setAvatarPreview(data.profilePic || "");
-      setLoading(false)
-    } catch (error) {
-      console.log(error)
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchProfile()
-  }, [])
-
-
-
-  const handleSave = async () => {
     try {
       setLoading(true);
 
-      const payload = new FormData();
+      const res = await getUserProfile();
 
-      payload.append("fullName", formData.fullName);
-      payload.append("gender", formData.gender);
-      payload.append("dateOfBirth", formData.dateOfBirth);
-      payload.append("timeOfBirth", formData.timeOfBirth);
-      payload.append("placeOfBirth", formData.placeOfBirth);
-     
-      if (formData.profilePic instanceof File) {
-        payload.append("profilePic", formData.profilePic);
-      }
+      console.log("PROFILE RESPONSE:", res);
 
-      const res = await editUserProfile(payload);
+      const data = res?.data?.data || {};
 
-      if (res.data.success) {
-        setSaved(true);
-        fetchProfile();
+      setFormData({
+        fullName: data?.name || data?.fullName || "",
+        gender: data?.gender || "",
+        dateOfBirth: data?.dateOfBirth
+          ? data.dateOfBirth.split("T")[0]
+          : "",
+        timeOfBirth: data?.timeOfBirth || "",
+        placeOfBirth: data?.placeOfBirth || "",
 
-        setTimeout(() => {
-          setSaved(false);
-        }, 2500);
-      }
+        // Existing image is URL
+        profilePic: data?.profilePic || null,
+      });
+
+      // Existing profile image
+      setAvatarPreview(data?.profilePic || "");
+
     } catch (error) {
-      console.log(error);
+      console.error("Fetch profile error:", error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  // --------------------------------------------------
+  // IMAGE CHANGE
+  // --------------------------------------------------
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
 
     if (!file) return;
 
-    setAvatarPreview(URL.createObjectURL(file));
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image.");
+      return;
+    }
 
+    // Validate file size - 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image size should not exceed 5MB.");
+      return;
+    }
+
+    // Store actual File for Multer
     setFormData((prev) => ({
       ...prev,
       profilePic: file,
     }));
+
+    // Create blob preview
+    const blobUrl = URL.createObjectURL(file);
+
+    setAvatarPreview(blobUrl);
+
+    console.log("Selected image:", file);
+    console.log("Blob preview:", blobUrl);
   };
 
+  // --------------------------------------------------
+  // SAVE PROFILE
+  // --------------------------------------------------
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      // IMPORTANT:
+      // Because backend uses Multer,
+      // send everything using FormData.
+ const payload = new FormData();
+
+payload.append("fullName", formData.fullName || "");
+payload.append("gender", formData.gender || "");
+payload.append("dateOfBirth", formData.dateOfBirth || "");
+payload.append("timeOfBirth", formData.timeOfBirth || "");
+payload.append("placeOfBirth", formData.placeOfBirth || "");
+
+if (formData.profilePic instanceof File) {
+  payload.append("profilePic", formData.profilePic);
+}
+
+for (const [key, value] of payload.entries()) {
+  console.log("FORM DATA:", key, value);
+}
+
+      // Debug FormData
+      console.log("========== FORM DATA ==========");
+
+      for (const [key, value] of payload.entries()) {
+        console.log(key, value);
+      }
+
+      console.log("================================");
+
+      // API
+      const res = await editUserProfile(payload);
+
+      console.log("EDIT PROFILE RESPONSE:", res);
+
+      if (res?.data?.success) {
+        setSaved(true);
+
+        // Fetch latest profile
+        await fetchProfile();
+
+        setTimeout(() => {
+          setSaved(false);
+        }, 2500);
+      } else {
+        console.error(
+          "Profile update failed:",
+          res?.data?.message
+        );
+      }
+
+    } catch (error) {
+      console.error("EDIT PROFILE ERROR:", error);
+
+      console.error(
+        "Backend error:",
+        error?.response?.data
+      );
+
+      alert(
+        error?.response?.data?.message ||
+        "Unable to update profile."
+      );
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // CLEANUP BLOB URL
+  // --------------------------------------------------
+
+  useEffect(() => {
+    return () => {
+      if (
+        avatarPreview &&
+        avatarPreview.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
 
   if (loading) {
-    return (
-      <Loader />
-    )
+    return <Loader />;
   }
 
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
+
   return (
-    <div className="max-w-3xl space-y-6 my-20 mx-auto">
-      <div className="rounded-3xl bg-white border border-purple-100 shadow-xl p-9">
-        <h3 className="text-2xl font-serif font-bold text-slate-950 mb-1 text-center">
+    <div className="mx-auto my-20 max-w-3xl space-y-6">
+
+      {/* ================= PROFILE CARD ================= */}
+
+      <div className="rounded-3xl border border-purple-100 bg-white p-9 shadow-xl">
+
+        <h3 className="mb-1 text-center font-serif text-2xl font-bold text-slate-950">
           Update Cosmic Identity
         </h3>
-        <p className="text-sm text-slate-500 mb-8 text-center">
-          Accurate birth details ensure precise chart calculations and readings.
+
+        <p className="mb-8 text-center text-sm text-slate-500">
+          Accurate birth details ensure precise chart calculations
+          and readings.
         </p>
 
-        {/* Avatar */}
-        <div className="flex items-center gap-6 mb-9">
+        {/* ================= AVATAR ================= */}
+
+        <div className="mb-9 flex items-center gap-6">
+
           <div className="relative">
-            <div className="h-20 w-20 rounded-full bg-gradient-to-br from-purple-100 to-white border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
+
+            {/* IMAGE PREVIEW */}
+
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-gradient-to-br from-purple-100 to-white shadow-lg">
+
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
-                  alt="Avatar"
+                  alt="Profile"
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <User size={28} className="text-purple-600" />
+                <User
+                  size={28}
+                  className="text-purple-600"
+                />
               )}
+
             </div>
+
+            {/* CAMERA */}
+
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute -right-1 -bottom-1 h-8 w-8 rounded-full bg-purple-700 text-white flex items-center justify-center shadow-lg hover:bg-purple-800 transition-colors"
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
+              className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-purple-700 text-white shadow-lg transition-colors hover:bg-purple-800"
             >
               <Camera size={13} />
             </button>
+
+            {/* FILE INPUT */}
+
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleImageChange}
               className="hidden"
             />
+
           </div>
+
           <div>
-            <p className="text-sm font-semibold text-slate-800">Profile photo</p>
-            <p className="text-xs text-slate-500 mt-1">JPG or PNG, up to 5MB</p>
+            <p className="text-sm font-semibold text-slate-800">
+              Profile photo
+            </p>
+
+            <p className="mt-1 text-xs text-slate-500">
+              JPG, PNG or WEBP, up to 5MB
+            </p>
           </div>
+
         </div>
 
-        {/* Form grid */}
-        <div className="grid sm:grid-cols-2 gap-6">
-          <Field label="Full Name" icon={User}>
+        {/* ================= FORM ================= */}
+
+        <div className="grid gap-6 sm:grid-cols-2">
+
+          {/* FULL NAME */}
+
+          <Field
+            label="Full Name"
+            icon={User}
+          >
             <input
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
+              placeholder="Enter your full name"
+              className="w-full border-none bg-transparent p-0 text-sm text-slate-800 outline-none placeholder:text-slate-400"
             />
           </Field>
 
-          {/* <Field label="Email Address" icon={Mail}>
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
-            />
-          </Field> */}
+          {/* GENDER */}
 
-          <div className="space-y-2.5 relative">
-            <label className="text-sm font-semibold text-slate-700 block">Gender</label>
+          <div className="relative space-y-2.5">
+
+            <label className="block text-sm font-semibold text-slate-700">
+              Gender
+            </label>
+
             <div
-              onClick={() => setGenderOpen((p) => !p)}
-              className="h-13 px-4 py-3.5 border border-slate-200 rounded-xl flex items-center justify-between cursor-pointer hover:border-purple-300 transition-colors"
+              onClick={() =>
+                setGenderOpen((prev) => !prev)
+              }
+              className="flex h-13 cursor-pointer items-center justify-between rounded-xl border border-slate-200 px-4 py-3.5 transition-colors hover:border-purple-300"
             >
-              <span className="text-sm text-slate-800">{formData.gender}</span>
-              <motion.span animate={{ rotate: genderOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                <ChevronDown size={17} className="text-slate-400" />
+
+              <span className="text-sm text-slate-800">
+                {formData.gender || "Select gender"}
+              </span>
+
+              <motion.span
+                animate={{
+                  rotate: genderOpen ? 180 : 0,
+                }}
+                transition={{
+                  duration: 0.2,
+                }}
+              >
+                <ChevronDown
+                  size={17}
+                  className="text-slate-400"
+                />
               </motion.span>
+
             </div>
+
             <AnimatePresence>
               {genderOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-full mt-2 left-0 right-0 rounded-xl bg-white border border-purple-100 shadow-xl overflow-hidden z-20"
+                  initial={{
+                    opacity: 0,
+                    y: -8,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -8,
+                  }}
+                  transition={{
+                    duration: 0.15,
+                  }}
+                  className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-xl border border-purple-100 bg-white shadow-xl"
                 >
+
                   {GENDER_OPTIONS.map((option) => (
                     <div
                       key={option}
                       onClick={() => {
-                        setFormData((p) => ({ ...p, gender: option }));
+
+                        setFormData((prev) => ({
+                          ...prev,
+                          gender: option,
+                        }));
+
                         setGenderOpen(false);
                       }}
-                      className="px-4 py-2.5 text-sm text-slate-700 hover:bg-purple-50 hover:text-purple-800 cursor-pointer flex items-center justify-between transition-colors"
+                      className="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm text-slate-700 transition-colors hover:bg-purple-50 hover:text-purple-800"
                     >
+
                       {option}
-                      {formData.gender === option && <Check size={15} className="text-purple-600" />}
+
+                      {formData.gender === option && (
+                        <Check
+                          size={15}
+                          className="text-purple-600"
+                        />
+                      )}
+
                     </div>
                   ))}
+
                 </motion.div>
               )}
             </AnimatePresence>
+
           </div>
 
-          <Field label="Date of Birth" icon={Calendar}>
+          {/* DATE OF BIRTH */}
+
+          <Field
+            label="Date of Birth"
+            icon={Calendar}
+          >
             <input
               name="dateOfBirth"
               type="date"
               value={formData.dateOfBirth}
               onChange={handleChange}
-              className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
+              className="w-full border-none bg-transparent p-0 text-sm text-slate-800 outline-none"
             />
           </Field>
 
-          <Field label="Time of Birth" icon={Clock3}>
+          {/* TIME OF BIRTH */}
+
+          <Field
+            label="Time of Birth"
+            icon={Clock3}
+          >
             <input
               name="timeOfBirth"
-              type="text"
+              type="time"
               value={formData.timeOfBirth}
               onChange={handleChange}
-              className="w-full outline-none bg-transparent text-sm text-slate-800 border-none p-0"
+              className="w-full border-none bg-transparent p-0 text-sm text-slate-800 outline-none"
             />
           </Field>
 
-          <Field label="Place of Birth" icon={MapPin}>
+          {/* PLACE OF BIRTH */}
+
+          <Field
+            label="Place of Birth"
+            icon={MapPin}
+          >
             <input
               name="placeOfBirth"
               value={formData.placeOfBirth}
               onChange={handleChange}
               placeholder="City, Country"
-              className="w-full outline-none bg-transparent text-sm text-slate-800 placeholder:text-slate-400 border-none p-0"
+              className="w-full border-none bg-transparent p-0 text-sm text-slate-800 outline-none placeholder:text-slate-400"
             />
           </Field>
+
         </div>
 
-        {/* Notice */}
-        <div className="mt-8 flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-100 px-5 py-4">
-          <AlertCircle size={17} className="text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800 leading-relaxed">
-            Accurate birth details are essential for precise Kundli calculations
-            and predictions. Changes may take a few minutes to reflect across
-            your readings.
+        {/* ================= NOTICE ================= */}
+
+        <div className="mt-8 flex items-start gap-3 rounded-xl border border-amber-100 bg-amber-50 px-5 py-4">
+
+          <AlertCircle
+            size={17}
+            className="mt-0.5 shrink-0 text-amber-600"
+          />
+
+          <p className="text-xs leading-relaxed text-amber-800">
+            Accurate birth details are essential for precise Kundli
+            calculations and predictions. Changes may take a few minutes
+            to reflect across your readings.
           </p>
+
         </div>
+
       </div>
 
-      {/* Actions */}
+      {/* ================= SAVE ================= */}
+
       <div className="flex items-center gap-4">
+
         <motion.button
           type="button"
           onClick={handleSave}
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex-1 rounded-2xl bg-gradient-to-r from-purple-700 to-violet-800 py-4 text-sm font-bold tracking-widest text-white shadow-xl hover:from-purple-800 hover:to-violet-900 transition-all"
+          disabled={loading}
+          whileHover={{
+            scale: loading ? 1 : 1.01,
+          }}
+          whileTap={{
+            scale: loading ? 1 : 0.98,
+          }}
+          className="flex-1 rounded-2xl bg-gradient-to-r from-purple-700 to-violet-800 py-4 text-sm font-bold tracking-widest text-white shadow-xl transition-all hover:from-purple-800 hover:to-violet-900 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          SAVE CHANGES
+          {loading ? "SAVING..." : "SAVE CHANGES"}
         </motion.button>
-        {/* <button
-          type="button"
-          className="rounded-2xl border border-slate-200 text-slate-600 font-semibold text-sm px-8 py-4 hover:bg-slate-50 transition-colors"
-        >
-          Cancel
-        </button> */}
+
       </div>
 
+      {/* ================= SUCCESS ================= */}
+
       <AnimatePresence>
+
         {saved && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-8 right-8 flex items-center gap-2.5 rounded-xl bg-slate-900 text-white text-sm font-medium px-5 py-3.5 shadow-2xl"
+            initial={{
+              opacity: 0,
+              y: 12,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            exit={{
+              opacity: 0,
+              y: 12,
+            }}
+            className="fixed bottom-8 right-8 flex items-center gap-2.5 rounded-xl bg-slate-900 px-5 py-3.5 text-sm font-medium text-white shadow-2xl"
           >
-            <CheckCircle2 size={17} className="text-emerald-400" />
+
+            <CheckCircle2
+              size={17}
+              className="text-emerald-400"
+            />
+
             Profile updated successfully
+
           </motion.div>
         )}
+
       </AnimatePresence>
+
     </div>
   );
 }
