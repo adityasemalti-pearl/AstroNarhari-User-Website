@@ -13,9 +13,13 @@ export const getUserProfile = ()=>{
 }
 
 
-export const editUserProfile = (data)=>{
-    return api.put('/user/profile/edit-profile',data)
-}
+export const editUserProfile = (data) => {
+  return api.put("/user/profile/edit-profile", data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
 
 export const verifyOtp = (data)=>{
     return api.post('/user/verify-otp',data)
