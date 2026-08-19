@@ -58,6 +58,8 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
+
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route element={<PublicRoute />}>
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />
@@ -69,7 +71,7 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          
         </Route>
 
         <Route element={<ProtectedRoute />}>
