@@ -43,11 +43,15 @@ export default function LiveStream() {
   useEffect(() => {
     const fetchActiveSessions = async () => {
       setLoading(true);
+
       try {
         const response = await getActiveSessions();
         if (response.data && response.data.success) {
           setStreams(response.data.sessions || []);
           setTotalSessions(response.data.total || 0);
+        } else {
+          setStreams([]);
+          setTotalSessions(0);
         }
       } catch (error) {
         console.error(error);
@@ -67,7 +71,7 @@ export default function LiveStream() {
     try {
       const payload = {
         sessionId: stream._id,
-        userId: "6a60638240b5df06fa258b16"
+        userId: "6a60638240b5df06fa258b16",
       };
 
       const res = await joinAgoraSession(payload);
@@ -95,7 +99,7 @@ export default function LiveStream() {
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
           if (mediaType === "video") {
-            setRemoteUsers(prev => [...prev, user]);
+            setRemoteUsers((prev) => [...prev, user]);
             setTimeout(() => {
               if (remoteVideoRef.current) {
                 user.videoTrack.play(remoteVideoRef.current);
@@ -109,7 +113,7 @@ export default function LiveStream() {
 
         client.on("user-unpublished", (user, mediaType) => {
           if (mediaType === "video") {
-            setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+            setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
           }
         });
 
@@ -297,17 +301,17 @@ export default function LiveStream() {
                   </span>
                 </div>
 
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="relative w-full h-[380px] md:h-[480px] rounded-3xl overflow-hidden shadow-2xl border border-purple-100/80 group cursor-pointer"
                 >
-                  <img 
-                    src={topChoice.image} 
+                  <img
+                    src={topChoice.image}
                     alt={topChoice.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   />
-                  
+
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
                   <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
@@ -337,7 +341,7 @@ export default function LiveStream() {
                       </p>
                     </div>
 
-                    <motion.button 
+                    <motion.button
                       onClick={() => handleJoinStream(topChoice.rawData)}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -364,9 +368,12 @@ export default function LiveStream() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
                   {liveStreamsList.map((stream, idx) => {
-                    const partnerName = stream.partnerId?.fullName || 'Astrologer';
-                    const partnerPic = stream.partnerId?.profilePic || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800';
-                    const rating = stream.partnerId?.averageRating || '4.8';
+                    const partnerName =
+                      stream.partnerId?.fullName || "Astrologer";
+                    const partnerPic =
+                      stream.partnerId?.profilePic ||
+                      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800";
+                    const rating = stream.partnerId?.averageRating || "4.8";
 
                     return (
                       <motion.div
@@ -382,7 +389,7 @@ export default function LiveStream() {
                             alt={partnerName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                          
+
                           <div className="absolute top-3 left-3 flex items-center gap-2">
                             <span className="bg-rose-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-md shadow-sm">
                               LIVE
@@ -393,7 +400,7 @@ export default function LiveStream() {
                             </span>
                           </div>
 
-                          <div 
+                          <div
                             onClick={() => handleJoinStream(stream)}
                             className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                           >
@@ -405,8 +412,8 @@ export default function LiveStream() {
 
                         <div className="p-5 space-y-4 flex-1 flex flex-col justify-between w-full">
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={partnerPic} 
+                            <img
+                              src={partnerPic}
                               alt={partnerName}
                               className="w-10 h-10 rounded-full object-cover ring-2 ring-purple-100"
                             />
@@ -415,7 +422,7 @@ export default function LiveStream() {
                                 {partnerName}
                               </h4>
                               <p className="text-xs text-slate-500 truncate">
-                                {stream.topic || 'Cosmic Guidance'}
+                                {stream.topic || "Cosmic Guidance"}
                               </p>
                             </div>
                           </div>
@@ -443,7 +450,7 @@ export default function LiveStream() {
 
       <AnimatePresence>
         {joinedStream && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -453,10 +460,12 @@ export default function LiveStream() {
               <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
                 <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white pointer-events-auto">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
-                  <span className="text-sm font-semibold">{joinedStream.topic || 'Live Session'}</span>
+                  <span className="text-sm font-semibold">
+                    {joinedStream.topic || "Live Session"}
+                  </span>
                 </div>
 
-                <button 
+                <button
                   onClick={handleLeaveStream}
                   className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg hover:bg-rose-500 transition-colors pointer-events-auto cursor-pointer"
                 >
@@ -465,14 +474,19 @@ export default function LiveStream() {
               </div>
 
               <div className="flex-1 relative w-full h-full bg-slate-950 flex items-center justify-center">
-                <div ref={remoteVideoRef} className="w-full h-full absolute inset-0 object-cover" />
-                
+                <div
+                  ref={remoteVideoRef}
+                  className="w-full h-full absolute inset-0 object-cover"
+                />
+
                 {remoteUsers.length === 0 && (
                   <div className="text-center space-y-3 z-20">
                     <div className="w-16 h-16 rounded-full bg-purple-900/50 text-amber-300 flex items-center justify-center mx-auto animate-pulse border border-purple-500/30">
                       <Radio className="w-8 h-8" />
                     </div>
-                    <p className="text-slate-300 text-sm font-medium">Connecting to stream...</p>
+                    <p className="text-slate-300 text-sm font-medium">
+                      Connecting to stream...
+                    </p>
                   </div>
                 )}
 
@@ -546,7 +560,7 @@ export default function LiveStream() {
         className="fixed bottom-8 right-8 z-40"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 20 }}
+        transition={{ delay: 0.5, type: "spring", stiffness: 260, damping: 20 }}
       >
         <motion.button
           whileHover={{ scale: 1.1, rotate: 90 }}
@@ -559,7 +573,8 @@ export default function LiveStream() {
       </motion.div>
 
       <footer className="w-full text-center py-6 border-t border-slate-200/60 text-xs text-slate-400 bg-white/40">
-        &copy; {new Date().getFullYear()} Live Astro Network. All spiritual sessions are end-to-end encrypted.
+        &copy; {new Date().getFullYear()} Live Astro Network. All spiritual
+        sessions are end-to-end encrypted.
       </footer>
     </div>
   );
