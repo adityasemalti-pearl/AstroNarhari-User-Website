@@ -37,6 +37,10 @@ export const festivalCalender = (data) => {
 
 
 
-export const deletePartnerByMobile = (number)=>{
- return api.delete('/partner/delete-by-mobile', number) 
-}
+export const deletePartnerByMobile = (number) => {
+  return api.delete('/partner/delete-by-mobile', {
+    data: {
+      mobile: number,
+    },
+  });
+};
