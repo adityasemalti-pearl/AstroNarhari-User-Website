@@ -33,6 +33,10 @@ import WalletPage from "./pages/Home/Wallet";
 import Careers from "./pages/Careers/Careers";
 import TermsConditions from "./pages/Home/PublicPages/TermsConditions";
 import MyOrders from "./pages/Cart/MyOrders";
+import Chat from "./pages/Chat/Chat";
+import ContactUs from "./pages/Home/PublicPages/Contact";
+import CookiePolicy from "./pages/Home/PublicPages/CookiePolicy";
+import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -60,6 +64,10 @@ function App() {
           <Route path="/terms-n-conditions" element={<TermsConditions />} />
           <Route path="/create-profile" element={<CreateProfilePage />} />
           <Route path="/careers" element={<Careers />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
@@ -88,6 +96,7 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="orders" element={<MyOrders />} />
+            <Route path="chat/:partnerId" element={<Chat />}/>
           </Route>
         </Route>
 

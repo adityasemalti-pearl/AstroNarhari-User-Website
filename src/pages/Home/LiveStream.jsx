@@ -12,10 +12,12 @@ import {
   MicOff, 
   Video, 
   VideoOff,
-  Radio
+  Radio,
+  Send
 } from 'lucide-react';
 import { getActiveSessions, joinAgoraSession } from '../../API/agoraApi';
 import AgoraRTC from 'agora-rtc-sdk-ng';
+import AgoraRTM from 'agora-rtm-sdk';
 
 export default function LiveStream() {
   const [streams, setStreams] = useState([]);
@@ -23,14 +25,20 @@ export default function LiveStream() {
   const [loading, setLoading] = useState(false);
   const [joinedStream, setJoinedStream] = useState(null);
   const [agoraClient, setAgoraClient] = useState(null);
+  const [rtmClient, setRtmClient] = useState(null);
+  const [rtmChannel, setRtmChannel] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [remoteUsers, setRemoteUsers] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
 
-  const localVideoRef = useRef(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+
   const remoteVideoRef = useRef(null);
+  const commentsEndRef = useRef(null);
+  const rtmChannelRef = useRef(null);
 
   useEffect(() => {
     const fetchActiveSessions = async () => {
@@ -51,6 +59,10 @@ export default function LiveStream() {
     fetchActiveSessions();
   }, []);
 
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [comments]);
+
   const handleJoinStream = async (stream) => {
     try {
       const payload = {
@@ -59,12 +71,22 @@ export default function LiveStream() {
       };
 
       const res = await joinAgoraSession(payload);
+      const responseData = res.data?.data || res.data;
       
-      if (res.data) {
+      if (responseData) {
         setJoinedStream({
           ...stream,
-          ...res.data
+          ...responseData
         });
+        setComments([
+          { id: 1, user: "System", text: "Welcome to the live cosmic session!" }
+        ]);
+
+        const appId = responseData.appId || "0228c9fe15a54e20a48e44835be49d7c";
+        const channelName = responseData.channelName || stream.channelName;
+        const rtcToken = responseData.rtcToken || null;
+        const rtmToken = responseData.rtmToken || null;
+        const uid = Number(responseData.uid || 460438);
 
         const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
         await client.setClientRole("audience");
@@ -91,15 +113,35 @@ export default function LiveStream() {
           }
         });
 
-        const appId = res.data.appId || "0228c9fe15a54e20a48e44835be49d7c";
-        const channelName = stream.channelName || res.data.channelName;
-        const token = res.data.token || null;
-        const uid = res.data.uid || null;
+        await client.join(appId, channelName, rtcToken, uid);
 
-        await client.join(appId, channelName, token, uid);
+        try {
+          const rtm = AgoraRTM.createInstance(appId);
+          setRtmClient(rtm);
+
+          await rtm.login({ uid: String(uid), token: rtmToken || undefined });
+          const channel = rtm.createChannel(channelName);
+          await channel.join();
+          
+          setRtmChannel(channel);
+          rtmChannelRef.current = channel;
+          console.log("RTM Successfully Connected to Channel:", channelName);
+
+          channel.on('ChannelMessage', (message, memberId) => {
+            console.log("RTM Message Received from:", memberId, message.text);
+            try {
+              const parsedData = JSON.parse(message.text);
+              setComments(prev => [...prev, parsedData]);
+            } catch (err) {
+              setComments(prev => [...prev, { user: "Host", text: message.text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+            }
+          });
+        } catch (rtmError) {
+          console.error("RTM Login/Join Failed:", rtmError);
+        }
       }
     } catch (error) {
-      console.error(error);
+      console.error("Join Stream Error:", error);
     }
   };
 
@@ -115,9 +157,23 @@ export default function LiveStream() {
       }
       await agoraClient.leave();
     }
+
+    if (rtmChannelRef.current && rtmClient) {
+      try {
+        await rtmChannelRef.current.leave();
+        await rtmClient.logout();
+      } catch (err) {
+        console.error("RTM Logout Error:", err);
+      }
+    }
+
     setJoinedStream(null);
     setAgoraClient(null);
+    setRtmClient(null);
+    setRtmChannel(null);
+    rtmChannelRef.current = null;
     setRemoteUsers([]);
+    setComments([]);
   };
 
   const toggleAudio = async () => {
@@ -131,6 +187,38 @@ export default function LiveStream() {
     if (localVideoTrack) {
       await localVideoTrack.setEnabled(!isVideoOff);
       setIsVideoOff(!isVideoOff);
+    }
+  };
+
+  const handleSendComment = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    const messageData = {
+      user: "You",
+      text: newComment.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setComments(prev => [...prev, messageData]);
+    const textToSend = newComment.trim();
+    setNewComment("");
+
+    if (rtmChannelRef.current) {
+      try {
+        await rtmChannelRef.current.sendMessage({ text: JSON.stringify(messageData) });
+        console.log("RTM Message Successfully Sent:", messageData);
+      } catch (error) {
+        console.error("RTM Send Message Error:", error);
+        try {
+          await rtmChannelRef.current.sendMessage({ text: textToSend });
+          console.log("RTM Fallback Plain Text Sent Successfully");
+        } catch (fallbackError) {
+          console.error("RTM Fallback Error:", fallbackError);
+        }
+      }
+    } else {
+      console.warn("RTM Channel not connected. Message shown locally.");
     }
   };
 
@@ -359,18 +447,18 @@ export default function LiveStream() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-lg flex items-center justify-center p-4 md:p-8"
+            className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 md:p-6"
           >
-            <div className="relative w-full max-w-6xl h-[85vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-purple-500/30 flex flex-col">
-              <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
-                <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white">
+            <div className="relative w-full max-w-7xl h-[92vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-purple-500/30 flex flex-col lg:flex-row">
+              <div className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between pointer-events-none">
+                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white pointer-events-auto">
                   <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
                   <span className="text-sm font-semibold">{joinedStream.topic || 'Live Session'}</span>
                 </div>
 
                 <button 
                   onClick={handleLeaveStream}
-                  className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg hover:bg-rose-500 transition-colors"
+                  className="w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg hover:bg-rose-500 transition-colors pointer-events-auto cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -380,36 +468,74 @@ export default function LiveStream() {
                 <div ref={remoteVideoRef} className="w-full h-full absolute inset-0 object-cover" />
                 
                 {remoteUsers.length === 0 && (
-                  <div className="text-center space-y-3 z-15">
+                  <div className="text-center space-y-3 z-20">
                     <div className="w-16 h-16 rounded-full bg-purple-900/50 text-amber-300 flex items-center justify-center mx-auto animate-pulse border border-purple-500/30">
                       <Radio className="w-8 h-8" />
                     </div>
                     <p className="text-slate-300 text-sm font-medium">Connecting to stream...</p>
                   </div>
                 )}
+
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
+                  <button 
+                    onClick={toggleAudio}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isMuted ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  >
+                    {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                  </button>
+
+                  <button 
+                    onClick={toggleVideo}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isVideoOff ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                  >
+                    {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                  </button>
+
+                  <button 
+                    onClick={handleLeaveStream}
+                    className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
+                  >
+                    Leave Stream
+                  </button>
+                </div>
               </div>
 
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
-                <button 
-                  onClick={toggleAudio}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors ${isMuted ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
-                >
-                  {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </button>
+              <div className="w-full lg:w-96 bg-slate-950 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col h-[40vh] lg:h-full z-40 relative">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
+                  <h3 className="font-serif font-bold text-white text-base">Live Chat</h3>
+                  <span className="text-xs text-purple-300 bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/35">
+                    {comments.length} Messages
+                  </span>
+                </div>
 
-                <button 
-                  onClick={toggleVideo}
-                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors ${isVideoOff ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
-                >
-                  {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
-                </button>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                  {comments.map((c, index) => (
+                    <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-400">{c.user}</span>
+                        {c.timestamp && <span className="text-[10px] text-slate-500">{c.timestamp}</span>}
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed break-words">{c.text}</p>
+                    </div>
+                  ))}
+                  <div ref={commentsEndRef} />
+                </div>
 
-                <button 
-                  onClick={handleLeaveStream}
-                  className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition-colors"
-                >
-                  Leave Stream
-                </button>
+                <form onSubmit={handleSendComment} className="p-3 border-t border-white/10 flex items-center gap-2 bg-slate-900 shrink-0">
+                  <input 
+                    type="text" 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Ask or comment..." 
+                    className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-400 outline-none focus:border-amber-400 transition-colors"
+                  />
+                  <button 
+                    type="submit"
+                    className="w-10 h-10 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center transition-colors shadow-md cursor-pointer shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             </div>
           </motion.div>
@@ -417,7 +543,7 @@ export default function LiveStream() {
       </AnimatePresence>
 
       <motion.div 
-        className="fixed bottom-8 right-8 z-50"
+        className="fixed bottom-8 right-8 z-40"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.5, type: 'spring', stiffness: 260, damping: 20 }}
@@ -425,7 +551,7 @@ export default function LiveStream() {
         <motion.button
           whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
-          className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center shadow-2xl shadow-amber-500/40 border-2 border-white ring-4 ring-amber-400/20 group"
+          className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center shadow-2xl shadow-amber-500/40 border-2 border-white ring-4 ring-amber-400/20 group cursor-pointer"
           title="Schedule Session"
         >
           <Plus className="w-8 h-8 text-slate-950 stroke-[2.5]" />

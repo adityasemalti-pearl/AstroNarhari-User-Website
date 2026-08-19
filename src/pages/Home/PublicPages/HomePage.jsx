@@ -283,7 +283,9 @@ export default function AstroSetuLanding() {
                             const Icon = s.icon;
 
                             return (
-                                <div className="service-card group" key={s.title}>
+                                <div
+                                onClick={()=>navigate(s.path)}
+                                className="service-card group  cursor-pointer" key={s.title}>
                                     <div className="service-icon">
                                         <Icon
                                             size={30}
@@ -330,7 +332,7 @@ export default function AstroSetuLanding() {
                                     <div className="astro-rating">⭐ {a.rating} <span style={{ color: "var(--ink-faint)", fontWeight: 500 }}>({a.reviews})</span></div>
                                     <div className="astro-price">₹{a.price}/min</div>
                                 </div>
-                                <a href="" className="btn btn-primary">Talk Now</a>
+                                <a href="/dashboard/astrologers" className="btn btn-primary">Talk Now</a>
                             </div>
                         ))}
                     </Reveal>
@@ -392,7 +394,7 @@ export default function AstroSetuLanding() {
             </section>
 
             {/* ============ 7. KUNDLI PREVIEW ============ */}
-            <section className="section" id="kundli">
+            {/* <section className="section" id="kundli">
                 <div className="wrap">
                     <Reveal className="section-head">
                         <span className="eyebrow">Free Tool</span>
@@ -432,7 +434,7 @@ export default function AstroSetuLanding() {
                         </div>
                     </Reveal>
                 </div>
-            </section>
+            </section> */}
 
             {/* ============ 8. TESTIMONIALS ============ */}
             <section className="section alt" id="testimonials">
@@ -646,10 +648,10 @@ export default function AstroSetuLanding() {
                             </div>
                         </div>
                         <div className="footer-col"><h5>Company</h5><ul>
-                            <li><a href="#">About</a></li><li><a href="#">Careers</a></li><li><a href="#">Contact</a></li><li><a href="#">Blog</a></li>
+                            <li><a href="about">About</a></li><li><a href="contact">Contact</a></li><li><a href="#journal">Blog</a></li>
                         </ul></div>
                         <div className="footer-col"><h5>Legal</h5><ul>
-                            <li><a href="#">Privacy Policy</a></li><li><a href="/terms-n-conditions">Terms & Conditions</a></li><li><a href="#">Refund Policy</a></li><li><a href="#">Cookie Policy</a></li>
+                            <li><a href="privacy-policy">Privacy Policy</a></li><li><a href="/terms-n-conditions">Terms & Conditions</a></li><li><a href="refund-policy">Refund Policy</a></li><li><a href="cookie-policy">Cookie Policy</a></li>
                         </ul></div>
                         <div className="footer-col"><h5>Services</h5><ul>
                             <li><a href="#services">Kundli</a></li><li><a href="#services">Match Making</a></li><li><a href="#astrologers">Talk to Astrologer</a></li><li><a href="#services">Numerology</a></li>

@@ -21,54 +21,65 @@ import {
 
 export const SERVICES = [
     {
+        
         icon: Sparkles,
         title: "Kundli",
         desc: "Detailed birth chart analysis",
+        path:'/dashboard/kundali'
     },
     {
         icon: Heart,
         title: "Match Making",
         desc: "Guna milan & compatibility",
+        path:'/dashboard/match'
     },
     {
         icon: PhoneCall,
         title: "Talk to Astrologer",
         desc: "Live voice consultation",
+        path:'/dashboard/astrologers'
     },
     {
         icon: MessageCircle,
         title: "Chat Consultation",
         desc: "Private, instant chat",
+        path:'/dashboard/astrologers'
     },
     {
         icon: Sun,
         title: "Daily Horoscope",
         desc: "Personalised daily insights",
+        path:'/dashboard/horoscope'
     },
     {
         icon: CalendarDays,
         title: "Festival Calendar",
         desc: "Auspicious dates & muhurat",
+        path:'/dashboard/festival'
     },
     {
         icon: Hash,
         title: "Numerology",
         desc: "Numbers that shape your life",
+        path:'/dashboard'
     },
     {
         icon: Home,
         title: "Vastu",
         desc: "Harmony for home & office",
+        path:'/dashboard/horoscope'
     },
     {
         icon: Gem,
         title: "Gemstone",
         desc: "Remedies & recommendations",
+        path:'/dashboard/festival'
     },
     {
         icon: BookOpen,
         title: "Panchang",
         desc: "Daily Hindu almanac",
+        path:'/dashboard/festival'
     },
 ];
 export const ASTROLOGERS = [

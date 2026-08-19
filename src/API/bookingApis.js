@@ -9,10 +9,11 @@ export const getMyBookings =  () => {
     return api.get('/bookings/user/my-bookings' )
 }
 
-export const cancelBooking =  (id) => {
-    return api.post('/bookings/user/cancel' , id)
-}
-
+export const cancelBooking = (bookingId) => {
+  return api.post("/bookings/user/cancel", {
+    bookingId: bookingId,
+  });
+};
 export const rescheduleBooking =  (data) => {
     return api.post('/bookings/user/reschedule', data )
 }

@@ -1,20 +1,50 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { getAllAstrologers, getDailyHoroscope } from '../../API/homeApis';
-import { useNavigate } from 'react-router-dom';
-import { getAllProducts, getCosmicInsights } from '../../API/cosmicApis';
-import FullPageLoader from './comp/FullPageLoader';
-import AstrologerModal from '../../Models/AstrologerModal';
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getAllAstrologers, getDailyHoroscope } from "../../API/homeApis";
+import { useNavigate } from "react-router-dom";
+import { getAllProducts, getCosmicInsights } from "../../API/cosmicApis";
+import FullPageLoader from "./comp/FullPageLoader";
+import AstrologerModal from "../../Models/AstrologerModal";
+import BookAppointmentPopup from "./comp/BookingPopup";
+import { myWallet } from "../../API/bookingApis";
+import BookingConfirmedPopup from "./comp/BookingConfirmedPopup";
 
 const SERVICES = [
-  { id: 'kundli', title: 'Kundli Matching', subtitle: 'Detailed birth chart analysis', icon: '✨', badge: 'Popular', link: '/dashboard/kundali', bg: 'from-amber-500/10 to-purple-500/10' },
-  { id: 'horoscope', title: 'Daily Horoscope', subtitle: 'Personalized planetary insights', icon: '📅', link: '/dashboard/horoscope', bg: 'from-purple-500/10 to-indigo-500/10' },
+  {
+    id: "kundli",
+    title: "Kundli Matching",
+    subtitle: "Detailed birth chart analysis",
+    icon: "✨",
+    badge: "Popular",
+    link: "/dashboard/kundali",
+    bg: "from-amber-500/10 to-purple-500/10",
+  },
+  {
+    id: "horoscope",
+    title: "Daily Horoscope",
+    subtitle: "Personalized planetary insights",
+    icon: "📅",
+    link: "/dashboard/horoscope",
+    bg: "from-purple-500/10 to-indigo-500/10",
+  },
 ];
 
 const DUMMY_BANNERS = [
-  { id: 1, image: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1600&auto=format&fit=crop&q=80' },
-  { id: 2, image: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=1600&auto=format&fit=crop&q=80' },
-  { id: 3, image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1600&auto=format&fit=crop&q=80' }
+  {
+    id: 1,
+    image:
+      "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1600&auto=format&fit=crop&q=80",
+  },
+  {
+    id: 2,
+    image:
+      "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=1600&auto=format&fit=crop&q=80",
+  },
+  {
+    id: 3,
+    image:
+      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1600&auto=format&fit=crop&q=80",
+  },
 ];
 
 export default function Dashboard() {
@@ -31,7 +61,33 @@ export default function Dashboard() {
   const [selectedAstrologer, setSelectedAstrologer] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
+  const [isBookingConfirmedOpen, setIsBookingConfirmedOpen] = useState(false);
+
+  const [walletBalance, setWalletBalance] = useState(null);
+
   const navigate = useNavigate();
+
+  const fetchWallet = async () => {
+    try {
+      const res = await myWallet();
+
+      console.log("🔥 FULL WALLET RESPONSE:", res);
+      console.log("🔥 WALLET DATA:", res.data);
+      console.log("🔥 WALLET BALANCE:", res.data?.walletBalance);
+
+      const balance = Number(res.data?.walletBalance) || 0;
+
+      setWalletBalance(balance);
+
+      // Optional: keep localStorage in sync
+      localStorage.setItem("walletBalance", balance);
+    } catch (error) {
+      console.log("❌ Wallet Error:", error);
+      setWalletBalance(0);
+    }
+  };
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -63,7 +119,7 @@ export default function Dashboard() {
         const res = await getDailyHoroscope();
         setDailyHoroscope(res?.data?.data);
       } catch (error) {
-        console.error('Failed to fetch horoscope:', error);
+        console.error("Failed to fetch horoscope:", error);
       }
     };
 
@@ -107,9 +163,13 @@ export default function Dashboard() {
     fetchAllProducts();
     fetchAllAstrologers();
     fetchInsights();
+    fetchWallet();
   }, []);
 
   const handleOpenModal = (astro) => {
+    console.log("🔥 ASTRO FROM DASHBOARD:", astro);
+    console.log("🔥 ASTRO ID:", astro?._id);
+    console.log("🔥 ASTRO MIN RATE:", astro?.minRate);
     setSelectedAstrologer(astro);
     setIsModalOpen(true);
   };
@@ -117,6 +177,49 @@ export default function Dashboard() {
   const handleCloseModal = () => {
     setSelectedAstrologer(null);
     setIsModalOpen(false);
+  };
+
+  const handleConnectNow = () => {
+    console.log("🔥 SELECTED ASTRO BEFORE BOOKING:", selectedAstrologer);
+    console.log("🔥 SELECTED ASTRO MIN RATE:", selectedAstrologer?.minRate);
+    console.log("🔥 SELECTED ASTRO ID:", selectedAstrologer?._id);
+    setIsModalOpen(false);
+    setIsBookingOpen(true);
+  };
+
+  const handleCloseBooking = () => {
+    setIsBookingOpen(false);
+  };
+
+  const handleProceedToPayment = (bookingData) => {
+    console.log("🔥 BOOKING SUCCESS DATA:", bookingData);
+
+    const minimumRate =
+      Number(bookingData?.minRate) ||
+      Number(bookingData?.fee) ||
+      Number(selectedAstrologer?.minRate) ||
+      0;
+
+    const currentBalance = Number(walletBalance) || 0;
+
+    console.log("🔥 WALLET BALANCE:", currentBalance);
+    console.log("🔥 MINIMUM RATE:", minimumRate);
+
+    // Insufficient wallet balance
+    if (currentBalance < minimumRate) {
+      console.log("❌ INSUFFICIENT BALANCE");
+
+      setIsBookingOpen(false);
+      navigate("/dashboard/wallet");
+      return;
+    }
+
+    // Schedule API successful
+    console.log("✅ BOOKING SUCCESSFUL - SHOWING CONFIRMATION POPUP");
+
+    setConfirmedBooking(bookingData);
+    setIsBookingOpen(false);
+    setIsBookingConfirmedOpen(true);
   };
 
   if (loading) {
@@ -162,7 +265,7 @@ export default function Dashboard() {
                   <button
                     key={idx}
                     onClick={() => setCurrentSlide(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'w-10 bg-amber-300' : 'w-2.5 bg-white/50 hover:bg-white/80'}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? "w-10 bg-amber-300" : "w-2.5 bg-white/50 hover:bg-white/80"}`}
                   />
                 ))}
               </div>
@@ -175,8 +278,12 @@ export default function Dashboard() {
         <section className="space-y-6">
           <div className="flex items-end justify-between">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Services</h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">Unlock answers through authentic ancient Vedic practices.</p>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">
+                Cosmic Services
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Unlock answers through authentic ancient Vedic practices.
+              </p>
             </div>
           </div>
 
@@ -191,7 +298,7 @@ export default function Dashboard() {
                 className={`bg-gradient-to-br ${service.bg} bg-white p-8 rounded-3xl border border-purple-100 shadow-xl shadow-purple-950/5 hover:shadow-2xl hover:shadow-purple-950/15 transition-all cursor-pointer group relative overflow-hidden flex flex-col justify-between`}
               >
                 <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-purple-200/20 rounded-full blur-2xl group-hover:bg-purple-300/40 transition-all pointer-events-none" />
-                
+
                 {service.badge && (
                   <span className="absolute top-5 right-5 bg-amber-100 text-amber-800 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                     {service.badge}
@@ -219,18 +326,24 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section id='astrologers' className="space-y-6 pt-12">
+        <section id="astrologers" className="space-y-6 pt-12">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Online Astrologers</h2>
+                <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">
+                  Online Astrologers
+                </h2>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-1">Connect immediately with verified experts available online right now.</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Connect immediately with verified experts available online right
+                now.
+              </p>
             </div>
             <button
-              onClick={() => navigate('/dashboard/astrologers')}
-              className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
+              onClick={() => navigate("/dashboard/astrologers")}
+              className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer"
+            >
               View All Astrologers
             </button>
           </div>
@@ -246,13 +359,18 @@ export default function Dashboard() {
                   <div className="flex justify-end mb-2">
                     <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                       <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-[10px] font-bold text-emerald-700 tracking-wider">ONLINE</span>
+                      <span className="text-[10px] font-bold text-emerald-700 tracking-wider">
+                        ONLINE
+                      </span>
                     </span>
                   </div>
 
                   <div className="flex flex-col items-center text-center">
                     <img
-                      src={astro.profilePic || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                      src={
+                        astro.profilePic ||
+                        "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                      }
                       alt={astro.fullName}
                       onClick={() => handleOpenModal(astro)}
                       className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-100 group-hover:ring-purple-300 transition-all shadow-sm cursor-pointer"
@@ -263,11 +381,16 @@ export default function Dashboard() {
                     >
                       {astro.fullName}
                     </h3>
-                    <p className="text-[11px] font-medium text-purple-600 mt-0.5">{astro.experience} Years Exp.</p>
-                    
+                    <p className="text-[11px] font-medium text-purple-600 mt-0.5">
+                      {astro.experience} Years Exp.
+                    </p>
+
                     <div className="flex flex-wrap justify-center items-center gap-1 mt-3 min-h-[32px] overflow-hidden">
                       {astro.specialties?.slice(0, 3).map((spec, index) => (
-                        <span key={index} className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold">
+                        <span
+                          key={index}
+                          className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold"
+                        >
                           {spec}
                         </span>
                       ))}
@@ -277,8 +400,12 @@ export default function Dashboard() {
                   <div className="w-full border-t border-slate-100 my-3"></div>
 
                   <div className="flex items-center justify-between text-xs px-1">
-                    <span className="font-bold text-slate-700">₹{astro.minRate ? astro.minRate : 0}/min</span>
-                    <span className="text-slate-500 truncate max-w-[110px] text-right">{astro.languages?.join(", ")}</span>
+                    <span className="font-bold text-slate-700">
+                      ₹{astro.minRate ? astro.minRate : 0}/min
+                    </span>
+                    <span className="text-slate-500 truncate max-w-[110px] text-right">
+                      {astro.languages?.join(", ")}
+                    </span>
                   </div>
                 </div>
 
@@ -307,13 +434,18 @@ export default function Dashboard() {
                     <div className="flex justify-end mb-2">
                       <span className="inline-flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span className="text-[10px] font-bold text-emerald-700 tracking-wider">ONLINE</span>
+                        <span className="text-[10px] font-bold text-emerald-700 tracking-wider">
+                          ONLINE
+                        </span>
                       </span>
                     </div>
 
                     <div className="flex flex-col items-center text-center">
                       <img
-                        src={astrologers[astroSlide]?.profilePic || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}
+                        src={
+                          astrologers[astroSlide]?.profilePic ||
+                          "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                        }
                         alt={astrologers[astroSlide]?.fullName}
                         onClick={() => handleOpenModal(astrologers[astroSlide])}
                         className="w-20 h-20 rounded-full object-cover ring-4 ring-purple-100 group-hover:ring-purple-300 transition-all shadow-sm cursor-pointer"
@@ -324,22 +456,37 @@ export default function Dashboard() {
                       >
                         {astrologers[astroSlide]?.fullName}
                       </h3>
-                      <p className="text-[11px] font-medium text-purple-600 mt-0.5">{astrologers[astroSlide]?.experience} Years Exp.</p>
-                      
+                      <p className="text-[11px] font-medium text-purple-600 mt-0.5">
+                        {astrologers[astroSlide]?.experience} Years Exp.
+                      </p>
+
                       <div className="flex flex-wrap justify-center items-center gap-1 mt-3 min-h-[32px] overflow-hidden">
-                        {astrologers[astroSlide]?.specialties?.slice(0, 3).map((spec, index) => (
-                          <span key={index} className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold">
-                            {spec}
-                          </span>
-                        ))}
+                        {astrologers[astroSlide]?.specialties
+                          ?.slice(0, 3)
+                          .map((spec, index) => (
+                            <span
+                              key={index}
+                              className="inline-block whitespace-nowrap text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-semibold"
+                            >
+                              {spec}
+                            </span>
+                          ))}
                       </div>
                     </div>
 
                     <div className="w-full border-t border-slate-100 my-3"></div>
 
                     <div className="flex items-center justify-between text-xs px-1">
-                      <span className="font-bold text-slate-700">₹{astrologers[astroSlide]?.minRate ? astrologers[astroSlide]?.minRate : 0}/min</span>
-                      <span className="text-slate-500 truncate max-w-[110px] text-right">{astrologers[astroSlide]?.languages?.join(", ")}</span>
+                      <span className="font-bold text-slate-700">
+                        ₹
+                        {astrologers[astroSlide]?.minRate
+                          ? astrologers[astroSlide]?.minRate
+                          : 0}
+                        /min
+                      </span>
+                      <span className="text-slate-500 truncate max-w-[110px] text-right">
+                        {astrologers[astroSlide]?.languages?.join(", ")}
+                      </span>
                     </div>
                   </div>
 
@@ -358,7 +505,7 @@ export default function Dashboard() {
                 <button
                   key={idx}
                   onClick={() => setAstroSlide(idx)}
-                  className={`h-2 rounded-full transition-all duration-300 ${astroSlide === idx ? 'w-8 bg-[#52007A]' : 'w-2 bg-slate-300'}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${astroSlide === idx ? "w-8 bg-[#52007A]" : "w-2 bg-slate-300"}`}
                 />
               ))}
             </div>
@@ -368,10 +515,13 @@ export default function Dashboard() {
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-12 items-start">
           <div className="lg:col-span-7 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Store</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">
+                Cosmic Store
+              </h2>
               <button
-                onClick={() => navigate('/dashboard/products')}
-                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
+                onClick={() => navigate("/dashboard/products")}
+                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer"
+              >
                 Explore Store
               </button>
             </div>
@@ -379,17 +529,31 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {products?.map((item) => (
                 <div
-                  onClick={() => navigate(`/dashboard/cosmic-detail/${item._id}`)}
-                  key={item._id} className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group cursor-pointer hover:scale-105 duration-300 transition-all">
+                  onClick={() =>
+                    navigate(`/dashboard/cosmic-detail/${item._id}`)
+                  }
+                  key={item._id}
+                  className="bg-white rounded-2xl p-3 border border-purple-100/60 shadow-sm flex flex-col justify-between group cursor-pointer hover:scale-105 duration-300 transition-all"
+                >
                   <div>
                     <div className="h-32 rounded-xl overflow-hidden mb-3 bg-slate-50">
-                      <img src={item.images[0]} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img
+                        src={item.images[0]}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     </div>
-                    <h4 className="text-xs font-semibold text-slate-800 line-clamp-1">{item.name}</h4>
-                    <span className="text-[10px] text-amber-600 font-bold block mt-1">★ {item.rating}</span>
+                    <h4 className="text-xs font-semibold text-slate-800 line-clamp-1">
+                      {item.name}
+                    </h4>
+                    <span className="text-[10px] text-amber-600 font-bold block mt-1">
+                      ★ {item.rating}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
-                    <span className="text-xs font-bold text-[#4A1E5C]">{item.price}</span>
+                    <span className="text-xs font-bold text-[#4A1E5C]">
+                      {item.price}
+                    </span>
                     <button className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-[#52007A] text-xs font-semibold rounded-lg transition-colors cursor-pointer">
                       Buy
                     </button>
@@ -401,10 +565,13 @@ export default function Dashboard() {
 
           <div className="lg:col-span-5 space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">Cosmic Insights</h2>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2D123A]">
+                Cosmic Insights
+              </h2>
               <button
-                onClick={() => navigate('/dashboard/articles')}
-                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer">
+                onClick={() => navigate("/dashboard/articles")}
+                className="text-xs sm:text-sm font-semibold text-[#52007A] hover:underline cursor-pointer"
+              >
                 Read Articles
               </button>
             </div>
@@ -460,13 +627,20 @@ export default function Dashboard() {
           </div>
 
           <p className="text-xs text-slate-400">
-            © 2026 Astronarhari. All rights reserved. Crafted for cosmic alignments.
+            © 2026 Astronarhari. All rights reserved. Crafted for cosmic
+            alignments.
           </p>
 
           <div className="flex items-center gap-6 text-xs text-slate-500 font-medium">
-            <a href="#" className="hover:text-purple-900 transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-purple-900 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-purple-900 transition-colors">Support</a>
+            <a href="#" className="hover:text-purple-900 transition-colors">
+              Terms of Service
+            </a>
+            <a href="#" className="hover:text-purple-900 transition-colors">
+              Privacy Policy
+            </a>
+            <a href="#" className="hover:text-purple-900 transition-colors">
+              Support
+            </a>
           </div>
         </div>
       </footer>
@@ -490,7 +664,84 @@ export default function Dashboard() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         astrologer={selectedAstrologer}
+        onConnect={handleConnectNow}
       />
+
+      {isBookingOpen && selectedAstrologer && (
+        <>
+          {console.log("🔥 ASTRO GOING TO BOOKING POPUP:", selectedAstrologer)}
+
+          <BookAppointmentPopup
+            astrologer={selectedAstrologer}
+            month={new Date().toLocaleString("default", {
+              month: "long",
+              year: "numeric",
+            })}
+            fee={selectedAstrologer?.minRate || 0}
+            originalFee={selectedAstrologer?.minRate || 0}
+            balance={Number(walletBalance) || 0}
+            onClose={handleCloseBooking}
+            onProceedToPayment={handleProceedToPayment}
+            setShowWallet={(value) => {
+              if (value) {
+                setIsBookingOpen(false);
+                navigate("/dashboard/wallet");
+              }
+            }}
+          />
+        </>
+      )}
+
+      {isBookingConfirmedOpen && confirmedBooking && (
+        <BookingConfirmedPopup
+          astrologer={{
+            name:
+              selectedAstrologer?.fullName ||
+              confirmedBooking?.astrologer?.fullName ||
+              "Astrologer",
+
+            tag: selectedAstrologer?.specialties?.join(" • ") || "Vedic Expert",
+
+            rating:
+              selectedAstrologer?.averageRating ??
+              confirmedBooking?.astrologer?.averageRating ??
+              0,
+
+            image:
+              selectedAstrologer?.profilePic ||
+              confirmedBooking?.astrologer?.profilePic ||
+              "https://i.pravatar.cc/150?img=12",
+          }}
+          booking={{
+            date:
+              confirmedBooking?.date ||
+              confirmedBooking?.bookingDate ||
+              confirmedBooking?.scheduledDate ||
+              "Scheduled Date",
+
+            time:
+              confirmedBooking?.time ||
+              confirmedBooking?.bookingTime ||
+              confirmedBooking?.scheduledTime ||
+              "Scheduled Time",
+
+            mode:
+              confirmedBooking?.mode ||
+              confirmedBooking?.consultationType ||
+              confirmedBooking?.type ||
+              "Chat",
+          }}
+          onClose={() => {
+            setIsBookingConfirmedOpen(false);
+            setConfirmedBooking(null);
+          }}
+          onMyBookings={() => {
+            setIsBookingConfirmedOpen(false);
+            setConfirmedBooking(null);
+            navigate("/dashboard/my-bookings");
+          }}
+        />
+      )}
     </div>
   );
 }

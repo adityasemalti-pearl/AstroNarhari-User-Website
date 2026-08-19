@@ -1,20 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { auth } from "../../firebase/firebase";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { verifyOtp } from '../../API/authapis';
-import ResponseModal from './ResponseModal';
+import { verifyOtp } from "../../API/authapis";
+import ResponseModal from "./ResponseModal";
 
 export default function Login() {
-  const [step, setStep] = useState('login'); // 'login' | 'otp'
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [authMode, setAuthMode] = useState("login"); // login | register
+  const [step, setStep] = useState("login"); // login | otp
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+
   const [timer, setTimer] = useState(57);
   const [isTimerActive, setIsTimerActive] = useState(false);
+
   const [popup, setPopup] = useState({
     open: false,
     type: "success",
@@ -23,10 +27,12 @@ export default function Login() {
     loading: false,
   });
 
-
-  const navigate = useNavigate()
-
+  const navigate = useNavigate();
   const otpInputsRef = useRef([]);
+
+  // =========================
+  // RECAPTCHA
+  // =========================
 
   const setupRecaptcha = () => {
     if (window.recaptchaVerifier) {
@@ -44,7 +50,7 @@ export default function Login() {
       "recaptcha-container",
       {
         size: "invisible",
-        callback: () => { },
+        callback: () => {},
         "expired-callback": () => {
           console.log("reCAPTCHA expired");
         },
@@ -54,6 +60,21 @@ export default function Login() {
     return window.recaptchaVerifier;
   };
 
+  // =========================
+  // SWITCH LOGIN / REGISTER
+  // =========================
+
+  const switchAuthMode = (mode) => {
+    setAuthMode(mode);
+    setStep("login");
+    setOtp(["", "", "", "", "", ""]);
+    setTimer(57);
+    setIsTimerActive(false);
+  };
+
+  // =========================
+  // SEND OTP
+  // =========================
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -71,8 +92,8 @@ export default function Login() {
       setPopup({
         open: true,
         type: "loading",
-        title: "Sending OTP",
-        message: "Please wait while we verify your phone.",
+        title: authMode === "register" ? "Creating Account" : "Signing In",
+        message: "Please wait while we send your verification code.",
         loading: true,
       });
 
@@ -103,35 +124,35 @@ export default function Login() {
           setStep("otp");
           setTimer(57);
           setIsTimerActive(true);
-        }, 1800);
+        }, 1500);
       }, 700);
-
     } catch (err) {
+      console.error("Send OTP Error:", err);
 
       setPopup({
         open: true,
         type: "error",
         title: "OTP Failed",
-        message:
-          err?.message ||
-          "Unable to send OTP.",
+        message: err?.message || "Unable to send OTP.",
       });
 
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
-        } catch { }
+        } catch {}
 
         window.recaptchaVerifier = null;
       }
     }
   };
 
+  // =========================
+  // OTP TIMER
+  // =========================
 
-
-  // Countdown timer handler for OTP
   useEffect(() => {
     let interval = null;
+
     if (isTimerActive && timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
@@ -139,46 +160,59 @@ export default function Login() {
     } else if (timer === 0) {
       setIsTimerActive(false);
     }
+
     return () => clearInterval(interval);
   }, [isTimerActive, timer]);
 
+  // =========================
+  // CLEANUP RECAPTCHA
+  // =========================
 
   useEffect(() => {
     return () => {
       if (window.recaptchaVerifier) {
         try {
           window.recaptchaVerifier.clear();
-        } catch (e) { }
+        } catch {}
 
         window.recaptchaVerifier = null;
       }
     };
   }, []);
 
-
-
-
+  // =========================
+  // OTP INPUT
+  // =========================
 
   const handleOtpChange = (value, index) => {
     if (isNaN(value)) return;
+
     const newOtp = [...otp];
+
     newOtp[index] = value.substring(value.length - 1);
+
     setOtp(newOtp);
 
-    // Auto-focus next input field
     if (value && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
     }
   };
 
   const handleOtpKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (
+      e.key === "Backspace" &&
+      !otp[index] &&
+      index > 0
+    ) {
       otpInputsRef.current[index - 1]?.focus();
     }
   };
 
-  const handleResend = async () => {
+  // =========================
+  // RESEND OTP
+  // =========================
 
+  const handleResend = async () => {
     if (timer !== 0) return;
 
     setPopup({
@@ -190,55 +224,53 @@ export default function Login() {
     });
 
     try {
-
       const appVerifier = setupRecaptcha();
 
-      const confirmation =
-        await signInWithPhoneNumber(
-          auth,
-          `+91${phoneNumber}`,
-          appVerifier
-        );
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        `+91${phoneNumber}`,
+        appVerifier
+      );
 
-      window.confirmationResult =
-        confirmation;
+      window.confirmationResult = confirmation;
 
       setPopup({
         open: true,
         type: "success",
         title: "OTP Sent Again",
-        message:
-          "A new verification code has been sent.",
+        message: "A new verification code has been sent.",
       });
 
       setTimer(57);
       setIsTimerActive(true);
-
-      setOtp([
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-      ]);
-
+      setOtp(["", "", "", "", "", ""]);
     } catch (err) {
+      console.error("Resend OTP Error:", err);
 
       setPopup({
         open: true,
         type: "error",
         title: "Failed",
-        message:
-          err.message,
+        message: err?.message || "Unable to resend OTP.",
       });
     }
   };
 
+  // =========================
+  // VERIFY OTP
+  // =========================
 
   const handleVerifyOtp = async () => {
-    try {
+    if (!window.confirmationResult) {
+      return setPopup({
+        open: true,
+        type: "error",
+        title: "Session Expired",
+        message: "Please request a new OTP.",
+      });
+    }
 
+    try {
       setPopup({
         open: true,
         type: "loading",
@@ -252,13 +284,13 @@ export default function Login() {
       const result =
         await window.confirmationResult.confirm(code);
 
-      const idToken =
-        await result.user.getIdToken();
+      const idToken = await result.user.getIdToken();
 
-      const response =
-        await verifyOtp({
-          idToken,
-        });
+      const response = await verifyOtp({
+        idToken,
+      });
+
+      console.log("Verify OTP Response:", response);
 
       localStorage.setItem(
         "token",
@@ -270,19 +302,42 @@ export default function Login() {
         JSON.stringify(response.data.data)
       );
 
+      // =========================
+      // REGISTER
+      // =========================
+
+      if (authMode === "register") {
+        setPopup({
+          open: true,
+          type: "success",
+          title: "Account Verified ✨",
+          message:
+            "Your account has been verified. Let's complete your profile.",
+        });
+
+        setTimeout(() => {
+          navigate("/create-profile");
+        }, 1800);
+
+        return;
+      }
+
+      // =========================
+      // LOGIN
+      // =========================
+
       setPopup({
         open: true,
         type: "success",
         title: "Welcome Back ✨",
-        message:
-          "Your account has been verified successfully.",
+        message: "You have been logged in successfully.",
       });
 
       setTimeout(() => {
-        navigate("/create-profile");
-      }, 2200);
-
+        navigate("/dashboard");
+      }, 1800);
     } catch (err) {
+      console.error("Verify OTP Error:", err);
 
       setPopup({
         open: true,
@@ -295,269 +350,536 @@ export default function Login() {
     }
   };
 
-
-
-  // const handleVerifyOtp = async () => {
-  //   try {
-
-  //     const code = otp.join("");
-
-  //     const result =
-  //       await window.confirmationResult.confirm(code);
-
-  //     const idToken =
-  //       await result.user.getIdToken();
-
-  //     const response = await verifyOtp({
-  //       idToken
-  //     });
-
-  //     localStorage.setItem(
-  //       "token",
-  //       response.data.token
-  //     );
-
-  //     localStorage.setItem(
-  //       "user",
-  //       JSON.stringify(response.data.data)
-  //     );
-
-  //     navigate("/dashboard");
-
-  //   } catch (err) {
-
-  //     console.log(err);
-
-  //     alert(
-  //       err?.response?.data?.message ||
-  //       err.message
-  //     );
-
-  //   }
-  // };
+  // =========================
+  // TIMER FORMAT
+  // =========================
 
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+    return `${mins.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#FAFAFC] p-4 font-sans text-slate-800 antialiased selection:bg-purple-100 selection:text-purple-900">
+    <div className="min-h-screen w-full flex bg-[#FAFAFC] relative font-sans text-slate-800 antialiased selection:bg-purple-100 selection:text-purple-900">
 
-      {/* Background Celestial Aura */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-b from-purple-200/40 via-amber-100/30 to-transparent rounded-full blur-3xl opacity-70" />
-      </div>
+      {/* ================= LEFT SIDE ================= */}
 
-      {/* Main Card Container */}
-      <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_rgba(74,30,92,0.06)] border border-purple-50/60 overflow-hidden transition-all duration-500 ease-out">
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 xl:p-16 border-r border-purple-100/50 bg-white overflow-hidden">
 
-        {/* Top Header & Branding */}
-        <div className="pt-10 pb-6 px-8 text-center flex flex-col items-center">
-          <h1
-            className="text-2xl font-serif font-bold tracking-[0.2em] text-[#4A1E5C] uppercase"
-            style={{ fontFamily: "'Cinzel', 'Playfair Display', Georgia, serif" }}
-          >
-            Namah-Astro
-          </h1>
+        {/* Purple Glow */}
 
-          {step === 'login' ? (
-            <span className="mt-2 text-[10px] font-semibold tracking-[0.22em] text-[#C68E28] uppercase">
-              Guidance From The Stars
-            </span>
-          ) : (
-            <div className="mt-4 flex justify-center text-[#E2B142] animate-pulse">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
-              </svg>
-            </div>
-          )}
-
-          {step === 'login' && (
-            <p className="mt-4 text-xs text-slate-400 leading-relaxed max-w-xs">
-              By continuing, you agree to our{' '}
-              <a href="#" className="underline decoration-purple-300 hover:text-purple-900 transition-colors">Terms of Service</a> &{' '}
-              <a href="#" className="underline decoration-purple-300 hover:text-purple-900 transition-colors">Privacy Policy</a>
-            </p>
-          )}
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-purple-200/50 rounded-full blur-[120px] opacity-70 animate-pulse" />
+          <div className="absolute top-1/3 left-1/3 w-[350px] h-[350px] bg-violet-200/40 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-fuchsia-200/30 rounded-full blur-[100px]" />
         </div>
 
-        {/* Dynamic Animated Steps */}
-        <div className="px-8 pb-10">
+        {/* Logo & Heading */}
 
-          {/* STEP 1: LOGIN / REGISTER */}
-          {step === 'login' && (
-            <div className="animate-fade-in space-y-6">
-              <div className="text-center sm:text-left">
-                <h2 className="text-2xl font-serif font-semibold text-[#2D123A]">Welcome Back</h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Log in to view your daily cosmic alignment.
-                </p>
-              </div>
+        <div className="relative z-10">
 
-              <form onSubmit={handleSendOtp} className="space-y-5">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                    Phone Number
-                  </label>
-                  <div className="flex items-center border border-slate-200 rounded-2xl p-1 bg-slate-50/50 focus-within:bg-white focus-within:border-[#52007A] focus-within:ring-4 focus-within:ring-purple-100 transition-all">
-                    <span className="px-3.5 py-2.5 text-sm font-medium text-slate-600 border-r border-slate-200 flex items-center gap-1">
-                      +91
-                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </span>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="Enter mobile number"
-                      maxLength={10}
-                      className="w-full px-3.5 py-2.5 text-sm bg-transparent outline-none text-slate-800 placeholder:text-slate-400 font-medium"
-                      required
-                    />
-                  </div>
-                </div>
+          <div className="flex items-center gap-3 mb-10">
 
-                <button
-                  type="submit"
-                  className="w-full py-3.5 px-4 bg-[#52007A] hover:bg-[#400060] active:scale-[0.99] text-white font-medium text-sm rounded-2xl shadow-lg shadow-purple-900/15 transition-all duration-200 cursor-pointer"
-                >
-                  Send OTP
-                </button>
-              </form>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-100 to-violet-50 flex items-center justify-center shadow-inner border border-purple-200/60">
 
-              {/* Social Login Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-100" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-3 text-slate-400 tracking-wider text-[11px] font-medium">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              {/* Social Buttons */}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium text-xs transition-all"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                  </svg>
-                  Google
-                </button>
-
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-slate-200 hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-medium text-xs transition-all"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.85c.66-.8 1.11-1.92.99-3.04-.96.04-2.12.64-2.81 1.44-.61.71-1.15 1.86-1 2.97 1.07.08 2.16-.57 2.82-1.37z" />
-                  </svg>
-                  Apple
-                </button>
-              </div>
-
-              <div className="pt-2 text-center text-xs text-slate-500">
-                New to AstroHari?{' '}
-                <a href="#" className="font-semibold text-[#52007A] hover:underline">
-                  Create an Account
-                </a>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: OTP VERIFICATION */}
-          {step === 'otp' && (
-            <div className="animate-fade-in space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-serif font-semibold text-[#2D123A]">Verify Identity</h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Enter the code sent to <span className="font-semibold text-slate-700">+91 {phoneNumber}</span>
-                </p>
-              </div>
-
-              {/* 6 Digit Input Group */}
-              <div className="flex justify-between gap-2 my-6">
-                {otp.map((digit, idx) => (
-                  <input
-                    key={idx}
-                    ref={(el) => (otpInputsRef.current[idx] = el)}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(e.target.value, idx)}
-                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
-                    className="w-11 h-13 text-center text-xl font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-[#52007A] focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-150"
-                  />
-                ))}
-              </div>
-
-              <button
-              disabled={otp.join("").length!==6}
-                type="button"
-                onClick={handleVerifyOtp}
-                className="w-full py-3.5 px-4 bg-[#52007A] hover:bg-[#400060] active:scale-[0.99] text-white font-medium text-sm rounded-2xl shadow-lg shadow-purple-900/15 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
+              <svg
+                className="w-5 h-5 text-purple-600 animate-[spin_20s_linear_infinite]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
               >
-                <span>Verify & Proceed</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </button>
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
+                  strokeLinecap="round"
+                />
+              </svg>
 
-              {/* Resend & Timer */}
-              <div className="text-center text-xs">
-                {timer > 0 ? (
-                  <p className="text-slate-400">
-                    Resend code in <span className="font-semibold text-[#52007A]">{formatTimer(timer)}</span>
-                  </p>
-                ) : (
-                  <button
-                    onClick={handleResend}
-                    disabled={phoneNumber.length!==10}
-                    className="font-semibold text-[#52007A] hover:underline focus:outline-none"
-                  >
-                    Resend OTP Code
-                  </button>
-                )}
-              </div>
-
-              {/* Back to Phone Input */}
-              <div className="pt-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => setStep('login')}
-                  className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Change phone number
-                </button>
-              </div>
             </div>
-          )}
+
+            <h1 className="text-xl font-bold tracking-[0.2em] text-slate-950 uppercase font-serif">
+              Namah-Astro
+            </h1>
+
+          </div>
+
+          <h2 className="text-4xl xl:text-5xl font-extrabold font-serif text-slate-950 leading-tight tracking-tight">
+
+            {authMode === "login" ? (
+              <>
+                Welcome <span className="text-purple-700">Back</span>
+              </>
+            ) : (
+              <>
+                Begin Your{" "}
+                <span className="text-purple-700">
+                  Cosmic Journey
+                </span>
+              </>
+            )}
+
+          </h2>
+
+          <p className="mt-6 text-base text-slate-600 max-w-lg leading-relaxed">
+
+            {authMode === "login"
+              ? "Sign in to access personalized daily horoscopes, connect with verified astrologers, and explore the ancient wisdom written in the stars."
+              : "Create your Namah-Astro account and connect with verified astrologers, personalized horoscopes, and ancient cosmic wisdom."}
+
+          </p>
 
         </div>
 
-        {/* Footer Notice */}
-        <div className="py-3 bg-slate-50/60 border-t border-slate-100 text-center">
-          <p className="text-[10px] text-slate-400">
-            © 2026 AstroNova. All rights reserved.
-          </p>
+        {/* Features */}
+
+        <div className="relative z-10 grid grid-cols-2 gap-x-8 gap-y-6 my-12">
+
+          {[
+            {
+              icon: "✨",
+              title: "Personal Dasha",
+              desc: "View detailed planetary periods.",
+            },
+            {
+              icon: "🌙",
+              title: "Daily Transit",
+              desc: "How planets affect you today.",
+            },
+            {
+              icon: "🤝",
+              title: "Kundli Matching",
+              desc: "Check compatibility reports.",
+            },
+            {
+              icon: "🔮",
+              title: "Live Consultation",
+              desc: "Chat with expert astrologers.",
+            },
+          ].map((feat) => (
+            <div
+              key={feat.title}
+              className="flex items-start gap-4 p-4 rounded-2xl bg-purple-50/50 border border-purple-100/50"
+            >
+              <div className="text-2xl mt-1">
+                {feat.icon}
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-slate-900 text-sm">
+                  {feat.title}
+                </h4>
+
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {feat.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+
+        </div>
+
+        {/* Footer */}
+
+        <div className="relative z-10 text-sm text-slate-500 flex gap-6">
+          <a href="#" className="hover:text-purple-700">
+            Help Center
+          </a>
+
+          <a href="#" className="hover:text-purple-700">
+            Astrologer Partners
+          </a>
+
+          <a href="#" className="hover:text-purple-700">
+            Blog
+          </a>
         </div>
 
       </div>
+
+      {/* ================= RIGHT SIDE ================= */}
+
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 lg:p-16 xl:p-24 bg-[#FAFAFC]">
+
+        {/* Premium Card */}
+
+        <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_-10px_rgba(74,0,224,0.06)] border border-purple-100/80 overflow-hidden transition-all duration-500 ease-out">
+
+          {/* Header */}
+
+          <div className="pt-9 pb-4 px-8 text-center flex flex-col items-center">
+
+            {/* Mobile Logo */}
+
+            <div className="lg:hidden mb-4 relative flex items-center justify-center">
+
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-100 to-violet-50 flex items-center justify-center shadow-inner border border-purple-200/60">
+
+                <svg
+                  className="w-6 h-6 text-purple-600 animate-[spin_20s_linear_infinite]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
+                  <circle cx="12" cy="12" r="4" />
+
+                  <path
+                    d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+              </div>
+
+            </div>
+
+            {/* Dynamic Label */}
+
+            <span className="lg:mt-0 mt-1.5 text-[11px] font-bold tracking-[0.25em] text-purple-600 uppercase">
+
+              {step === "otp"
+                ? "Cosmic Verification"
+                : authMode === "login"
+                ? "Secure Login"
+                : "Create Account"}
+
+            </span>
+
+            {step === "login" && (
+              <p className="mt-4 text-[11px] text-slate-400 leading-relaxed max-w-xs lg:hidden">
+
+                By continuing, you agree to our{" "}
+
+                <a
+                  href="#"
+                  className="underline decoration-purple-300 hover:text-purple-800 transition-colors"
+                >
+                  Terms
+                </a>{" "}
+                &{" "}
+
+                <a
+                  href="#"
+                  className="underline decoration-purple-300 hover:text-purple-800 transition-colors"
+                >
+                  Privacy Policy
+                </a>
+
+              </p>
+            )}
+
+          </div>
+
+          {/* ================= CONTENT ================= */}
+
+          <div className="px-8 pb-8 pt-2">
+
+            {/* ================= LOGIN / REGISTER ================= */}
+
+            {step === "login" && (
+              <div className="animate-fade-in space-y-5">
+
+                <div className="text-center">
+
+                  <h2 className="text-xl font-serif font-semibold text-slate-800">
+
+                    {authMode === "login"
+                      ? "Welcome Back to Namah-Astro"
+                      : "Create Your Namah-Astro Account"}
+
+                  </h2>
+
+                  <p className="text-xs text-slate-500 mt-1">
+
+                    {authMode === "login"
+                      ? "Enter your mobile number to securely sign in."
+                      : "Enter your mobile number to create your account."}
+
+                  </p>
+
+                </div>
+
+                {/* Phone Form */}
+
+                <form
+                  onSubmit={handleSendOtp}
+                  className="space-y-4"
+                >
+
+                  <div>
+
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      Phone Number
+                    </label>
+
+                    <div className="flex items-center border border-purple-100 rounded-2xl p-1 bg-purple-50/20 focus-within:bg-white focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100/50 transition-all">
+
+                      <span className="px-3.5 py-2.5 text-sm font-semibold text-slate-600 border-r border-purple-100 flex items-center gap-1">
+                        +91
+
+                        <svg
+                          className="w-3.5 h-3.5 text-slate-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+
+                      </span>
+
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(e) =>
+                          setPhoneNumber(
+                            e.target.value.replace(/\D/g, "")
+                          )
+                        }
+                        placeholder="Enter mobile number"
+                        maxLength={10}
+                        className="w-full px-3.5 py-2.5 text-sm bg-transparent outline-none text-slate-800 placeholder:text-slate-400 font-medium tracking-wide"
+                        required
+                      />
+
+                    </div>
+
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 active:scale-[0.99] text-white font-semibold text-sm rounded-2xl shadow-lg shadow-purple-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+                  >
+
+                    <span>
+                      {authMode === "login"
+                        ? "Send Login OTP"
+                        : "Send Registration OTP"}
+                    </span>
+
+                    <span className="text-xs">
+                      ✨
+                    </span>
+
+                  </button>
+
+                </form>
+
+                {/* SWITCH LOGIN / REGISTER */}
+
+                <div className="pt-2 text-center text-xs text-slate-500">
+
+                  {authMode === "login" ? (
+                    <>
+                      New to Namah-Astro?{" "}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          switchAuthMode("register")
+                        }
+                        className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                      >
+                        Create an Account
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Already have an account?{" "}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          switchAuthMode("login")
+                        }
+                        className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                      >
+                        Login
+                      </button>
+                    </>
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+            {/* ================= OTP ================= */}
+
+            {step === "otp" && (
+              <div className="animate-fade-in space-y-5">
+
+                <div className="text-center">
+
+                  <h2 className="text-xl font-serif font-semibold text-slate-800">
+
+                    {authMode === "login"
+                      ? "Verify Login"
+                      : "Verify Your Account"}
+
+                  </h2>
+
+                  <p className="text-xs text-slate-500 mt-1">
+
+                    Enter the code sent to{" "}
+
+                    <span className="font-semibold text-slate-700">
+                      +91 {phoneNumber}
+                    </span>
+
+                  </p>
+
+                </div>
+
+                {/* OTP */}
+
+                <div className="flex justify-between gap-1.5 my-5">
+
+                  {otp.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) =>
+                        (otpInputsRef.current[idx] = el)
+                      }
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) =>
+                        handleOtpChange(
+                          e.target.value,
+                          idx
+                        )
+                      }
+                      onKeyDown={(e) =>
+                        handleOtpKeyDown(e, idx)
+                      }
+                      className="w-10 h-12 sm:w-11 sm:h-13 text-center text-lg font-bold text-slate-800 bg-purple-50/30 border border-purple-200/60 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-150 shadow-inner"
+                    />
+                  ))}
+
+                </div>
+
+                {/* Verify */}
+
+                <button
+                  disabled={otp.join("").length !== 6}
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-purple-500 to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed hover:from-purple-600 hover:to-purple-700 active:scale-[0.99] text-white font-semibold text-sm rounded-2xl shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
+                >
+
+                  <span>
+                    {authMode === "login"
+                      ? "Verify & Login"
+                      : "Verify & Create Account"}
+                  </span>
+
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+
+                </button>
+
+                {/* Timer */}
+
+                <div className="text-center text-xs">
+
+                  {timer > 0 ? (
+                    <p className="text-slate-400">
+                      Resend code in{" "}
+
+                      <span className="font-semibold text-purple-600">
+                        {formatTimer(timer)}
+                      </span>
+                    </p>
+                  ) : (
+                    <button
+                      onClick={handleResend}
+                      disabled={phoneNumber.length !== 10}
+                      className="font-semibold text-purple-600 hover:underline focus:outline-none"
+                    >
+                      Resend OTP Code
+                    </button>
+                  )}
+
+                </div>
+
+                {/* Change Number */}
+
+                <div className="pt-1 text-center">
+
+                  <button
+                    type="button"
+                    onClick={() => setStep("login")}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors"
+                  >
+
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
+                    </svg>
+
+                    Change phone number
+
+                  </button>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+          {/* Footer */}
+
+          <div className="py-3 bg-purple-50/40 border-t border-purple-100/50 text-center lg:hidden">
+
+            <p className="text-[10px] text-slate-400 font-medium">
+              © 2026 Namah-Astro. All rights reserved.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Recaptcha */}
+
       <div id="recaptcha-container"></div>
+
+      {/* Response Modal */}
+
       <ResponseModal
         open={popup.open}
         type={popup.type}
@@ -571,6 +893,7 @@ export default function Login() {
           }))
         }
       />
+
     </div>
   );
 }
