@@ -595,7 +595,7 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
-
+{/* 
       <footer className="mt-20 border-t border-purple-100 bg-white w-full">
         <div className="w-full px-6 lg:px-12 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
@@ -624,7 +624,7 @@ export default function Dashboard() {
             </a>
           </div>
         </div>
-      </footer>
+      </footer> */}
 
       <motion.button
         onClick={() => {
