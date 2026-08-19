@@ -38,6 +38,7 @@ import ContactUs from "./pages/Home/PublicPages/Contact";
 import CookiePolicy from "./pages/Home/PublicPages/CookiePolicy";
 import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
 import PrivacyPolicy from "./pages/Home/PublicPages/PrivacyPolicy";
+import DeletePartner from "./pages/Home/PublicPages/DeletePartner";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -60,6 +61,7 @@ function App() {
       <Routes>
 
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/request-deletion" element={<DeletePartner />} />
         <Route element={<PublicRoute />}>
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />

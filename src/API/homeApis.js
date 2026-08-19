@@ -33,3 +33,10 @@ export const festivalCalender = (data) => {
   return api.post('/match/festivals',data);
 };
 
+
+
+
+
+export const deletePartnerByMobile = (number)=>{
+ return api.delete('/partner/delete-by-mobile', number) 
+}
