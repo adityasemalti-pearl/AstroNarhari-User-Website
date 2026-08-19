@@ -1,8 +1,14 @@
 import api from "./axios";
 
-export const getActiveSessions = (category = "Property") => {
+export const getActiveSessions = (category) => {
+  const params = {};
+
+  if (category && category !== "All Live") {
+    params.category = category;
+  }
+
   return api.get(`/agora/active-sessions`, {
-    params: { category },
+    params,
   });
 };
 
