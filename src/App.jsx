@@ -37,6 +37,7 @@ import Chat from "./pages/Chat/Chat";
 import ContactUs from "./pages/Home/PublicPages/Contact";
 import CookiePolicy from "./pages/Home/PublicPages/CookiePolicy";
 import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
+import PrivacyPolicy from "./pages/Home/PublicPages/PrivacyPolicy";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -68,6 +69,7 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         </Route>
 
         <Route element={<ProtectedRoute />}>
