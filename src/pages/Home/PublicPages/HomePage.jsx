@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+
+
 import {
     Sparkles,
     Heart,
@@ -18,22 +20,18 @@ import {
     Headphones,
     MessageSquare,
 } from "lucide-react";
-import {
-    SERVICES,
-    ASTROLOGERS,
-    WHY,
-    STEPS,
-    TESTIMONIALS,
-    BLOGS,
-    PRICING,
-    FAQS
-} from './HomeData';
-import './HomePage.css';
-import logo from '../../../assets/logo.png';
-import { useNavigate } from "react-router-dom";
-import BackToTop from "../comp/BackToTop";
-import Header from "./HomeNavBar";
 
+import {SERVICES,
+ASTROLOGERS,
+WHY,
+STEPS,
+TESTIMONIALS,
+BLOGS,
+PRICING,
+FAQS} from './HomeData'
+
+/* ================= helpers ================= */
+import './HomePage.css'
 function useInView(threshold = 0.15) {
     const ref = useRef(null);
     const [inView, setInView] = useState(false);
@@ -131,13 +129,23 @@ function StarField({ count = 130, className = "" }) {
     );
 }
 
+/* ================= data ================= */
+
+
+/* ================= main component ================= */
+import logo from '../../../assets/logo.png'
+import { useNavigate } from "react-router-dom";
+import BackToTop from "../comp/BackToTop";
+import Header from "./HomeNavBar";
 export default function AstroSetuLanding() {
+
     const [menuOpen, setMenuOpen] = useState(false);
     const [liveCount, setLiveCount] = useState(142);
     const [openFaq, setOpenFaq] = useState(0);
     const [testiIndex, setTestiIndex] = useState(0);
     const [testiPaused, setTestiPaused] = useState(false);
-    const navigate = useNavigate();
+    const navigate = useNavigate()
+
 
     useEffect(() => {
         const id = setInterval(() => {
@@ -154,13 +162,24 @@ export default function AstroSetuLanding() {
         return () => clearInterval(id);
     }, [testiPaused]);
 
+    const navLink = (href, label) => (
+        <a href={href} onClick={() => setMenuOpen(false)}>
+            {label}
+        </a>
+    );
+
     return (
         <div className="asx-root">
+
+
+            {/* ============ HEADER ============ */}
             <Header
                 menuOpen={menuOpen}
                 setMenuOpen={setMenuOpen}
             />
 
+
+            {/* ============ 1. HERO ============ */}
             <section className="hero" id="hero">
                 <StarField count={130} />
                 <div className="shooting-star" style={{ top: "12%" }} />
@@ -241,6 +260,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 2. TRUSTED BY THOUSANDS ============ */}
             <div className="trustbar">
                 <div className="wrap trust-grid">
                     <StatCounter target={4.9} decimal label="⭐ Average Rating" />
@@ -250,6 +270,7 @@ export default function AstroSetuLanding() {
                 </div>
             </div>
 
+            {/* ============ 3. SERVICES ============ */}
             <section className="section" id="services">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -260,12 +281,11 @@ export default function AstroSetuLanding() {
                     <Reveal stagger className="services-grid">
                         {SERVICES.map((s) => {
                             const Icon = s.icon;
+
                             return (
                                 <div
-                                    onClick={() => navigate(s.path)}
-                                    className="service-card group cursor-pointer" 
-                                    key={s.title}
-                                >
+                                onClick={()=>navigate(s.path)}
+                                className="service-card group  cursor-pointer" key={s.title}>
                                     <div className="service-icon">
                                         <Icon
                                             size={30}
@@ -273,6 +293,7 @@ export default function AstroSetuLanding() {
                                             className="text-purple-400 transition-transform duration-300 group-hover:scale-110"
                                         />
                                     </div>
+
                                     <h4>{s.title}</h4>
                                     <p>{s.desc}</p>
                                 </div>
@@ -282,6 +303,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 4. EXPERT ASTROLOGERS ============ */}
             <section className="section alt" id="astrologers">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -315,11 +337,13 @@ export default function AstroSetuLanding() {
                         ))}
                     </Reveal>
                     <div style={{ textAlign: "center", marginTop: 44 }}>
-                        <a href="/dashboard/astrologers" className="btn btn-outline">View All 500+ Astrologers</a>
+                        <a
+                            href="/dashboard/astrologers" className="btn btn-outline">View All 500+ Astrologers</a>
                     </div>
                 </div>
             </section>
 
+            {/* ============ 5. WHY CHOOSE US ============ */}
             <section className="section" id="why">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -329,6 +353,7 @@ export default function AstroSetuLanding() {
                     <Reveal stagger className="why-grid">
                         {WHY.map((w) => {
                             const Icon = w.icon;
+
                             return (
                                 <div className="why-card group" key={w.title}>
                                     <div className="why-icon">
@@ -338,6 +363,7 @@ export default function AstroSetuLanding() {
                                             className="text-yellow-400 transition-all duration-300 group-hover:scale-110"
                                         />
                                     </div>
+
                                     <h4>{w.title}</h4>
                                     <p>{w.desc}</p>
                                 </div>
@@ -347,6 +373,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 6. HOW IT WORKS ============ */}
             <section className="section alt" id="how">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -366,6 +393,50 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 7. KUNDLI PREVIEW ============ */}
+            {/* <section className="section" id="kundli">
+                <div className="wrap">
+                    <Reveal className="section-head">
+                        <span className="eyebrow">Free Tool</span>
+                        <h2>Generate your Kundli in seconds</h2>
+                        <p>Enter your birth details to preview your personalised birth chart and horoscope.</p>
+                    </Reveal>
+                    <Reveal className="kundli-panel">
+                        <div className="kundli-form">
+                            <h3>Enter Birth Details</h3>
+                            <p>Accurate to the minute for precise chart calculation.</p>
+                            <div className="field"><label>Full Name</label><input type="text" placeholder="e.g. Aarav Sharma" /></div>
+                            <div className="field-row">
+                                <div className="field"><label>Date of Birth</label><input type="date" /></div>
+                                <div className="field"><label>Time of Birth</label><input type="time" /></div>
+                            </div>
+                            <div className="field"><label>Place of Birth</label><input type="text" placeholder="e.g. Dehradun, Uttarakhand" /></div>
+                            <a href="/dashboard/kundali" className="btn btn-primary" style={{ width: "100%", marginTop: 8 }}>Generate My Kundli</a>
+                        </div>
+                        <div className="kundli-visual">
+                            <svg className="kundli-chart" viewBox="0 0 280 280">
+                                <rect x="10" y="10" width="260" height="260" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" />
+                                <line x1="10" y1="10" x2="270" y2="270" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <line x1="270" y1="10" x2="10" y2="270" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <line x1="140" y1="10" x2="10" y2="140" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <line x1="10" y1="140" x2="140" y2="270" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <line x1="140" y1="270" x2="270" y2="140" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <line x1="270" y1="140" x2="140" y2="10" stroke="rgba(255,255,255,0.4)" strokeWidth="1.2" />
+                                <g fill="#E8CE7E" fontSize="13" fontFamily="Space Mono, monospace" textAnchor="middle">
+                                    <text x="140" y="55">Su Ma</text><text x="65" y="60">Ju</text><text x="215" y="60">Ve</text>
+                                    <text x="45" y="145">Ra</text><text x="235" y="145">Ke</text>
+                                    <text x="65" y="225">Sa</text><text x="215" y="225">Me</text><text x="140" y="235">Mo</text>
+                                </g>
+                            </svg>
+                            <div className="horo-mini">
+                                <span>♈</span><span>♉</span><span>♊</span><span>♋</span><span>♌</span><span>♍</span>
+                            </div>
+                        </div>
+                    </Reveal>
+                </div>
+            </section> */}
+
+            {/* ============ 8. TESTIMONIALS ============ */}
             <section className="section alt" id="testimonials">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -411,6 +482,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 9. FEATURED BLOGS ============ */}
             <section className="section" id="blogs">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -432,6 +504,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 10. APP SCREENSHOTS ============ */}
             <section className="section alt" id="app">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -485,6 +558,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 11. PRICING ============ */}
             <section className="section" id="pricing">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -506,6 +580,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 12. FAQ ============ */}
             <section className="section alt" id="faq">
                 <div className="wrap">
                     <Reveal className="section-head">
@@ -528,6 +603,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 13. DOWNLOAD APP CTA ============ */}
             <section className="section" id="download">
                 <div className="wrap">
                     <Reveal className="download-panel">
@@ -546,6 +622,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 14. NEWSLETTER ============ */}
             <section className="newsletter">
                 <div className="wrap">
                     <span className="eyebrow">Stay Aligned</span>
@@ -558,6 +635,7 @@ export default function AstroSetuLanding() {
                 </div>
             </section>
 
+            {/* ============ 15. FOOTER ============ */}
             <footer>
                 <StarField count={60} />
                 <div className="wrap" style={{ position: "relative", zIndex: 1 }}>
@@ -569,40 +647,18 @@ export default function AstroSetuLanding() {
                                 <a href="#">𝕏</a><a href="#">📸</a><a href="#">📘</a><a href="#">▶</a>
                             </div>
                         </div>
-                        <div className="footer-col">
-                            <h5>Company</h5>
-                            <ul>
-                                <li><a href="about">About</a></li>
-                                <li><a href="contact">Contact</a></li>
-                                <li><a href="#journal">Blog</a></li>
-                            </ul>
-                        </div>
-                        <div className="footer-col">
-                            <h5>Legal</h5>
-                            <ul>
-                                <li><a href="privacy-policy">Privacy Policy</a></li>
-                                <li><a href="/terms-n-conditions">Terms & Conditions</a></li>
-                                <li><a href="refund-policy">Refund Policy</a></li>
-                                <li><a href="cookie-policy">Cookie Policy</a></li>
-                            </ul>
-                        </div>
-                        <div className="footer-col">
-                            <h5>Services</h5>
-                            <ul>
-                                <li><a href="#services">Kundli</a></li>
-                                <li><a href="#services">Match Making</a></li>
-                                <li><a href="#astrologers">Talk to Astrologer</a></li>
-                                <li><a href="#services">Numerology</a></li>
-                            </ul>
-                        </div>
-                        <div className="footer-col">
-                            <h5>Contact</h5>
-                            <ul>
-                                <li>Admin@namahastro.com</li>
-                                <li>+91 9520401700</li>
-                                <li>705, D36, A Lohiya Apartment, Building No.3, Mehrauli, New Delhi</li>
-                            </ul>
-                        </div>
+                        <div className="footer-col"><h5>Company</h5><ul>
+                            <li><a href="about">About</a></li><li><a href="contact">Contact</a></li><li><a href="#journal">Blog</a></li>
+                        </ul></div>
+                        <div className="footer-col"><h5>Legal</h5><ul>
+                            <li><a href="privacy-policy">Privacy Policy</a></li><li><a href="/terms-n-conditions">Terms & Conditions</a></li><li><a href="refund-policy">Refund Policy</a></li><li><a href="cookie-policy">Cookie Policy</a></li>
+                        </ul></div>
+                        <div className="footer-col"><h5>Services</h5><ul>
+                            <li><a href="#services">Kundli</a></li><li><a href="#services">Match Making</a></li><li><a href="#astrologers">Talk to Astrologer</a></li><li><a href="#services">Numerology</a></li>
+                        </ul></div>
+                        <div className="footer-col"><h5>Contact</h5><ul>
+                            <li>Admin@namahastro.com</li>
+                        </ul></div>
                     </div>
                     <div className="footer-bottom">
                         <span>© 2026 Namah-Astro. All rights reserved.</span>
@@ -611,6 +667,10 @@ export default function AstroSetuLanding() {
                 </div>
                 <BackToTop />
             </footer>
+
         </div>
     );
 }
+
+/* ================= styles ================= */
+

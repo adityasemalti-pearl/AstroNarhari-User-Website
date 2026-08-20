@@ -33,3 +33,20 @@ export const festivalCalender = (data) => {
   return api.post('/match/festivals',data);
 };
 
+
+
+
+
+export const deletePartnerByMobile = (number) => {
+  return api.delete('/partner/delete-by-mobile', {
+    data: {
+      mobile: number,
+    },
+  });
+};
+
+
+
+export const getblogs=()=>{
+  return api.get('/admin/insights/get-articles')
+}
