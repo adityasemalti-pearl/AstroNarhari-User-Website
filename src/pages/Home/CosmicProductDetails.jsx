@@ -479,11 +479,11 @@ export default function App() {
                                             {loading ? "Adding..." : "Add to Cart"}
                                         </button>
 
-                                        <button
+                                        {/* <button
                                             className="flex-1 rounded-2xl bg-gradient-to-r from-purple-900 to-indigo-900 py-4 font-bold text-amber-300"
                                         >
                                             Buy Now
-                                        </button>
+                                        </button> */}
 
                                     </div>
 
@@ -925,11 +925,11 @@ export default function App() {
                                 Inclusive of all taxes
                             </p>
 
-                            <button className="w-full py-4 rounded-2xl bg-amber-400 text-purple-950 font-black hover:scale-105 transition">
+                            {/* <button className="w-full py-4 rounded-2xl bg-amber-400 text-purple-950 font-black hover:scale-105 transition">
 
                                 Buy Now
 
-                            </button>
+                            </button> */}
 
                             <button
                                 onClick={handleAddToCart}
