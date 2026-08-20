@@ -909,7 +909,7 @@ export default function AstroSetuLanding() {
         </div>
       </section>
 
-      <section className="section" id="pricing">
+      {/* <section className="section" id="pricing">
         <div className="wrap">
           <Reveal className="section-head">
             <span className="eyebrow">Recharge Plans</span>
@@ -949,7 +949,7 @@ export default function AstroSetuLanding() {
             ))}
           </Reveal>
         </div>
-      </section>
+      </section> */}
 
       <section className="section alt" id="faq">
         <div className="wrap">
@@ -1013,9 +1013,9 @@ export default function AstroSetuLanding() {
                 </a>
               </div>
             </div>
-            <div className="qr-box" style={{ position: "relative", zIndex: 1 }}>
+            {/* <div className="qr-box" style={{ position: "relative", zIndex: 1 }}>
               <div className="qr-pattern" />
-            </div>
+            </div> */}
           </Reveal>
         </div>
       </section>
