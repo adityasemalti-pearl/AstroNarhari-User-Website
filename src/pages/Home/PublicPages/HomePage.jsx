@@ -617,7 +617,7 @@ export default function AstroSetuLanding() {
                                 <a href="#" className="store-btn"><span className="ic"></span><span className="txt"><small>Download on the</small><strong>App Store</strong></span></a>
                             </div>
                         </div>
-                        <div className="qr-box" style={{ position: "relative", zIndex: 1 }}><div className="qr-pattern" /></div>
+                        
                     </Reveal>
                 </div>
             </section>
