@@ -1091,6 +1091,9 @@ export default function AstroSetuLanding() {
                 <li>
                   <a href="cookie-policy">Cookie Policy</a>
                 </li>
+                <li>
+                  <a href="child-safety">Child Safety Policy</a>
+                </li>
               </ul>
             </div>
             <div className="footer-col">

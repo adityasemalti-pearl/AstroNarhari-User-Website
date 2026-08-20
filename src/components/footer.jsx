@@ -1,12 +1,8 @@
 import { Link } from "react-router-dom";
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaTwitter,
-  FaYoutube,
-} from "react-icons/fa";
-import { MdEmail } from "react-icons/md";
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
+import { MdEmail, MdPhone } from "react-icons/md";
 import { IoArrowForward } from "react-icons/io5";
+import { MapPin } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -48,8 +44,8 @@ export default function Footer() {
             </h2>
 
             <p className="mt-5 leading-7 text-gray-400">
-              Discover your destiny through astrology, numerology, Vastu,
-              tarot, and expert consultations with trusted astrologers.
+              Discover your destiny through astrology, numerology, Vastu, tarot,
+              and expert consultations with trusted astrologers.
             </p>
 
             <div className="mt-6 flex gap-4">
@@ -61,7 +57,7 @@ export default function Footer() {
                   >
                     <Icon size={18} />
                   </div>
-                )
+                ),
               )}
             </div>
           </div>
@@ -116,9 +112,23 @@ export default function Footer() {
             <h3 className="mb-6 text-xl font-bold">Contact Us</h3>
 
             <div className="space-y-5 text-gray-400">
-              <div className="flex items-center gap-3">
-                <MdEmail className="text-xl text-purple-400" />
+              {/* Email */}
+              <div className="flex items-start gap-3">
+                <MdEmail className="mt-1 text-xl text-purple-400" />
                 <span>Admin@namahastro.com</span>
+              </div>
+
+              {/* Phone */}
+              <div className="flex items-start gap-3">
+                <MdPhone className="mt-1 text-xl text-purple-400" />
+                <span>+91 9520401700</span>
+              </div>
+
+              {/* Address */}
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-1 text-xl text-purple-400" />
+                <span> 705, D36, A Lohiya Apartment,<br /> Building No.3,<br /> Mehrauli,<br /> New
+                  Delhi</span>
               </div>
             </div>
           </div>

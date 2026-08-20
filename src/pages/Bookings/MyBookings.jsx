@@ -656,13 +656,13 @@ export default function MyBookings() {
 
                     {pending && (
                       <>
-                        <button
+                        {/* <button
                           onClick={() => handleReschedule(booking)}
                           className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-purple-200 bg-white px-5 py-3 text-sm font-bold text-purple-700 transition-all hover:bg-purple-50 active:scale-95 md:flex-none"
                         >
                           <CalendarClock size={17} />
                           Reschedule
-                        </button>
+                        </button> */}
 
                         <button
                           onClick={() => handleCancelBooking(booking)}
