@@ -44,3 +44,9 @@ export const deletePartnerByMobile = (number) => {
     },
   });
 };
+
+
+
+export const getblogs=()=>{
+  return api.get('/admin/insights/get-articles')
+}
