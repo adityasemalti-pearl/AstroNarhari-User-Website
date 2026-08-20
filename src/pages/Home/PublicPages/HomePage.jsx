@@ -18,6 +18,9 @@ import {
   Target,
   Headphones,
   MessageSquare,
+  MapPin,
+  Phone,
+  Mail,
 } from "lucide-react";
 
 import {
@@ -1011,6 +1014,10 @@ export default function AstroSetuLanding() {
                 <li>
                   <a href="cookie-policy">Cookie Policy</a>
                 </li>
+
+                <li>
+                  <a href="child-safety">Child Safety Policy</a>
+                </li>
               </ul>
             </div>
             <div className="footer-col">
@@ -1032,8 +1039,22 @@ export default function AstroSetuLanding() {
             </div>
             <div className="footer-col">
               <h5>Contact</h5>
-              <ul>
-                <li>Admin@namahastro.com</li>
+
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Admin@namahastro.com</span>
+                </li>
+
+                <li className="flex items-start gap-2">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>+91 9520401700</span>
+                </li>
+
+                <li className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>705,D36,<br />A Lohiya Appartment Building no.3 <br />Mehruli, <br />New Delhi</span>
+                </li>
               </ul>
             </div>
           </div>

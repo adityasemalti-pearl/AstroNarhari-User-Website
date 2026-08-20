@@ -39,6 +39,7 @@ import CookiePolicy from "./pages/Home/PublicPages/CookiePolicy";
 import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
 import PrivacyPolicy from "./pages/Home/PublicPages/PrivacyPolicy";
 import DeletePartner from "./pages/Home/PublicPages/DeletePartner";
+import ChildSafety from "./pages/Home/PublicPages/ChildSafety";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -59,7 +60,7 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-
+        <Route path ='/child-safety' element={<ChildSafety/>} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/request-deletion" element={<DeletePartner />} />
         <Route element={<PublicRoute />}>
