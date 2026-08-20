@@ -51,32 +51,29 @@ export default function ContactUs() {
       value: "admin@namahastro.com",
       description: "Send us your questions anytime.",
     },
-    // {
-    //   icon: <Phone size={23} />,
-    //   title: "Call Us",
-    //   value: "+91 98765 43210",
-    //   description: "Available Monday to Saturday.",
-    // },
+    {
+      icon: <Phone size={23} />,
+      title: "Call Us",
+      value: "+91 9520401700",
+      description: "Available 24 x 7 for your queries.",
+    },
     {
       icon: <Clock3 size={23} />,
       title: "Working Hours",
       value: "24 x 7",
-      description: "Monday to Saturday.",
+      description: "Monday to Sunday.",
     },
-    // {
-    //   icon: <MapPin size={23} />,
-    //   title: "Our Office",
-    //   value: "Dehradun, Uttarakhand",
-    //   description: "India",
-    // },
+    {
+      icon: <MapPin size={23} />,
+      title: "Our Office",
+      value: "705, D36, A Lohiya Apartment, Building No.3, Mehrauli, New Delhi",
+      description: "India",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-[#FAFAFC] text-slate-800">
-
-      {/* HERO */}
       <section className="relative overflow-hidden bg-gradient-to-br from-violet-950 via-purple-900 to-fuchsia-900 text-white">
-
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -left-40 -top-40 h-[450px] w-[450px] rounded-full bg-purple-500/20 blur-3xl" />
           <div className="absolute -bottom-40 -right-40 h-[450px] w-[450px] rounded-full bg-fuchsia-500/20 blur-3xl" />
@@ -85,7 +82,6 @@ export default function ContactUs() {
         </div>
 
         <div className="relative mx-auto max-w-7xl px-6 py-24 text-center sm:px-8 lg:px-12 lg:py-28">
-
           <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur">
             <MessageCircle size={17} className="text-purple-200" />
             We're Here to Help
@@ -100,21 +96,16 @@ export default function ContactUs() {
             Have a question, suggestion, or need assistance? Our team is here
             to help you make your Namah-Astro experience smooth and meaningful.
           </p>
-
         </div>
       </section>
 
-      {/* CONTACT CARDS */}
       <section className="relative z-10 mx-auto -mt-10 max-w-7xl px-6 sm:px-8 lg:px-12">
-
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-
           {contactCards.map((card) => (
             <div
               key={card.title}
               className="rounded-3xl border border-purple-100 bg-white p-6 shadow-xl shadow-purple-900/5 transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
             >
-
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-50 text-purple-700">
                 {card.icon}
               </div>
@@ -130,21 +121,14 @@ export default function ContactUs() {
               <p className="mt-2 text-xs leading-5 text-slate-500">
                 {card.description}
               </p>
-
             </div>
           ))}
-
         </div>
       </section>
 
-      {/* MAIN CONTACT SECTION */}
       <section className="mx-auto max-w-7xl px-6 py-20 sm:px-8 lg:px-12">
-
         <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr]">
-
-          {/* LEFT CONTENT */}
           <div>
-
             <div className="mb-4 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-purple-700">
               <Sparkles size={17} />
               Contact Namah-Astro
@@ -162,7 +146,6 @@ export default function ContactUs() {
             </p>
 
             <div className="mt-8 space-y-5">
-
               <div className="flex items-start gap-4 rounded-2xl border border-purple-100 bg-purple-50/60 p-5">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-purple-700 shadow-sm">
                   <MessageCircle size={20} />
@@ -175,6 +158,39 @@ export default function ContactUs() {
                   <p className="mt-1 text-sm leading-6 text-slate-500">
                     Our support team can help you with bookings, astrologer
                     selection and consultation-related questions.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                  <Phone size={20} />
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-900">
+                    Direct Helpline
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Call us directly at
+                    <a href="tel:+919520401700" className="font-semibold text-purple-700">
+                      {" "}+91 9520401700
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                  <MapPin size={20} />
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-900">
+                    Our Location
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    705, D36, A Lohiya Apartment, Building No.3, Mehrauli, New Delhi
                   </p>
                 </div>
               </div>
@@ -196,32 +212,12 @@ export default function ContactUs() {
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-start gap-4 rounded-2xl border border-purple-100 bg-white p-5 shadow-sm">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
-                  <Clock3 size={20} />
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-slate-900">
-                    Quick Response
-                  </h4>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">
-                    Our support team generally responds within 24 business
-                    hours.
-                  </p>
-                </div>
-              </div>
-
             </div>
           </div>
 
-          {/* FORM */}
           <div className="rounded-[32px] border border-purple-100 bg-white p-6 shadow-xl sm:p-8">
-
             {submitted ? (
               <div className="flex min-h-[500px] flex-col items-center justify-center text-center">
-
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-50 text-green-600">
                   <CheckCircle2 size={42} />
                 </div>
@@ -234,7 +230,6 @@ export default function ContactUs() {
                   Thank you for contacting Namah-Astro. Our team will get back
                   to you as soon as possible.
                 </p>
-
               </div>
             ) : (
               <>
@@ -249,9 +244,7 @@ export default function ContactUs() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-
                   <div className="grid gap-5 sm:grid-cols-2">
-
                     <div>
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">
                         Full Name
@@ -283,11 +276,9 @@ export default function ContactUs() {
                         className="w-full rounded-2xl border border-purple-100 bg-purple-50/30 px-4 py-3.5 text-sm outline-none transition focus:border-purple-400 focus:bg-white focus:ring-4 focus:ring-purple-100"
                       />
                     </div>
-
                   </div>
 
                   <div className="grid gap-5 sm:grid-cols-2">
-
                     <div>
                       <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">
                         Phone Number
@@ -324,7 +315,6 @@ export default function ContactUs() {
                         <option value="other">Other</option>
                       </select>
                     </div>
-
                   </div>
 
                   <div>
@@ -350,20 +340,15 @@ export default function ContactUs() {
                     <Send size={19} />
                     Send Message
                   </button>
-
                 </form>
               </>
             )}
-
           </div>
         </div>
       </section>
 
-      {/* FAQ / SUPPORT */}
       <section className="bg-purple-50 px-6 py-20 sm:px-8 lg:px-12">
-
         <div className="mx-auto max-w-4xl text-center">
-
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-700">
             <Sparkles size={22} />
           </div>
@@ -378,7 +363,6 @@ export default function ContactUs() {
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-
             <a
               href="mailto:admin@namahastro.com"
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-purple-700 px-6 py-3 font-semibold text-white transition hover:bg-purple-800"
@@ -387,19 +371,16 @@ export default function ContactUs() {
               Email Support
             </a>
 
-            {/* <a
-              href="tel:+919876543210"
+            <a
+              href="tel:+919520401700"
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-purple-200 bg-white px-6 py-3 font-semibold text-purple-700 transition hover:bg-purple-100"
             >
               <Phone size={18} />
               Call Support
-            </a> */}
-
+            </a>
           </div>
-
         </div>
       </section>
-
     </div>
   );
 }

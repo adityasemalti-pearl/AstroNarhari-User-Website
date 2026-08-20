@@ -1,23 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-
 import { auth } from "../../firebase/firebase";
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { verifyOtp } from "../../API/authapis";
 import ResponseModal from "./ResponseModal";
 
 export default function Login() {
-  const [authMode, setAuthMode] = useState("login"); // login | register
-  const [step, setStep] = useState("login"); // login | otp
-
+  const [authMode, setAuthMode] = useState("login");
+  const [step, setStep] = useState("login");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-
   const [timer, setTimer] = useState(57);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
 
   const [popup, setPopup] = useState({
     open: false,
@@ -30,9 +25,39 @@ export default function Login() {
   const navigate = useNavigate();
   const otpInputsRef = useRef([]);
 
-  // =========================
-  // RECAPTCHA
-  // =========================
+  const astrologersData = [
+    {
+      title: "Acharya Devendra Shastri",
+      specialty: "Vedic & Kundli Specialist",
+      experience: "21+ Years Exp",
+      rating: "4.9 ★ (12k+ Consults)",
+      image: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&q=80&w=800",
+      quote: "Planetary alignments guide your path, but wisdom and karma shape your ultimate destiny."
+    },
+    {
+      title: "Dr. Kalyani Upadhyay",
+      specialty: "Tarot Reader & Numerologist",
+      experience: "16+ Years Exp",
+      rating: "5.0 ★ (8.5k+ Consults)",
+      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
+      quote: "Understand the subtle cosmic vibrations impacting your career, love, and spiritual growth."
+    },
+    {
+      title: "Pandit Ramanath Iyer",
+      specialty: "Nadi Astrologer & Gemologist",
+      experience: "25+ Years Exp",
+      rating: "4.9 ★ (15k+ Consults)",
+      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+      quote: "Ancient palm leaves and planetary dashas hold direct answers to your deepest questions."
+    }
+  ];
+
+  useEffect(() => {
+    const slideInterval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % astrologersData.length);
+    }, 4500);
+    return () => clearInterval(slideInterval);
+  }, [astrologersData.length]);
 
   const setupRecaptcha = () => {
     if (window.recaptchaVerifier) {
@@ -41,28 +66,17 @@ export default function Login() {
       } catch (e) {
         console.error(e);
       }
-
       window.recaptchaVerifier = null;
     }
 
-    window.recaptchaVerifier = new RecaptchaVerifier(
-      auth,
-      "recaptcha-container",
-      {
-        size: "invisible",
-        callback: () => {},
-        "expired-callback": () => {
-          console.log("reCAPTCHA expired");
-        },
-      }
-    );
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: () => {},
+      "expired-callback": () => {},
+    });
 
     return window.recaptchaVerifier;
   };
-
-  // =========================
-  // SWITCH LOGIN / REGISTER
-  // =========================
 
   const switchAuthMode = (mode) => {
     setAuthMode(mode);
@@ -71,10 +85,6 @@ export default function Login() {
     setTimer(57);
     setIsTimerActive(false);
   };
-
-  // =========================
-  // SEND OTP
-  // =========================
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -98,13 +108,7 @@ export default function Login() {
       });
 
       const appVerifier = setupRecaptcha();
-
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        `+91${phoneNumber}`,
-        appVerifier
-      );
-
+      const confirmation = await signInWithPhoneNumber(auth, `+91${phoneNumber}`, appVerifier);
       window.confirmationResult = confirmation;
 
       setTimeout(() => {
@@ -116,19 +120,13 @@ export default function Login() {
         });
 
         setTimeout(() => {
-          setPopup((prev) => ({
-            ...prev,
-            open: false,
-          }));
-
+          setPopup((prev) => ({ ...prev, open: false }));
           setStep("otp");
           setTimer(57);
           setIsTimerActive(true);
         }, 1500);
       }, 700);
     } catch (err) {
-      console.error("Send OTP Error:", err);
-
       setPopup({
         open: true,
         type: "error",
@@ -140,19 +138,13 @@ export default function Login() {
         try {
           window.recaptchaVerifier.clear();
         } catch {}
-
         window.recaptchaVerifier = null;
       }
     }
   };
 
-  // =========================
-  // OTP TIMER
-  // =========================
-
   useEffect(() => {
     let interval = null;
-
     if (isTimerActive && timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
@@ -160,13 +152,8 @@ export default function Login() {
     } else if (timer === 0) {
       setIsTimerActive(false);
     }
-
     return () => clearInterval(interval);
   }, [isTimerActive, timer]);
-
-  // =========================
-  // CLEANUP RECAPTCHA
-  // =========================
 
   useEffect(() => {
     return () => {
@@ -174,23 +161,15 @@ export default function Login() {
         try {
           window.recaptchaVerifier.clear();
         } catch {}
-
         window.recaptchaVerifier = null;
       }
     };
   }, []);
 
-  // =========================
-  // OTP INPUT
-  // =========================
-
   const handleOtpChange = (value, index) => {
     if (isNaN(value)) return;
-
     const newOtp = [...otp];
-
     newOtp[index] = value.substring(value.length - 1);
-
     setOtp(newOtp);
 
     if (value && index < 5) {
@@ -199,18 +178,10 @@ export default function Login() {
   };
 
   const handleOtpKeyDown = (e, index) => {
-    if (
-      e.key === "Backspace" &&
-      !otp[index] &&
-      index > 0
-    ) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpInputsRef.current[index - 1]?.focus();
     }
   };
-
-  // =========================
-  // RESEND OTP
-  // =========================
 
   const handleResend = async () => {
     if (timer !== 0) return;
@@ -225,13 +196,7 @@ export default function Login() {
 
     try {
       const appVerifier = setupRecaptcha();
-
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        `+91${phoneNumber}`,
-        appVerifier
-      );
-
+      const confirmation = await signInWithPhoneNumber(auth, `+91${phoneNumber}`, appVerifier);
       window.confirmationResult = confirmation;
 
       setPopup({
@@ -245,8 +210,6 @@ export default function Login() {
       setIsTimerActive(true);
       setOtp(["", "", "", "", "", ""]);
     } catch (err) {
-      console.error("Resend OTP Error:", err);
-
       setPopup({
         open: true,
         type: "error",
@@ -255,10 +218,6 @@ export default function Login() {
       });
     }
   };
-
-  // =========================
-  // VERIFY OTP
-  // =========================
 
   const handleVerifyOtp = async () => {
     if (!window.confirmationResult) {
@@ -280,39 +239,19 @@ export default function Login() {
       });
 
       const code = otp.join("");
-
-      const result =
-        await window.confirmationResult.confirm(code);
-
+      const result = await window.confirmationResult.confirm(code);
       const idToken = await result.user.getIdToken();
+      const response = await verifyOtp({ idToken });
 
-      const response = await verifyOtp({
-        idToken,
-      });
-
-      console.log("Verify OTP Response:", response);
-
-      localStorage.setItem(
-        "token",
-        response.data.token
-      );
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(response.data.data)
-      );
-
-      // =========================
-      // REGISTER
-      // =========================
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.data));
 
       if (authMode === "register") {
         setPopup({
           open: true,
           type: "success",
           title: "Account Verified ✨",
-          message:
-            "Your account has been verified. Let's complete your profile.",
+          message: "Your account has been verified. Let's complete your profile.",
         });
 
         setTimeout(() => {
@@ -321,10 +260,6 @@ export default function Login() {
 
         return;
       }
-
-      // =========================
-      // LOGIN
-      // =========================
 
       setPopup({
         open: true,
@@ -337,358 +272,190 @@ export default function Login() {
         navigate("/dashboard");
       }, 1800);
     } catch (err) {
-      console.error("Verify OTP Error:", err);
-
       setPopup({
         open: true,
         type: "error",
         title: "Verification Failed",
-        message:
-          err?.response?.data?.message ||
-          "Incorrect OTP. Please try again.",
+        message: err?.response?.data?.message || "Incorrect OTP. Please try again.",
       });
     }
   };
 
-  // =========================
-  // TIMER FORMAT
-  // =========================
-
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
-    <div className="min-h-screen w-full flex bg-[#FAFAFC] relative font-sans text-slate-800 antialiased selection:bg-purple-100 selection:text-purple-900">
-
-      {/* ================= LEFT SIDE ================= */}
-
-      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 xl:p-16 border-r border-purple-100/50 bg-white overflow-hidden">
-
-        {/* Purple Glow */}
-
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-purple-200/50 rounded-full blur-[120px] opacity-70 animate-pulse" />
-          <div className="absolute top-1/3 left-1/3 w-[350px] h-[350px] bg-violet-200/40 rounded-full blur-[100px]" />
-          <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-fuchsia-200/30 rounded-full blur-[100px]" />
-        </div>
-
-        {/* Logo & Heading */}
-
-        <div className="relative z-10">
-
-          <div className="flex items-center gap-3 mb-10">
-
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-100 to-violet-50 flex items-center justify-center shadow-inner border border-purple-200/60">
-
-              <svg
-                className="w-5 h-5 text-purple-600 animate-[spin_20s_linear_infinite]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path
-                  d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
-                  strokeLinecap="round"
-                />
-              </svg>
-
-            </div>
-
-            <h1 className="text-xl font-bold tracking-[0.2em] text-slate-950 uppercase font-serif">
-              Namah-Astro
-            </h1>
-
-          </div>
-
-          <h2 className="text-4xl xl:text-5xl font-extrabold font-serif text-slate-950 leading-tight tracking-tight">
-
-            {authMode === "login" ? (
-              <>
-                Welcome <span className="text-purple-700">Back</span>
-              </>
-            ) : (
-              <>
-                Begin Your{" "}
-                <span className="text-purple-700">
-                  Cosmic Journey
-                </span>
-              </>
-            )}
-
-          </h2>
-
-          <p className="mt-6 text-base text-slate-600 max-w-lg leading-relaxed">
-
-            {authMode === "login"
-              ? "Sign in to access personalized daily horoscopes, connect with verified astrologers, and explore the ancient wisdom written in the stars."
-              : "Create your Namah-Astro account and connect with verified astrologers, personalized horoscopes, and ancient cosmic wisdom."}
-
-          </p>
-
-        </div>
-
-        {/* Features */}
-
-        <div className="relative z-10 grid grid-cols-2 gap-x-8 gap-y-6 my-12">
-
-          {[
-            {
-              icon: "✨",
-              title: "Personal Dasha",
-              desc: "View detailed planetary periods.",
-            },
-            {
-              icon: "🌙",
-              title: "Daily Transit",
-              desc: "How planets affect you today.",
-            },
-            {
-              icon: "🤝",
-              title: "Kundli Matching",
-              desc: "Check compatibility reports.",
-            },
-            {
-              icon: "🔮",
-              title: "Live Consultation",
-              desc: "Chat with expert astrologers.",
-            },
-          ].map((feat) => (
-            <div
-              key={feat.title}
-              className="flex items-start gap-4 p-4 rounded-2xl bg-purple-50/50 border border-purple-100/50"
-            >
-              <div className="text-2xl mt-1">
-                {feat.icon}
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-slate-900 text-sm">
-                  {feat.title}
-                </h4>
-
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {feat.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-
-        </div>
-
-        {/* Footer */}
-
-        <div className="relative z-10 text-sm text-slate-500 flex gap-6">
-          <a href="#" className="hover:text-purple-700">
-            Help Center
-          </a>
-
-          <a href="#" className="hover:text-purple-700">
-            Astrologer Partners
-          </a>
-
-          <a href="#" className="hover:text-purple-700">
-            Blog
-          </a>
-        </div>
-
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#F4F2F8] relative font-sans text-slate-800 antialiased selection:bg-purple-200 selection:text-purple-950 p-4 sm:p-6 lg:p-8 overflow-hidden">
+      
+      <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+        <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-purple-200/50 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-violet-200/50 rounded-full blur-[140px] animate-pulse" style={{ animationDuration: "5s" }} />
       </div>
 
-      {/* ================= RIGHT SIDE ================= */}
-
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-10 lg:p-16 xl:p-24 bg-[#FAFAFC]">
-
-        {/* Premium Card */}
-
-        <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_-10px_rgba(74,0,224,0.06)] border border-purple-100/80 overflow-hidden transition-all duration-500 ease-out">
-
-          {/* Header */}
-
-          <div className="pt-9 pb-4 px-8 text-center flex flex-col items-center">
-
-            {/* Mobile Logo */}
-
-            <div className="lg:hidden mb-4 relative flex items-center justify-center">
-
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-100 to-violet-50 flex items-center justify-center shadow-inner border border-purple-200/60">
-
-                <svg
-                  className="w-6 h-6 text-purple-600 animate-[spin_20s_linear_infinite]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
+      <div className="relative z-10 w-full max-w-5xl bg-white rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(109,40,217,0.14)] border border-purple-100/80 overflow-hidden flex flex-col lg:flex-row transition-all duration-500">
+        
+        <div className="lg:w-1/2 relative flex flex-col justify-between p-8 sm:p-12 lg:p-12 bg-gradient-to-br from-white via-purple-50/40 to-violet-50/60 border-b lg:border-b-0 lg:border-r border-purple-100/80 overflow-hidden">
+          
+          <div>
+            <div className="flex items-center gap-3.5 mb-8">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/30 text-white transform hover:scale-105 transition-transform duration-300">
+                <svg className="w-6 h-6 animate-[spin_25s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                   <circle cx="12" cy="12" r="4" />
-
-                  <path
-                    d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
-                    strokeLinecap="round"
-                  />
+                  <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" strokeLinecap="round" />
                 </svg>
-
               </div>
-
+              <h1 className="text-xl font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
+                Namah-Astro
+              </h1>
             </div>
 
-            {/* Dynamic Label */}
+            <h2 className="text-3xl font-extrabold font-serif text-slate-950 leading-[1.2] tracking-tight">
+              {authMode === "login" ? (
+                <>
+                  Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">Back</span>
+                </>
+              ) : (
+                <>
+                  Begin Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">Cosmic Journey</span>
+                </>
+              )}
+            </h2>
 
-            <span className="lg:mt-0 mt-1.5 text-[11px] font-bold tracking-[0.25em] text-purple-600 uppercase">
-
-              {step === "otp"
-                ? "Cosmic Verification"
-                : authMode === "login"
-                ? "Secure Login"
-                : "Create Account"}
-
-            </span>
-
-            {step === "login" && (
-              <p className="mt-4 text-[11px] text-slate-400 leading-relaxed max-w-xs lg:hidden">
-
-                By continuing, you agree to our{" "}
-
-                <a
-                  href="#"
-                  className="underline decoration-purple-300 hover:text-purple-800 transition-colors"
-                >
-                  Terms
-                </a>{" "}
-                &{" "}
-
-                <a
-                  href="#"
-                  className="underline decoration-purple-300 hover:text-purple-800 transition-colors"
-                >
-                  Privacy Policy
-                </a>
-
-              </p>
-            )}
-
+            <p className="mt-3 text-sm text-slate-600 leading-relaxed font-normal">
+              {authMode === "login"
+                ? "Sign in to access personalized daily horoscopes, connect with verified astrologers, and explore ancient cosmic wisdom."
+                : "Create your Namah-Astro account and connect with verified astrologers, personalized horoscopes, and cosmic wisdom."}
+            </p>
           </div>
 
-          {/* ================= CONTENT ================= */}
+          <div className="my-6 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-purple-100 shadow-[0_4px_20px_-4px_rgba(109,40,217,0.08)] relative overflow-hidden transition-all duration-300">
+            <div className="relative h-[195px] overflow-hidden">
+              {astrologersData.map((item, index) => (
+                <div
+                  key={item.title}
+                  className={`absolute inset-0 flex flex-col justify-between transition-all duration-700 ease-out transform ${
+                    index === activeSlide
+                      ? "opacity-100 translate-y-0 scale-100"
+                      : "opacity-0 translate-y-4 scale-95 pointer-events-none"
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="relative flex-shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-14 h-14 rounded-2xl object-cover border-2 border-purple-200/80 shadow-sm"
+                      />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-slate-900 text-sm font-serif truncate">{item.title}</h4>
+                      <p className="text-xs text-purple-700 font-medium truncate">{item.specialty}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-bold rounded-md border border-purple-100">
+                          {item.experience}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-semibold">{item.rating}</span>
+                      </div>
+                    </div>
+                  </div>
 
-          <div className="px-8 pb-8 pt-2">
+                  <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100/60 mt-2">
+                    <p className="text-xs italic text-slate-700 leading-relaxed font-serif">
+                      "{item.quote}"
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-            {/* ================= LOGIN / REGISTER ================= */}
+            <div className="flex justify-center items-center gap-1.5 mt-3">
+              {astrologersData.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setActiveSlide(index)}
+                  className={`transition-all duration-300 rounded-full cursor-pointer ${
+                    index === activeSlide
+                      ? "w-5 h-1.5 bg-purple-600"
+                      : "w-1.5 h-1.5 bg-purple-200 hover:bg-purple-300"
+                  }`}
+                  aria-label={`Astrologer ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="text-xs font-medium text-slate-400 flex gap-6">
+            <a href="#" className="hover:text-purple-700 transition-colors">Help Center</a>
+            <a href="#" className="hover:text-purple-700 transition-colors">Verified Astrologers</a>
+            <a href="#" className="hover:text-purple-700 transition-colors">Terms</a>
+          </div>
+
+        </div>
+
+        <div className="lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-14 bg-white">
+          <div className="w-full max-w-sm">
+
+            <div className="text-center mb-8">
+              <span className="text-[11px] font-bold tracking-[0.3em] text-purple-600 uppercase">
+                {step === "otp" ? "Cosmic Verification" : authMode === "login" ? "Secure Portal" : "New Account"}
+              </span>
+              <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight mt-2">
+                {step === "otp" ? "Verify Code" : authMode === "login" ? "Welcome Back" : "Create Account"}
+              </h2>
+              <p className="text-xs text-slate-500 mt-1 font-normal">
+                {step === "otp"
+                  ? `Enter the 6-digit code sent to +91 ${phoneNumber}`
+                  : authMode === "login"
+                  ? "Enter your mobile number to sign in."
+                  : "Enter your mobile number to register."}
+              </p>
+            </div>
 
             {step === "login" && (
-              <div className="animate-fade-in space-y-5">
-
-                <div className="text-center">
-
-                  <h2 className="text-xl font-serif font-semibold text-slate-800">
-
-                    {authMode === "login"
-                      ? "Welcome Back to Namah-Astro"
-                      : "Create Your Namah-Astro Account"}
-
-                  </h2>
-
-                  <p className="text-xs text-slate-500 mt-1">
-
-                    {authMode === "login"
-                      ? "Enter your mobile number to securely sign in."
-                      : "Enter your mobile number to create your account."}
-
-                  </p>
-
-                </div>
-
-                {/* Phone Form */}
-
-                <form
-                  onSubmit={handleSendOtp}
-                  className="space-y-4"
-                >
-
+              <div className="space-y-5 transition-opacity duration-300">
+                <form onSubmit={handleSendOtp} className="space-y-4">
                   <div>
-
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                       Phone Number
                     </label>
-
-                    <div className="flex items-center border border-purple-100 rounded-2xl p-1 bg-purple-50/20 focus-within:bg-white focus-within:border-purple-400 focus-within:ring-4 focus-within:ring-purple-100/50 transition-all">
-
-                      <span className="px-3.5 py-2.5 text-sm font-semibold text-slate-600 border-r border-purple-100 flex items-center gap-1">
+                    <div className="flex items-center border border-purple-200/80 rounded-2xl p-1 bg-purple-50/30 focus-within:bg-white focus-within:border-purple-600 focus-within:ring-4 focus-within:ring-purple-100 transition-all duration-300">
+                      <span className="px-3.5 py-3 text-sm font-bold text-slate-700 border-r border-purple-200/60 bg-white/50 rounded-xl">
                         +91
-
-                        <svg
-                          className="w-3.5 h-3.5 text-slate-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-
                       </span>
-
                       <input
                         type="tel"
                         value={phoneNumber}
-                        onChange={(e) =>
-                          setPhoneNumber(
-                            e.target.value.replace(/\D/g, "")
-                          )
-                        }
-                        placeholder="Enter mobile number"
+                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                        placeholder="98765 43210"
                         maxLength={10}
-                        className="w-full px-3.5 py-2.5 text-sm bg-transparent outline-none text-slate-800 placeholder:text-slate-400 font-medium tracking-wide"
+                        className="w-full px-4 py-3 text-sm bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-semibold tracking-wide"
                         required
                       />
-
                     </div>
-
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 active:scale-[0.99] text-white font-semibold text-sm rounded-2xl shadow-lg shadow-purple-500/20 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-4 px-4 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 active:scale-[0.99] text-white font-bold text-sm rounded-2xl shadow-xl shadow-purple-600/25 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group"
                   >
-
-                    <span>
-                      {authMode === "login"
-                        ? "Send Login OTP"
-                        : "Send Registration OTP"}
-                    </span>
-
-                    <span className="text-xs">
-                      ✨
-                    </span>
-
+                    <span>{authMode === "login" ? "Send Login OTP" : "Send Registration OTP"}</span>
+                    <span className="text-xs group-hover:translate-x-0.5 transition-transform">✨</span>
                   </button>
-
                 </form>
 
-                {/* SWITCH LOGIN / REGISTER */}
-
-                <div className="pt-2 text-center text-xs text-slate-500">
-
+                <div className="text-center text-xs text-slate-500 font-medium pt-2">
                   {authMode === "login" ? (
                     <>
                       New to Namah-Astro?{" "}
-
                       <button
                         type="button"
-                        onClick={() =>
-                          switchAuthMode("register")
-                        }
-                        className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                        onClick={() => switchAuthMode("register")}
+                        className="font-bold text-purple-600 hover:text-purple-700 hover:underline cursor-pointer"
                       >
                         Create an Account
                       </button>
@@ -696,189 +463,87 @@ export default function Login() {
                   ) : (
                     <>
                       Already have an account?{" "}
-
                       <button
                         type="button"
-                        onClick={() =>
-                          switchAuthMode("login")
-                        }
-                        className="font-semibold text-purple-600 hover:text-purple-700 hover:underline"
+                        onClick={() => switchAuthMode("login")}
+                        className="font-bold text-purple-600 hover:text-purple-700 hover:underline cursor-pointer"
                       >
                         Login
                       </button>
                     </>
                   )}
-
                 </div>
-
               </div>
             )}
 
-            {/* ================= OTP ================= */}
-
             {step === "otp" && (
-              <div className="animate-fade-in space-y-5">
-
-                <div className="text-center">
-
-                  <h2 className="text-xl font-serif font-semibold text-slate-800">
-
-                    {authMode === "login"
-                      ? "Verify Login"
-                      : "Verify Your Account"}
-
-                  </h2>
-
-                  <p className="text-xs text-slate-500 mt-1">
-
-                    Enter the code sent to{" "}
-
-                    <span className="font-semibold text-slate-700">
-                      +91 {phoneNumber}
-                    </span>
-
-                  </p>
-
-                </div>
-
-                {/* OTP */}
-
-                <div className="flex justify-between gap-1.5 my-5">
-
+              <div className="space-y-6 transition-opacity duration-300">
+                <div className="flex justify-between gap-2 my-2">
                   {otp.map((digit, idx) => (
                     <input
                       key={idx}
-                      ref={(el) =>
-                        (otpInputsRef.current[idx] = el)
-                      }
+                      ref={(el) => (otpInputsRef.current[idx] = el)}
                       type="text"
                       inputMode="numeric"
                       maxLength={1}
                       value={digit}
-                      onChange={(e) =>
-                        handleOtpChange(
-                          e.target.value,
-                          idx
-                        )
-                      }
-                      onKeyDown={(e) =>
-                        handleOtpKeyDown(e, idx)
-                      }
-                      className="w-10 h-12 sm:w-11 sm:h-13 text-center text-lg font-bold text-slate-800 bg-purple-50/30 border border-purple-200/60 rounded-xl focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-150 shadow-inner"
+                      onChange={(e) => handleOtpChange(e.target.value, idx)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                      className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-extrabold text-slate-900 bg-purple-50/40 border border-purple-200/80 rounded-2xl focus:bg-white focus:border-purple-600 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-200 shadow-sm"
                     />
                   ))}
-
                 </div>
-
-                {/* Verify */}
 
                 <button
                   disabled={otp.join("").length !== 6}
                   type="button"
                   onClick={handleVerifyOtp}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-purple-500 to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed hover:from-purple-600 hover:to-purple-700 active:scale-[0.99] text-white font-semibold text-sm rounded-2xl shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer"
+                  className="w-full py-4 px-4 bg-gradient-to-r from-purple-600 to-violet-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-purple-700 hover:to-violet-700 active:scale-[0.99] text-white font-bold text-sm rounded-2xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
                 >
-
-                  <span>
-                    {authMode === "login"
-                      ? "Verify & Login"
-                      : "Verify & Create Account"}
-                  </span>
-
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
+                  <span>{authMode === "login" ? "Verify & Login" : "Verify & Register"}</span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
-
                 </button>
 
-                {/* Timer */}
-
                 <div className="text-center text-xs">
-
                   {timer > 0 ? (
-                    <p className="text-slate-400">
-                      Resend code in{" "}
-
-                      <span className="font-semibold text-purple-600">
-                        {formatTimer(timer)}
-                      </span>
+                    <p className="text-slate-400 font-medium">
+                      Resend code in <span className="font-bold text-purple-600">{formatTimer(timer)}</span>
                     </p>
                   ) : (
                     <button
+                      type="button"
                       onClick={handleResend}
                       disabled={phoneNumber.length !== 10}
-                      className="font-semibold text-purple-600 hover:underline focus:outline-none"
+                      className="font-bold text-purple-600 hover:underline cursor-pointer focus:outline-none"
                     >
                       Resend OTP Code
                     </button>
                   )}
-
                 </div>
 
-                {/* Change Number */}
-
-                <div className="pt-1 text-center">
-
+                <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => setStep("login")}
-                    className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                   >
-
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                      />
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-
                     Change phone number
-
                   </button>
-
                 </div>
-
               </div>
             )}
 
           </div>
-
-          {/* Footer */}
-
-          <div className="py-3 bg-purple-50/40 border-t border-purple-100/50 text-center lg:hidden">
-
-            <p className="text-[10px] text-slate-400 font-medium">
-              © 2026 Namah-Astro. All rights reserved.
-            </p>
-
-          </div>
-
         </div>
 
       </div>
 
-      {/* Recaptcha */}
-
       <div id="recaptcha-container"></div>
-
-      {/* Response Modal */}
 
       <ResponseModal
         open={popup.open}
@@ -886,12 +551,7 @@ export default function Login() {
         title={popup.title}
         message={popup.message}
         loading={popup.loading}
-        onClose={() =>
-          setPopup((prev) => ({
-            ...prev,
-            open: false,
-          }))
-        }
+        onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
       />
 
     </div>
