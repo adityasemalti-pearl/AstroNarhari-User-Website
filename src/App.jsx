@@ -40,6 +40,7 @@ import RefundPolicy from "./pages/Home/PublicPages/RefundPolicy";
 import PrivacyPolicy from "./pages/Home/PublicPages/PrivacyPolicy";
 import DeletePartner from "./pages/Home/PublicPages/DeletePartner";
 import ChildSafety from "./pages/Home/PublicPages/ChildSafety";
+import ChatList from "./pages/Chat/ChatList";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -104,6 +105,7 @@ function App() {
             <Route path="wallet" element={<WalletPage />} />
             <Route path="orders" element={<MyOrders />} />
             <Route path="chat/:partnerId" element={<Chat />}/>
+            <Route path="chat-list" element={<ChatList />}/>
           </Route>
         </Route>
 

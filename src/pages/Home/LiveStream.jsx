@@ -1,23 +1,25 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Eye, 
-  Star, 
-  Play, 
-  Plus, 
-  Sparkles, 
-  Search, 
-  X, 
-  Mic, 
-  MicOff, 
-  Video, 
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Eye,
+  Star,
+  Play,
+  Plus,
+  Sparkles,
+  Search,
+  X,
+  Mic,
+  MicOff,
+  Video,
   VideoOff,
   Radio,
-  Send
-} from 'lucide-react';
-import { getActiveSessions, joinAgoraSession } from '../../API/agoraApi';
-import AgoraRTC from 'agora-rtc-sdk-ng';
-import AgoraRTM from 'agora-rtm-sdk';
+  Send,
+  Gift,
+} from "lucide-react";
+import { getActiveGifts, sendLiveGift } from "../../API/giftApis";
+import { getActiveSessions, joinAgoraSession } from "../../API/agoraApi";
+import AgoraRTC from "agora-rtc-sdk-ng";
+import AgoraRTM from "agora-rtm-sdk";
 
 export default function LiveStream() {
   const [streams, setStreams] = useState([]);
@@ -35,6 +37,29 @@ export default function LiveStream() {
 
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+
+  const [gifts, setGifts] = useState([]);
+  const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const [selectedGift, setSelectedGift] = useState(null);
+  const [sendingGift, setSendingGift] = useState(false);
+  const [giftMessage, setGiftMessage] = useState("");
+
+  const loadActiveGifts = async () => {
+    try {
+      const response = await getActiveGifts();
+
+      if (response.data?.success) {
+        setGifts(response.data.gifts || []);
+      } else {
+        setGifts([]);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to load active gifts:",
+        error.response?.data || error.message,
+      );
+    }
+  };
 
   const remoteVideoRef = useRef(null);
   const commentsEndRef = useRef(null);
@@ -64,7 +89,7 @@ export default function LiveStream() {
   }, []);
 
   useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments]);
 
   const handleJoinStream = async (stream) => {
@@ -76,14 +101,20 @@ export default function LiveStream() {
 
       const res = await joinAgoraSession(payload);
       const responseData = res.data?.data || res.data;
-      
+
       if (responseData) {
+        await loadActiveGifts();
+
         setJoinedStream({
           ...stream,
-          ...responseData
+          ...responseData,
         });
         setComments([
-          { id: 1, user: "System", text: "Welcome to the live cosmic session!" }
+          {
+            id: 1,
+            user: "System",
+            text: "Welcome to the live cosmic session!",
+          },
         ]);
 
         const appId = responseData.appId || "0228c9fe15a54e20a48e44835be49d7c";
@@ -126,18 +157,28 @@ export default function LiveStream() {
           await rtm.login({ uid: String(uid), token: rtmToken || undefined });
           const channel = rtm.createChannel(channelName);
           await channel.join();
-          
+
           setRtmChannel(channel);
           rtmChannelRef.current = channel;
           console.log("RTM Successfully Connected to Channel:", channelName);
 
-          channel.on('ChannelMessage', (message, memberId) => {
+          channel.on("ChannelMessage", (message, memberId) => {
             console.log("RTM Message Received from:", memberId, message.text);
             try {
               const parsedData = JSON.parse(message.text);
-              setComments(prev => [...prev, parsedData]);
+              setComments((prev) => [...prev, parsedData]);
             } catch (err) {
-              setComments(prev => [...prev, { user: "Host", text: message.text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+              setComments((prev) => [
+                ...prev,
+                {
+                  user: "Host",
+                  text: message.text,
+                  timestamp: new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                },
+              ]);
             }
           });
         } catch (rtmError) {
@@ -180,6 +221,65 @@ export default function LiveStream() {
     setComments([]);
   };
 
+  const handleSendGift = async () => {
+    if (!selectedGift) {
+      return;
+    }
+
+    if (!joinedStream?._id) {
+      console.error("Live session ID is missing");
+      return;
+    }
+
+    try {
+      setSendingGift(true);
+      setGiftMessage("");
+
+      const response = await sendLiveGift({
+        giftId: selectedGift._id,
+        sessionId: joinedStream._id,
+      });
+
+      if (response.data?.success) {
+        const giftData = response.data.data;
+
+        setGiftMessage(`${giftData.giftName} sent successfully!`);
+
+        // Optional: show gift in chat
+        const giftChatMessage = {
+          user: "You",
+          text: `🎁 Sent ${giftData.giftName}`,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        setComments((prev) => [...prev, giftChatMessage]);
+
+        // Close panel after successful gift
+        setSelectedGift(null);
+        setShowGiftPanel(false);
+
+        console.log("Gift sent successfully:", giftData);
+
+        /*
+        Backend returns:
+        giftName
+        icon
+        senderName
+        newWalletBalance
+      */
+      }
+    } catch (error) {
+      console.error("Send Gift Error:", error.response?.data || error.message);
+
+      setGiftMessage(error.response?.data?.message || "Unable to send gift");
+    } finally {
+      setSendingGift(false);
+    }
+  };
+
   const toggleAudio = async () => {
     if (localAudioTrack) {
       await localAudioTrack.setEnabled(!isMuted);
@@ -201,16 +301,21 @@ export default function LiveStream() {
     const messageData = {
       user: "You",
       text: newComment.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
 
-    setComments(prev => [...prev, messageData]);
+    setComments((prev) => [...prev, messageData]);
     const textToSend = newComment.trim();
     setNewComment("");
 
     if (rtmChannelRef.current) {
       try {
-        await rtmChannelRef.current.sendMessage({ text: JSON.stringify(messageData) });
+        await rtmChannelRef.current.sendMessage({
+          text: JSON.stringify(messageData),
+        });
         console.log("RTM Message Successfully Sent:", messageData);
       } catch (error) {
         console.error("RTM Send Message Error:", error);
@@ -226,17 +331,24 @@ export default function LiveStream() {
     }
   };
 
-  const topChoice = streams.length > 0 ? {
-    id: streams[0]._id,
-    rawData: streams[0],
-    name: streams[0].partnerId?.fullName || 'Cosmic Expert',
-    specialty: streams[0].topic || 'Interactive Cosmic Session',
-    viewers: streams[0].viewerCount || 0,
-    rating: streams[0].partnerId?.averageRating || '5.0',
-    category: streams[0].category,
-    image: streams[0].partnerId?.profilePic || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=1200',
-    avatar: streams[0].partnerId?.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
-  } : null;
+  const topChoice =
+    streams.length > 0
+      ? {
+          id: streams[0]._id,
+          rawData: streams[0],
+          name: streams[0].partnerId?.fullName || "Cosmic Expert",
+          specialty: streams[0].topic || "Interactive Cosmic Session",
+          viewers: streams[0].viewerCount || 0,
+          rating: streams[0].partnerId?.averageRating || "5.0",
+          category: streams[0].category,
+          image:
+            streams[0].partnerId?.profilePic ||
+            "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=1200",
+          avatar:
+            streams[0].partnerId?.profilePic ||
+            "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200",
+        }
+      : null;
 
   const liveStreamsList = streams.length > 1 ? streams.slice(1) : [];
 
@@ -263,9 +375,9 @@ export default function LiveStream() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 bg-white/80 border border-purple-100 rounded-2xl px-4 py-3 text-xs text-slate-600 shadow-sm">
               <Search className="w-4 h-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search experts..." 
+              <input
+                type="text"
+                placeholder="Search experts..."
                 className="bg-transparent outline-none w-48 placeholder-slate-400"
               />
             </div>
@@ -283,7 +395,9 @@ export default function LiveStream() {
           </div>
         ) : streams.length === 0 ? (
           <div className="text-center py-20 bg-white/60 rounded-3xl border border-purple-100/80 w-full">
-            <p className="text-slate-500 text-sm font-medium">No live streams available right now.</p>
+            <p className="text-slate-500 text-sm font-medium">
+              No live streams available right now.
+            </p>
           </div>
         ) : (
           <div className="w-full space-y-10">
@@ -384,8 +498,8 @@ export default function LiveStream() {
                         className="bg-white/90 backdrop-blur-sm rounded-3xl overflow-hidden border border-purple-100/80 shadow-lg shadow-purple-950/5 hover:shadow-xl hover:border-purple-200 transition-all group flex flex-col justify-between w-full"
                       >
                         <div className="relative h-56 w-full overflow-hidden">
-                          <img 
-                            src={partnerPic} 
+                          <img
+                            src={partnerPic}
                             alt={partnerName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           />
@@ -491,21 +605,39 @@ export default function LiveStream() {
                 )}
 
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10">
-                  <button 
+                  <button
                     onClick={toggleAudio}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isMuted ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isMuted ? "bg-rose-600" : "bg-slate-800 hover:bg-slate-700"}`}
                   >
-                    {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                    {isMuted ? (
+                      <MicOff className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5" />
+                    )}
                   </button>
 
-                  <button 
+                  <button
                     onClick={toggleVideo}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isVideoOff ? 'bg-rose-600' : 'bg-slate-800 hover:bg-slate-700'}`}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer ${isVideoOff ? "bg-rose-600" : "bg-slate-800 hover:bg-slate-700"}`}
                   >
-                    {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                    {isVideoOff ? (
+                      <VideoOff className="w-5 h-5" />
+                    ) : (
+                      <Video className="w-5 h-5" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGiftPanel(true);
+                      setGiftMessage("");
+                    }}
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white bg-purple-700 hover:bg-purple-600 transition-colors cursor-pointer"
+                    title="Send Gift"
+                  >
+                    <Gift className="w-5 h-5" />
                   </button>
 
-                  <button 
+                  <button
                     onClick={handleLeaveStream}
                     className="px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg transition-colors cursor-pointer"
                   >
@@ -516,7 +648,9 @@ export default function LiveStream() {
 
               <div className="w-full lg:w-96 bg-slate-950 border-t lg:border-t-0 lg:border-l border-white/10 flex flex-col h-[40vh] lg:h-full z-40 relative">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
-                  <h3 className="font-serif font-bold text-white text-base">Live Chat</h3>
+                  <h3 className="font-serif font-bold text-white text-base">
+                    Live Chat
+                  </h3>
                   <span className="text-xs text-purple-300 bg-purple-900/40 px-2.5 py-1 rounded-full border border-purple-500/35">
                     {comments.length} Messages
                   </span>
@@ -524,26 +658,40 @@ export default function LiveStream() {
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {comments.map((c, index) => (
-                    <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1">
+                    <div
+                      key={index}
+                      className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-amber-400">{c.user}</span>
-                        {c.timestamp && <span className="text-[10px] text-slate-500">{c.timestamp}</span>}
+                        <span className="text-xs font-bold text-amber-400">
+                          {c.user}
+                        </span>
+                        {c.timestamp && (
+                          <span className="text-[10px] text-slate-500">
+                            {c.timestamp}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-200 leading-relaxed break-words">{c.text}</p>
+                      <p className="text-xs text-slate-200 leading-relaxed break-words">
+                        {c.text}
+                      </p>
                     </div>
                   ))}
                   <div ref={commentsEndRef} />
                 </div>
 
-                <form onSubmit={handleSendComment} className="p-3 border-t border-white/10 flex items-center gap-2 bg-slate-900 shrink-0">
-                  <input 
-                    type="text" 
+                <form
+                  onSubmit={handleSendComment}
+                  className="p-3 border-t border-white/10 flex items-center gap-2 bg-slate-900 shrink-0"
+                >
+                  <input
+                    type="text"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Ask or comment..." 
+                    placeholder="Ask or comment..."
                     className="flex-1 bg-white/10 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-400 outline-none focus:border-amber-400 transition-colors"
                   />
-                  <button 
+                  <button
                     type="submit"
                     className="w-10 h-10 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center transition-colors shadow-md cursor-pointer shrink-0"
                   >
@@ -555,8 +703,141 @@ export default function LiveStream() {
           </motion.div>
         )}
       </AnimatePresence>
+      <AnimatePresence>
+  {showGiftPanel && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+      onClick={() => setShowGiftPanel(false)}
+    >
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-slate-900 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden"
+      >
 
-      <motion.div 
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+          <div>
+            <h3 className="text-white font-bold text-lg">
+              Send a Gift 🎁
+            </h3>
+
+            <p className="text-xs text-slate-400 mt-1">
+              Support the astrologer during the live session
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowGiftPanel(false)}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Gifts */}
+        <div className="p-5">
+
+          {gifts.length === 0 ? (
+            <div className="text-center py-10">
+              <Gift className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+
+              <p className="text-slate-300 text-sm">
+                No gifts available right now.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-3">
+              {gifts.map((gift) => (
+                <button
+                  key={gift._id}
+                  onClick={() => setSelectedGift(gift)}
+                  className={`rounded-2xl p-3 border transition-all ${
+                    selectedGift?._id === gift._id
+                      ? "border-amber-400 bg-amber-400/10 scale-105"
+                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                  }`}
+                >
+                  <div className="w-14 h-14 mx-auto flex items-center justify-center">
+                    <img
+                      src={gift.iconUrl}
+                      alt={gift.giftName}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+
+                  <p className="text-white text-xs font-semibold mt-2 truncate">
+                    {gift.giftName}
+                  </p>
+
+                  <p className="text-amber-400 text-xs font-bold mt-1">
+                    {gift.price}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Selected gift */}
+          {selectedGift && (
+            <div className="mt-5 p-4 rounded-2xl bg-white/5 border border-white/10">
+
+              <div className="flex items-center gap-3">
+
+                <div className="w-14 h-14 rounded-xl bg-purple-900/40 flex items-center justify-center">
+                  <img
+                    src={selectedGift.iconUrl}
+                    alt={selectedGift.giftName}
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <p className="text-white font-bold">
+                    {selectedGift.giftName}
+                  </p>
+
+                  <p className="text-xs text-slate-400">
+                    Gift value:{" "}
+                    <span className="text-amber-400 font-bold">
+                      {selectedGift.price}
+                    </span>
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleSendGift}
+                  disabled={sendingGift}
+                  className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs flex items-center gap-2"
+                >
+                  <Gift className="w-4 h-4" />
+
+                  {sendingGift ? "Sending..." : "Send Gift"}
+                </button>
+
+              </div>
+            </div>
+          )}
+
+          {/* Success / Error */}
+          {giftMessage && (
+            <div className="mt-4 text-center text-xs font-semibold text-emerald-400">
+              {giftMessage}
+            </div>
+          )}
+
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+      <motion.div
         className="fixed bottom-8 right-8 z-40"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

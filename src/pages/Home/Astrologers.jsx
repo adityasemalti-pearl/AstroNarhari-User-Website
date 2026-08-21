@@ -10,12 +10,25 @@ import {
   Award,
   X,
   Bookmark,
+  MessageCircle,
+  Phone,
+  CalendarDays,
 } from "lucide-react";
 import BookAppointmentPopup from "./comp/BookingPopup";
 import InsufficientBalancePopup from "./comp/InsufficientBalance";
 import BookingConfirmedPopup from "./comp/BookingConfirmedPopup";
 import { getAllAstrologers, getAstrologerById } from "../../API/homeApis";
 import { myWallet } from "../../API/bookingApis";
+
+import {
+  cancelInstantChat,
+  initiateInstantCall,
+  getInstantCallStatus,
+  cancelInstantCall,
+  endInstantCall,
+  initiateInstantChat,
+  getInstantChatStatus
+} from "../../API/callApi";
 
 const FILTERS = [
   { key: "ALL", label: "All Guides" },
@@ -41,6 +54,491 @@ export default function Astrologers() {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [activeProfileExpert, setActiveProfileExpert] = useState(null);
   const [balance, setBalance] = useState(null);
+  const [isCalling, setIsCalling] = useState(false);
+  const [callStatus, setCallStatus] = useState("idle");
+  const [activeCallAstro, setActiveCallAstro] = useState(null);
+  const [callRequestId, setCallRequestId] = useState(null);
+  const [callTimeLeft, setCallTimeLeft] = useState(120);
+  const [callError, setCallError] = useState("");
+
+  const [isChatting, setIsChatting] = useState(false);
+  const [chatStatus, setChatStatus] = useState("idle");
+  const [activeChatAstro, setActiveChatAstro] = useState(null);
+  const [chatRequestId, setChatRequestId] = useState(null);
+  const [chatTimeLeft, setChatTimeLeft] = useState(120);
+  const [chatError, setChatError] = useState("");
+
+  const handleInstantChat = async (astro) => {
+    try {
+      setChatError("");
+      setActiveChatAstro(astro);
+      setIsChatting(true);
+      setChatStatus("chatting");
+      setChatTimeLeft(120);
+
+      // Close profile / booking popup
+      setActiveProfileExpert(null);
+      setShowBooking(false);
+      setShowSuccess(false);
+      setShowWallet(false);
+
+      if (!astro?._id) {
+        throw new Error("Astrologer information not available.");
+      }
+
+      const rate = Number(astro?.minRate) || 10;
+
+      // 2 minute minimum balance
+      const durationMinutes = 2;
+
+      const currentBalance = Number(balance) || 0;
+
+      if (currentBalance < rate * durationMinutes) {
+        setIsChatting(false);
+        setChatStatus("idle");
+
+        navigate("/dashboard/wallet");
+        return;
+      }
+
+      console.log("💬 INSTANT CHAT REQUEST:", {
+        partnerId: astro._id,
+        type: "chat",
+        durationMinutes,
+      });
+
+      const response = await initiateInstantChat({
+        partnerId: astro._id,
+        type: "chat",
+        durationMinutes,
+      });
+
+      console.log("💬 INSTANT CHAT SESSION RESPONSE:", response?.data);
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || "Unable to send chat request",
+        );
+      }
+
+      const requestId = response?.data?.requestId;
+
+      if (!requestId) {
+        throw new Error("Request ID not received from server.");
+      }
+
+      setChatRequestId(requestId);
+      setChatStatus("chatting");
+
+      console.log("✅ Instant chat request sent:", requestId);
+    } catch (error) {
+      console.error("❌ Instant Chat Error:", error);
+
+      setChatError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to start chat.",
+      );
+
+      setChatStatus("error");
+    }
+  };
+
+ useEffect(() => {
+  if (!chatRequestId || chatStatus !== "chatting") {
+    return;
+  }
+
+  let isMounted = true;
+
+  const checkChatStatus = async () => {
+    try {
+      const response = await getInstantChatStatus(chatRequestId);
+
+      console.log(
+        "💬 FULL CHAT STATUS RESPONSE:",
+        response?.data
+      );
+
+      const status =
+        response?.data?.status ||
+        response?.data?.data?.status ||
+        response?.data?.request?.status;
+
+      console.log("💬 EXTRACTED CHAT STATUS:", status);
+
+      if (!isMounted) return;
+
+      if (status === "accepted") {
+        console.log("✅ ASTROLOGER ACCEPTED CHAT");
+
+        setChatStatus("accepted");
+        setIsChatting(false);
+
+        const partner = activeChatAstro;
+
+        if (partner?._id) {
+          navigate(`/dashboard/chat/${partner._id}`, {
+            state: {
+              partner,
+              requestId: chatRequestId,
+              sessionType: "chat",
+            },
+          });
+        }
+
+        return;
+      }
+
+      if (status === "rejected") {
+        console.log("❌ CHAT REJECTED");
+
+        setChatError("Astrologer rejected your chat request.");
+        setChatStatus("error");
+        setIsChatting(false);
+        setChatRequestId(null);
+
+        return;
+      }
+
+      if (status === "cancelled") {
+        console.log("❌ CHAT CANCELLED");
+
+        setChatError("Chat request was cancelled.");
+        setChatStatus("error");
+        setIsChatting(false);
+        setChatRequestId(null);
+
+        return;
+      }
+
+      if (status === "completed") {
+        console.log("✅ CHAT COMPLETED");
+
+        setIsChatting(false);
+        setChatStatus("idle");
+        setActiveChatAstro(null);
+        setChatRequestId(null);
+
+        return;
+      }
+
+      // pending/requested/waiting etc.
+      console.log("⏳ CHAT STILL WAITING:", status);
+
+    } catch (error) {
+      console.error(
+        "❌ Chat Status Error:",
+        error?.response?.data || error
+      );
+    }
+  };
+
+  checkChatStatus();
+
+  const interval = setInterval(checkChatStatus, 3000);
+
+  return () => {
+    isMounted = false;
+    clearInterval(interval);
+  };
+}, [chatRequestId, chatStatus, navigate]);
+  useEffect(() => {
+    if (!chatRequestId || chatStatus !== "chatting") {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setChatTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [chatRequestId, chatStatus]);
+
+
+  useEffect(() => {
+    if (!chatRequestId || chatStatus !== "chatting" || chatTimeLeft > 0) {
+      return;
+    }
+
+    const cancelRequest = async () => {
+      try {
+        console.log("⏰ 2 minutes completed. Cancelling chat request...");
+
+        await cancelInstantChat({
+          requestId: chatRequestId,
+        });
+
+        setChatError("Astrologer did not accept the chat request.");
+
+        setChatStatus("error");
+        setIsChatting(false);
+        setChatRequestId(null);
+      } catch (error) {
+        console.error("❌ Cancel Chat Request Error:", error);
+
+        setChatError("Chat request expired.");
+
+        setChatStatus("error");
+        setIsChatting(false);
+        setChatRequestId(null);
+      }
+    };
+
+    cancelRequest();
+  }, [chatTimeLeft, chatRequestId, chatStatus]);
+
+  const handleInstantCall = async (astro) => {
+    try {
+      setCallError("");
+      setActiveCallAstro(astro);
+      setIsCalling(true);
+      setCallStatus("calling");
+      setCallTimeLeft(120);
+
+      // Close profile / booking related popup
+      setActiveProfileExpert(null);
+      setShowBooking(false);
+      setShowSuccess(false);
+      setShowWallet(false);
+
+      if (!astro?._id) {
+        throw new Error("Astrologer information not available.");
+      }
+
+      const rate = Number(astro?.minRate) || 10;
+
+      // Same 2 minute minimum balance logic
+      const durationMinutes = 2;
+
+      const currentBalance = Number(balance) || 0;
+
+      if (currentBalance < rate * durationMinutes) {
+        setIsCalling(false);
+        setCallStatus("idle");
+
+        navigate("/dashboard/wallet");
+        return;
+      }
+
+      console.log("📞 INSTANT CALL REQUEST:", {
+        partnerId: astro._id,
+        type: "call",
+        durationMinutes,
+      });
+
+      const response = await initiateInstantCall({
+        partnerId: astro._id,
+        type: "call",
+        durationMinutes,
+      });
+
+      console.log("📞 INSTANT SESSION RESPONSE:", response?.data);
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || "Unable to send call request",
+        );
+      }
+
+      const requestId = response?.data?.requestId;
+
+      if (!requestId) {
+        throw new Error("Request ID not received from server.");
+      }
+
+      setCallRequestId(requestId);
+      setCallStatus("calling");
+
+      console.log("✅ Instant call request sent:", requestId);
+    } catch (error) {
+      console.error("❌ Instant Call Error:", error);
+
+      setCallError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to connect call.",
+      );
+
+      setCallStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling") {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCallTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [callRequestId, callStatus]);
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling") {
+      return;
+    }
+
+    let isMounted = true;
+
+    const checkCallStatus = async () => {
+      try {
+        const response = await getInstantCallStatus(callRequestId);
+
+        const status = response?.data?.status;
+
+        console.log("📞 INSTANT CALL STATUS:", status);
+
+        if (!isMounted) return;
+
+        // Astrologer accepted
+        if (status === "accepted") {
+          console.log("✅ ASTROLOGER ACCEPTED CALL");
+
+          // IMPORTANT:
+          // Actual call phone par ja raha hai,
+          // isliye website ke saare popups/drawers close.
+          setActiveProfileExpert(null);
+          setShowBooking(false);
+          setShowSuccess(false);
+          setShowWallet(false);
+
+          setCallStatus("accepted");
+
+          // Request popup bhi hata do
+          setIsCalling(false);
+
+          return;
+        }
+
+        if (status === "rejected") {
+          setCallError("Astrologer rejected your call request.");
+
+          setCallStatus("error");
+          setIsCalling(false);
+          setCallRequestId(null);
+
+          return;
+        }
+
+        if (status === "cancelled") {
+          setCallError("Call request was cancelled.");
+
+          setCallStatus("error");
+          setIsCalling(false);
+          setCallRequestId(null);
+
+          return;
+        }
+
+        if (status === "completed") {
+          setIsCalling(false);
+          setCallStatus("idle");
+          setActiveCallAstro(null);
+          setCallRequestId(null);
+
+          return;
+        }
+      } catch (error) {
+        console.error("❌ Call Status Error:", error);
+      }
+    };
+
+    checkCallStatus();
+
+    const interval = setInterval(() => {
+      checkCallStatus();
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [callRequestId, callStatus]);
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling" || callTimeLeft > 0) {
+      return;
+    }
+
+    const cancelRequest = async () => {
+      try {
+        console.log("⏰ 2 minutes completed. Cancelling request...");
+
+        await cancelInstantCall(callRequestId);
+
+        setCallError("Astrologer did not accept the call request.");
+
+        setCallStatus("error");
+        setIsCalling(false);
+        setCallRequestId(null);
+      } catch (error) {
+        console.error("❌ Cancel Request Error:", error);
+
+        setCallError("Call request expired.");
+
+        setCallStatus("error");
+        setIsCalling(false);
+        setCallRequestId(null);
+      }
+    };
+
+    cancelRequest();
+  }, [callTimeLeft, callRequestId, callStatus]);
+
+  const handleCancelChat = async () => {
+    try {
+      if (chatRequestId) {
+        await cancelInstantChat({
+          requestId: chatRequestId,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Cancel Chat Error:", error);
+    } finally {
+      setIsChatting(false);
+      setChatStatus("idle");
+      setActiveChatAstro(null);
+      setChatRequestId(null);
+      setChatError("");
+      setChatTimeLeft(120);
+    }
+  };
+
+  const handleEndCall = async () => {
+    try {
+      if (callRequestId) {
+        await endInstantCall({
+          requestId: callRequestId,
+        });
+      }
+    } catch (error) {
+      console.error("❌ End Call Error:", error);
+    } finally {
+      setIsCalling(false);
+      setCallStatus("idle");
+      setActiveCallAstro(null);
+      setCallRequestId(null);
+      setCallError("");
+      setCallTimeLeft(120);
+    }
+  };
 
   const handleToggleBookmark = (id, e) => {
     e.stopPropagation();
@@ -492,26 +990,74 @@ export default function Astrologers() {
             </div>
 
             {/* Footer Fee + Button changed to Purple */}
-            <div className="flex items-center justify-between pt-6 mt-2 border-t border-[#E2E0EF]">
-              <div>
-                <span className="text-xs text-[#6C5F8B] block font-medium">
-                  Consultation Fee
-                </span>
-                <span className="font-extrabold text-[#1A1429] text-2xl">
-                  ₹{selectedPartner?.minRate}
-                  <span className="text-sm font-medium text-[#6C5F8B]">
-                    /min
+            <div className="pt-6 mt-2 border-t border-[#E2E0EF] space-y-4">
+              {/* Fee */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-[#6C5F8B] block font-medium">
+                    Consultation Fee
                   </span>
+
+                  <span className="font-extrabold text-[#1A1429] text-2xl">
+                    ₹{selectedPartner?.minRate || 0}
+                    <span className="text-sm font-medium text-[#6C5F8B]">
+                      /min
+                    </span>
+                  </span>
+                </div>
+
+                {/* Online Status */}
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
+                    selectedPartner?.isOnline
+                      ? "bg-[#A7F3D0] text-[#065F46]"
+                      : "bg-[#F1F0F7] text-[#6C5F8B]"
+                  }`}
+                >
+                  {selectedPartner?.isOnline ? "Online" : "Offline"}
                 </span>
               </div>
+
+              {/* CHAT + CALL */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* CHAT */}
+                <button
+                  disabled={isChatting || !selectedPartner?.isOnline}
+                  onClick={() => {
+                    const partner = selectedPartner || activeProfileExpert;
+
+                    if (!partner?._id) return;
+
+                    handleInstantChat(partner);
+                  }}
+                  className="flex items-center justify-center gap-2 bg-[#EDE9FE] hover:bg-[#DDD6FE] disabled:opacity-50 disabled:cursor-not-allowed text-[#6D28D9] py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95"
+                >
+                  <MessageCircle className="w-5 h-5" />
+
+                  {isChatting ? "Requesting..." : "Chat"}
+                </button>
+
+                {/* CALL */}
+                <button
+                  disabled={isCalling || !selectedPartner?.isOnline}
+                  onClick={() => handleInstantCall(selectedPartner)}
+                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95"
+                >
+                  <Phone className="w-5 h-5" />
+
+                  {isCalling ? "Calling..." : "Call"}
+                </button>
+              </div>
+
+              {/* BOOK APPOINTMENT */}
               <button
                 onClick={() => {
                   setActiveProfileExpert(null);
                   setShowBooking(true);
                 }}
-                // Button background changed to primary purple
-                className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white px-8 py-4 rounded-2xl font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+                className="w-full flex items-center justify-center gap-2 bg-[#6D28D9] hover:bg-[#5B21B6] text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
               >
+                <CalendarDays className="w-5 h-5" />
                 Book Appointment
               </button>
             </div>
@@ -572,6 +1118,244 @@ export default function Astrologers() {
           }}
         />
       )}
+
+      {isCalling && activeCallAstro && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-sm bg-white rounded-[32px] shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-br from-[#52007A] to-[#2D123A] px-6 pt-8 pb-10 text-center text-white">
+              <div className="flex justify-center mb-5">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
+
+                  <img
+                    src={
+                      activeCallAstro.profilePic ||
+                      "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                    }
+                    alt={activeCallAstro.fullName}
+                    className="relative w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-xl"
+                  />
+
+                  <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-400 border-4 border-[#52007A] rounded-full" />
+                </div>
+              </div>
+
+              <h2 className="text-xl font-bold">{activeCallAstro.fullName}</h2>
+
+              <p className="text-white/70 text-sm mt-1">
+                {callStatus === "calling" &&
+                  "Waiting for astrologer to accept..."}
+
+                {callStatus === "accepted" &&
+                  "Astrologer accepted. Connecting call..."}
+
+                {callStatus === "error" && "Call failed"}
+              </p>
+
+              {callStatus === "calling" && (
+                <div className="flex justify-center items-center gap-1.5 mt-5">
+                  <span className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                  <span
+                    className="w-2 h-2 bg-white rounded-full animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  />
+                  <span
+                    className="w-2 h-2 bg-white rounded-full animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  />
+                </div>
+              )}
+
+              {callStatus === "error" && (
+                <p className="mt-4 text-sm text-red-200">{callError}</p>
+              )}
+            </div>
+
+            <div className="p-6">
+              {callStatus === "calling" && (
+                <div className="text-center">
+                  <div className="bg-purple-50 rounded-2xl p-4 mb-5">
+                    <p className="text-xs text-slate-500">Call rate</p>
+
+                    <p className="text-lg font-bold text-[#52007A] mt-1">
+                      ₹{activeCallAstro.minRate || 0}/min
+                    </p>
+                  </div>
+
+                  <div className="bg-amber-50 rounded-2xl p-4 mb-5">
+                    <p className="text-xs text-slate-500">
+                      Waiting for astrologer
+                    </p>
+
+                    <p className="text-2xl font-bold text-[#52007A] mt-1">
+                      {Math.floor(callTimeLeft / 60)}:
+                      {String(callTimeLeft % 60).padStart(2, "0")}
+                    </p>
+
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Request will expire automatically
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleEndCall}
+                    className="w-full py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors"
+                  >
+                    ☎ Cancel Call
+                  </button>
+                </div>
+              )}
+
+              {callStatus === "error" && (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleInstantCall(activeCallAstro)}
+                    className="w-full py-3.5 rounded-2xl bg-[#52007A] hover:bg-[#400060] text-white font-bold text-sm"
+                  >
+                    Try Again
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsCalling(false);
+                      setCallStatus("idle");
+                      setActiveCallAstro(null);
+                      setCallError("");
+                      setCallRequestId(null);
+                    }}
+                    className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isChatting && activeChatAstro && (
+  <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4">
+    <div className="w-full max-w-sm bg-white rounded-[32px] shadow-2xl overflow-hidden">
+      <div className="bg-gradient-to-br from-[#52007A] to-[#2D123A] px-6 pt-8 pb-10 text-center text-white">
+        <div className="flex justify-center mb-5">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-purple-400/30 animate-ping" />
+
+            <img
+              src={
+                activeChatAstro.profilePic ||
+                "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+              }
+              alt={activeChatAstro.fullName}
+              className="relative w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-xl"
+            />
+
+            <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-400 border-4 border-[#52007A] rounded-full" />
+          </div>
+        </div>
+
+        <h2 className="text-xl font-bold">
+          {activeChatAstro.fullName}
+        </h2>
+
+        <p className="text-white/70 text-sm mt-1">
+          {chatStatus === "chatting" &&
+            "Waiting for astrologer to accept chat..."}
+
+          {chatStatus === "accepted" &&
+            "Astrologer accepted. Opening chat..."}
+
+          {chatStatus === "error" && "Chat request failed"}
+        </p>
+
+        {chatStatus === "chatting" && (
+          <div className="flex justify-center items-center gap-1.5 mt-5">
+            <span className="w-2 h-2 bg-white rounded-full animate-bounce" />
+
+            <span
+              className="w-2 h-2 bg-white rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+
+            <span
+              className="w-2 h-2 bg-white rounded-full animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
+          </div>
+        )}
+
+        {chatStatus === "error" && (
+          <p className="mt-4 text-sm text-red-200">
+            {chatError}
+          </p>
+        )}
+      </div>
+
+      <div className="p-6">
+        {chatStatus === "chatting" && (
+          <div className="text-center">
+            <div className="bg-purple-50 rounded-2xl p-4 mb-5">
+              <p className="text-xs text-slate-500">
+                Chat rate
+              </p>
+
+              <p className="text-lg font-bold text-[#52007A] mt-1">
+                ₹{activeChatAstro.minRate || 0}/min
+              </p>
+            </div>
+
+            <div className="bg-amber-50 rounded-2xl p-4 mb-5">
+              <p className="text-xs text-slate-500">
+                Waiting for astrologer
+              </p>
+
+              <p className="text-2xl font-bold text-[#52007A] mt-1">
+                {Math.floor(chatTimeLeft / 60)}:
+                {String(chatTimeLeft % 60).padStart(2, "0")}
+              </p>
+
+              <p className="text-[11px] text-slate-400 mt-1">
+                Request will expire automatically
+              </p>
+            </div>
+
+            <button
+              onClick={handleCancelChat}
+              className="w-full py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors"
+            >
+              Cancel Chat
+            </button>
+          </div>
+        )}
+
+        {chatStatus === "error" && (
+          <div className="space-y-3">
+            <button
+              onClick={() => handleInstantChat(activeChatAstro)}
+              className="w-full py-3.5 rounded-2xl bg-[#52007A] hover:bg-[#400060] text-white font-bold text-sm"
+            >
+              Try Again
+            </button>
+
+            <button
+              onClick={() => {
+                setIsChatting(false);
+                setChatStatus("idle");
+                setActiveChatAstro(null);
+                setChatError("");
+                setChatRequestId(null);
+              }}
+              className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

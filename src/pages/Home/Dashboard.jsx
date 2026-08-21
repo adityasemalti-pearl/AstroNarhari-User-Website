@@ -9,6 +9,13 @@ import BookAppointmentPopup from "./comp/BookingPopup";
 import { myWallet } from "../../API/bookingApis";
 import BookingConfirmedPopup from "./comp/BookingConfirmedPopup";
 
+import {
+  initiateInstantCall,
+  getInstantCallStatus,
+  cancelInstantCall,
+  endInstantCall,
+} from "../../API/callApi";
+
 const SERVICES = [
   {
     id: "kundli",
@@ -66,6 +73,17 @@ export default function Dashboard() {
   const [isBookingConfirmedOpen, setIsBookingConfirmedOpen] = useState(false);
 
   const [walletBalance, setWalletBalance] = useState(null);
+
+  const [isCalling, setIsCalling] = useState(false);
+
+  const [callError, setCallError] = useState("");
+  const [callSuccess, setCallSuccess] = useState(false);
+
+  const [callStatus, setCallStatus] = useState("idle");
+  const [activeCallAstro, setActiveCallAstro] = useState(null);
+  const [callSid, setCallSid] = useState(null);
+  const [callRequestId, setCallRequestId] = useState(null);
+  const [callTimeLeft, setCallTimeLeft] = useState(120);
 
   const navigate = useNavigate();
 
@@ -220,6 +238,236 @@ export default function Dashboard() {
     setConfirmedBooking(bookingData);
     setIsBookingOpen(false);
     setIsBookingConfirmedOpen(true);
+  };
+
+  const handleInstantCall = async (astro) => {
+    try {
+      setCallError("");
+      setActiveCallAstro(astro);
+      setIsCalling(true);
+      setCallStatus("calling");
+      setCallTimeLeft(120);
+
+      if (!astro?._id) {
+        throw new Error("Astrologer information not available.");
+      }
+
+      const rate = Number(astro?.minRate) || 10;
+
+      // Instant call ke liye 2 minutes
+      const durationMinutes = 2;
+
+      const balance = Number(walletBalance) || 0;
+
+      if (balance < rate * durationMinutes) {
+        setIsCalling(false);
+        setCallStatus("idle");
+        navigate("/dashboard/wallet");
+        return;
+      }
+
+      console.log("📞 INSTANT CALL REQUEST:", {
+        partnerId: astro._id,
+        type: "call",
+        durationMinutes,
+      });
+
+      const response = await initiateInstantCall({
+        partnerId: astro._id,
+        type: "call",
+        durationMinutes,
+      });
+
+      console.log("📞 INSTANT SESSION RESPONSE:", response?.data);
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || "Unable to send call request",
+        );
+      }
+
+      const requestId = response?.data?.requestId;
+
+      if (!requestId) {
+        throw new Error("Request ID not received from server.");
+      }
+
+      setCallRequestId(requestId);
+      setCallSid(requestId);
+      setCallStatus("calling");
+
+      console.log("✅ Instant call request sent:", requestId);
+    } catch (error) {
+      console.error("❌ Instant Call Error:", error);
+
+      setCallError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to connect call.",
+      );
+
+      setCallStatus("error");
+    }
+  };
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling") {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCallTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [callRequestId, callStatus]);
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling") {
+      return;
+    }
+
+    let isMounted = true;
+
+    const checkCallStatus = async () => {
+      try {
+        const response = await getInstantCallStatus(callRequestId);
+
+        const status = response?.data?.status;
+
+        console.log("📞 INSTANT CALL STATUS:", status);
+
+        if (!isMounted) return;
+
+        // Partner accepted
+        if (status === "accepted") {
+          console.log("✅ CALL ACCEPTED - PHONE CALL STARTED");
+
+          setIsCalling(false);
+          setCallStatus("idle");
+          setActiveCallAstro(null);
+          setCallRequestId(null);
+          setCallSid(null);
+          setCallError("");
+          setCallTimeLeft(120);
+
+          return;
+        }
+
+        // Partner rejected
+        if (status === "rejected") {
+          setCallError("Astrologer rejected your call request.");
+
+          setCallStatus("error");
+          setIsCalling(false);
+          setCallRequestId(null);
+
+          return;
+        }
+
+        // Request cancelled
+        if (status === "cancelled") {
+          setCallError("Call request was cancelled.");
+
+          setCallStatus("error");
+          setIsCalling(false);
+          setCallRequestId(null);
+
+          return;
+        }
+
+        // Session completed
+        if (status === "completed") {
+          setIsCalling(false);
+          setCallStatus("idle");
+          setActiveCallAstro(null);
+          setCallRequestId(null);
+
+          return;
+        }
+      } catch (error) {
+        console.error("❌ Call Status Error:", error);
+      }
+    };
+
+    // Immediately check
+    checkCallStatus();
+
+    // Check every 3 seconds
+    const interval = setInterval(() => {
+      checkCallStatus();
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [callRequestId, callStatus]);
+
+  useEffect(() => {
+    if (!callRequestId || callStatus !== "calling" || callTimeLeft > 0) {
+      return;
+    }
+
+    const cancelRequest = async () => {
+      try {
+        console.log("⏰ 2 minutes completed. Cancelling request...");
+
+        await cancelInstantCall(callRequestId);
+
+        setCallError("Astrologer did not accept the call request.");
+
+        setCallStatus("error");
+        setIsCalling(false);
+        setCallRequestId(null);
+        setCallSid(null);
+      } catch (error) {
+        console.error("❌ Cancel Request Error:", error);
+
+        setCallError("Call request expired.");
+
+        setCallStatus("error");
+        setIsCalling(false);
+        setCallRequestId(null);
+      }
+    };
+
+    cancelRequest();
+  }, [callTimeLeft, callRequestId, callStatus]);
+
+  const handleEndCall = async () => {
+    try {
+      setCallStatus("ending");
+
+      if (callRequestId) {
+        await endInstantCall({
+          requestId: callRequestId,
+        });
+      }
+
+      setIsCalling(false);
+      setCallStatus("idle");
+      setActiveCallAstro(null);
+      setCallSid(null);
+      setCallRequestId(null);
+      setCallError("");
+      setCallTimeLeft(120);
+    } catch (error) {
+      console.error("❌ End Call Error:", error);
+
+      setIsCalling(false);
+      setCallStatus("idle");
+      setActiveCallAstro(null);
+      setCallSid(null);
+      setCallRequestId(null);
+    }
   };
 
   if (loading) {
@@ -409,12 +657,22 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleOpenModal(astro)}
-                  className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10 cursor-pointer"
-                >
-                  Connect Now
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => handleOpenModal(astro)}
+                    className="flex-1 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors"
+                  >
+                    Connect Now
+                  </button>
+
+                  <button
+                    onClick={() => handleInstantCall(astro)}
+                    disabled={isCalling}
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold text-xs rounded-xl transition-colors"
+                  >
+                    {isCalling ? "Calling..." : "📞 Call"}
+                  </button>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -490,12 +748,22 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleOpenModal(astrologers[astroSlide])}
-                    className="w-full mt-4 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors shadow-md shadow-purple-900/10 cursor-pointer"
-                  >
-                    Connect Now
-                  </button>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => handleOpenModal(astrologers[astroSlide])}
+                      className="flex-1 py-2.5 bg-[#52007A] hover:bg-[#400060] text-white font-semibold text-xs rounded-xl transition-colors"
+                    >
+                      Connect
+                    </button>
+
+                    <button
+                      onClick={() => handleInstantCall(astrologers[astroSlide])}
+                      disabled={isCalling}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-semibold text-xs rounded-xl transition-colors"
+                    >
+                      {isCalling ? "Calling..." : "📞 Call"}
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </div>
@@ -578,34 +846,46 @@ export default function Dashboard() {
 
             <div className="space-y-4 w-full">
               {insights.map((article) => (
-                <motion.div 
+                <motion.div
                   whileHover={{ y: -3 }}
-                  key={article._id} 
+                  key={article._id}
                   className="bg-white p-3.5 rounded-2xl border border-purple-100/80 shadow-md flex items-center gap-3.5 group cursor-pointer relative overflow-hidden transition-all w-full"
                 >
                   <div className="absolute top-0 right-0 w-20 h-20 bg-purple-50 rounded-bl-full -z-0 pointer-events-none group-hover:bg-purple-100 transition-colors" />
-                  
-                  <img src={article.thumbnail} alt={article.title} className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shadow-sm shrink-0 z-10" />
-                  
+
+                  <img
+                    src={article.thumbnail}
+                    alt={article.title}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shadow-sm shrink-0 z-10"
+                  />
+
                   <div className="flex-1 min-w-0 z-10">
                     <div className="flex items-center justify-between mb-1 gap-2">
                       <span className="text-[9px] font-extrabold tracking-wider text-purple-700 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full uppercase truncate max-w-[120px]">
                         {article.category}
                       </span>
-                      <span className="text-[10px] font-medium text-slate-400 shrink-0">⏱ {article.readTime}</span>
+                      <span className="text-[10px] font-medium text-slate-400 shrink-0">
+                        ⏱ {article.readTime}
+                      </span>
                     </div>
 
                     <h4 className="text-xs sm:text-sm font-bold text-slate-800 truncate group-hover:text-[#52007A] transition-colors w-full">
                       {article.title}
                     </h4>
-                    
+
                     <p className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5 w-full">
                       {article.subtitle}
                     </p>
 
                     <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
-                      <img src={article.author?.profilePic} alt={article.author?.name} className="w-4 h-4 rounded-full object-cover shrink-0" />
-                      <span className="text-[10px] font-semibold text-slate-600 truncate">{article.author?.name}</span>
+                      <img
+                        src={article.author?.profilePic}
+                        alt={article.author?.name}
+                        className="w-4 h-4 rounded-full object-cover shrink-0"
+                      />
+                      <span className="text-[10px] font-semibold text-slate-600 truncate">
+                        {article.author?.name}
+                      </span>
                     </div>
                   </div>
                 </motion.div>
@@ -614,7 +894,7 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
-{/* 
+      {/* 
       <footer className="mt-20 border-t border-purple-100 bg-white w-full">
         <div className="w-full px-6 lg:px-12 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
@@ -742,6 +1022,142 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      <AnimatePresence>
+        {isCalling && activeCallAstro && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="w-full max-w-sm bg-white rounded-[32px] shadow-2xl overflow-hidden"
+            >
+              <div className="bg-gradient-to-br from-[#52007A] to-[#2D123A] px-6 pt-8 pb-10 text-center text-white">
+                <div className="flex justify-center mb-5">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
+
+                    <img
+                      src={
+                        activeCallAstro.profilePic ||
+                        "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"
+                      }
+                      alt={activeCallAstro.fullName}
+                      className="relative w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-xl"
+                    />
+
+                    <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-400 border-4 border-[#52007A] rounded-full" />
+                  </div>
+                </div>
+
+                <h2 className="text-xl font-bold">
+                  {activeCallAstro.fullName}
+                </h2>
+
+                <p className="text-white/70 text-sm mt-1">
+                  {callStatus === "calling" &&
+                    "Waiting for astrologer to accept..."}
+
+                  {callStatus === "accepted" &&
+                    "Astrologer accepted. Connecting call..."}
+
+                  {callStatus === "ending" && "Ending call..."}
+
+                  {callStatus === "error" && "Call failed"}
+                  {callStatus === "ending" && "Ending call..."}
+                  {callStatus === "error" && "Call failed"}
+                </p>
+
+                {(callStatus === "calling" || callStatus === "accepted") && (
+                  <div className="flex justify-center items-center gap-1.5 mt-5">
+                    <span className="w-2 h-2 bg-white rounded-full animate-bounce" />
+                    <span
+                      className="w-2 h-2 bg-white rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <span
+                      className="w-2 h-2 bg-white rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
+                  </div>
+                )}
+
+                {callStatus === "error" && (
+                  <p className="mt-4 text-sm text-red-200">{callError}</p>
+                )}
+              </div>
+
+              <div className="p-6">
+                {callStatus === "calling" && (
+                  <div className="text-center">
+                    <div className="bg-purple-50 rounded-2xl p-4 mb-5">
+                      <p className="text-xs text-slate-500">Call rate</p>
+
+                      <p className="text-lg font-bold text-[#52007A] mt-1">
+                        ₹{activeCallAstro.minRate || 0}/min
+                      </p>
+                    </div>
+                    <div className="bg-amber-50 rounded-2xl p-4 mb-5">
+                      <p className="text-xs text-slate-500">
+                        Waiting for astrologer
+                      </p>
+
+                      <p className="text-2xl font-bold text-[#52007A] mt-1">
+                        {Math.floor(callTimeLeft / 60)}:
+                        {String(callTimeLeft % 60).padStart(2, "0")}
+                      </p>
+
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Request will expire automatically
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-slate-400 mb-5">
+                      Please wait while we connect your call.
+                    </p>
+
+                    <button
+                      onClick={handleEndCall}
+                      className="w-full py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      <span className="text-lg">☎</span>
+                      End Call
+                    </button>
+                  </div>
+                )}
+
+                {callStatus === "error" && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => handleInstantCall(activeCallAstro)}
+                      className="w-full py-3.5 rounded-2xl bg-[#52007A] hover:bg-[#400060] text-white font-bold text-sm"
+                    >
+                      Try Again
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsCalling(false);
+                        setCallStatus("idle");
+                        setActiveCallAstro(null);
+                        setCallError("");
+                      }}
+                      className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

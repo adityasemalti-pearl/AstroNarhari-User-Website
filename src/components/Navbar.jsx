@@ -9,7 +9,8 @@ import {
   Wallet2,
   ShoppingCartIcon,
   ShoppingBag,X,
-  PackageCheck
+  PackageCheck,
+  MessageCircle
 } from "lucide-react";
 import { getUserProfile } from "../API/authapis";
 import {getCart} from '../API/cosmicApis'
@@ -149,9 +150,9 @@ const fetchWallet = async()=>{
 
     // },
     {
-      icon: <ShoppingBag size={18} />,
-      label: "My Cart",
-      link: "/dashboard/cart"
+      icon: <MessageCircle size={18} />,
+      label: "My Chats",
+      link: "/dashboard/chat-list"
     },
     {
       icon: <PackageCheck size={18} />,
