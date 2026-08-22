@@ -19,7 +19,6 @@ import {
 import { getActiveGifts, sendLiveGift } from "../../API/giftApis";
 import { getActiveSessions, joinAgoraSession } from "../../API/agoraApi";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import AgoraRTM from "agora-rtm-sdk";
 
 export default function LiveStream() {
   const [streams, setStreams] = useState([]);
@@ -27,8 +26,6 @@ export default function LiveStream() {
   const [loading, setLoading] = useState(false);
   const [joinedStream, setJoinedStream] = useState(null);
   const [agoraClient, setAgoraClient] = useState(null);
-  const [rtmClient, setRtmClient] = useState(null);
-  const [rtmChannel, setRtmChannel] = useState(null);
   const [localAudioTrack, setLocalAudioTrack] = useState(null);
   const [localVideoTrack, setLocalVideoTrack] = useState(null);
   const [remoteUsers, setRemoteUsers] = useState([]);
@@ -44,10 +41,15 @@ export default function LiveStream() {
   const [sendingGift, setSendingGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
 
+  // Refs
+  const remoteVideoRef = useRef(null);
+  const commentsEndRef = useRef(null);
+  const agoraClientRef = useRef(null); // RTC client — used for chat via data stream too
+  const localUidRef = useRef(null); // our own rtc uid, to ignore echoed-back messages
+
   const loadActiveGifts = async () => {
     try {
       const response = await getActiveGifts();
-
       if (response.data?.success) {
         setGifts(response.data.gifts || []);
       } else {
@@ -61,14 +63,9 @@ export default function LiveStream() {
     }
   };
 
-  const remoteVideoRef = useRef(null);
-  const commentsEndRef = useRef(null);
-  const rtmChannelRef = useRef(null);
-
   useEffect(() => {
     const fetchActiveSessions = async () => {
       setLoading(true);
-
       try {
         const response = await getActiveSessions();
         if (response.data && response.data.success) {
@@ -92,6 +89,48 @@ export default function LiveStream() {
     commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [comments]);
 
+  // Decode an incoming stream-message payload (Uint8Array) into a comment object
+  const handleIncomingStreamMessage = (uid, payload) => {
+    try {
+      // Ignore our own echoed-back message (mirrors the Flutter app's guard)
+      if (localUidRef.current != null && uid === localUidRef.current) {
+        return;
+      }
+
+      const jsonString = new TextDecoder().decode(payload);
+      const parsed = JSON.parse(jsonString);
+
+      const sender = parsed.user || parsed.sender || "Host";
+      const text = parsed.text || parsed.message || "";
+
+      if (!text) return;
+
+      setComments((prev) => {
+        const messageId =
+          parsed.messageId || parsed.id || `${uid}-${Date.now()}`;
+
+        if (prev.some((item) => item.messageId === messageId)) return prev;
+
+        return [
+          ...prev,
+          {
+            messageId,
+            user: sender,
+            text,
+            timestamp:
+              parsed.timestamp ||
+              new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+          },
+        ];
+      });
+    } catch (err) {
+      console.error("Stream Message Decode Error:", err);
+    }
+  };
+
   const handleJoinStream = async (stream) => {
     try {
       const payload = {
@@ -102,96 +141,117 @@ export default function LiveStream() {
       const res = await joinAgoraSession(payload);
       const responseData = res.data?.data || res.data;
 
-      if (responseData) {
-        await loadActiveGifts();
+      if (!responseData) {
+        console.error("Invalid Agora response");
+        return;
+      }
 
-        setJoinedStream({
-          ...stream,
-          ...responseData,
-        });
-        setComments([
-          {
-            id: 1,
-            user: "System",
-            text: "Welcome to the live cosmic session!",
-          },
-        ]);
+      await loadActiveGifts();
 
-        const appId = responseData.appId || "0228c9fe15a54e20a48e44835be49d7c";
-        const channelName = responseData.channelName || stream.channelName;
-        const rtcToken = responseData.rtcToken || null;
-        const rtmToken = responseData.rtmToken || null;
-        const uid = Number(responseData.uid || 460438);
+      setJoinedStream({
+        ...stream,
+        ...responseData,
+      });
 
-        const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-        await client.setClientRole("audience");
-        setAgoraClient(client);
+      setComments([
+        {
+          messageId: `system-${Date.now()}`,
+          user: "System",
+          text: "Welcome to the live cosmic session!",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
 
-        client.on("user-published", async (user, mediaType) => {
+      const appId = responseData.appId || "0228c9fe15a54e20a48e44835be49d7c";
+      const channelName = responseData.channelName;
+      const rtcToken = responseData.rtcToken;
+      const uid = responseData.uid;
+
+      console.log("Agora Details:", {
+        appId,
+        channelName,
+        uid,
+        hasRtcToken: !!rtcToken,
+      });
+
+      // =====================================================
+      // RTC (video/audio + chat via data stream)
+      // =====================================================
+      const client = AgoraRTC.createClient({
+        mode: "live",
+        codec: "vp8",
+      });
+
+      await client.setClientRole("audience");
+      agoraClientRef.current = client;
+      setAgoraClient(client);
+
+      client.on("user-published", async (user, mediaType) => {
+        try {
           await client.subscribe(user, mediaType);
-          if (mediaType === "video") {
-            setRemoteUsers((prev) => [...prev, user]);
+          console.log("RTC User Published:", user.uid, mediaType);
+
+          if (mediaType === "video" && user.videoTrack) {
+            setRemoteUsers((prev) => {
+              const exists = prev.some((u) => u.uid === user.uid);
+              if (exists) return prev;
+              return [...prev, user];
+            });
+
             setTimeout(() => {
-              if (remoteVideoRef.current) {
+              if (remoteVideoRef.current && user.videoTrack) {
                 user.videoTrack.play(remoteVideoRef.current);
               }
-            }, 200);
+            }, 300);
           }
-          if (mediaType === "audio") {
+
+          if (mediaType === "audio" && user.audioTrack) {
             user.audioTrack.play();
           }
-        });
-
-        client.on("user-unpublished", (user, mediaType) => {
-          if (mediaType === "video") {
-            setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
-          }
-        });
-
-        await client.join(appId, channelName, rtcToken, uid);
-
-        try {
-          const rtm = AgoraRTM.createInstance(appId);
-          setRtmClient(rtm);
-
-          await rtm.login({ uid: String(uid), token: rtmToken || undefined });
-          const channel = rtm.createChannel(channelName);
-          await channel.join();
-
-          setRtmChannel(channel);
-          rtmChannelRef.current = channel;
-          console.log("RTM Successfully Connected to Channel:", channelName);
-
-          channel.on("ChannelMessage", (message, memberId) => {
-            console.log("RTM Message Received from:", memberId, message.text);
-            try {
-              const parsedData = JSON.parse(message.text);
-              setComments((prev) => [...prev, parsedData]);
-            } catch (err) {
-              setComments((prev) => [
-                ...prev,
-                {
-                  user: "Host",
-                  text: message.text,
-                  timestamp: new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                },
-              ]);
-            }
-          });
-        } catch (rtmError) {
-          console.error("RTM Login/Join Failed:", rtmError);
+        } catch (error) {
+          console.error("RTC Subscribe Error:", error);
         }
-      }
+      });
+
+      client.on("user-unpublished", (user, mediaType) => {
+        console.log("RTC User Unpublished:", user.uid, mediaType);
+        if (mediaType === "video") {
+          setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+        }
+      });
+
+      client.on("user-left", (user) => {
+        console.log("RTC User Left:", user.uid);
+        setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
+      });
+
+      // Chat messages arrive here (Agora RTC data-stream — same mechanism as the app)
+      client.on("stream-message", (streamUid, payload) => {
+        console.log("Stream message received from:", streamUid);
+        handleIncomingStreamMessage(streamUid, payload);
+      });
+
+      client.on("connection-state-change", (curState, prevState, reason) => {
+        console.log("RTC connection state:", prevState, "->", curState, reason);
+      });
+
+      const joinedUid = await client.join(appId, channelName, rtcToken, uid);
+      localUidRef.current = joinedUid;
+      console.log("RTC Connected:", channelName, "uid:", joinedUid);
     } catch (error) {
-      console.error("Join Stream Error:", error);
+      console.error(
+        "Join Stream Error:",
+        error.response?.data || error.message,
+      );
     }
   };
 
   const handleLeaveStream = async () => {
-    if (agoraClient) {
+    try {
+      // Stop local tracks
       if (localAudioTrack) {
         localAudioTrack.stop();
         localAudioTrack.close();
@@ -200,31 +260,38 @@ export default function LiveStream() {
         localVideoTrack.stop();
         localVideoTrack.close();
       }
-      await agoraClient.leave();
-    }
 
-    if (rtmChannelRef.current && rtmClient) {
-      try {
-        await rtmChannelRef.current.leave();
-        await rtmClient.logout();
-      } catch (err) {
-        console.error("RTM Logout Error:", err);
+      // Leave RTC (data-stream / chat cleans up automatically with the channel)
+      const client = agoraClientRef.current;
+      if (client) {
+        try {
+          await client.leave();
+          console.log("RTC Left");
+        } catch (error) {
+          console.error("RTC Leave Error:", error);
+        }
       }
-    }
 
-    setJoinedStream(null);
-    setAgoraClient(null);
-    setRtmClient(null);
-    setRtmChannel(null);
-    rtmChannelRef.current = null;
-    setRemoteUsers([]);
-    setComments([]);
+      agoraClientRef.current = null;
+      localUidRef.current = null;
+
+      setJoinedStream(null);
+      setAgoraClient(null);
+      setLocalAudioTrack(null);
+      setLocalVideoTrack(null);
+      setRemoteUsers([]);
+      setComments([]);
+      setIsMuted(false);
+      setIsVideoOff(false);
+
+      console.log("Left Live Stream Successfully");
+    } catch (error) {
+      console.error("Leave Stream Error:", error);
+    }
   };
 
   const handleSendGift = async () => {
-    if (!selectedGift) {
-      return;
-    }
+    if (!selectedGift) return;
 
     if (!joinedStream?._id) {
       console.error("Live session ID is missing");
@@ -245,8 +312,8 @@ export default function LiveStream() {
 
         setGiftMessage(`${giftData.giftName} sent successfully!`);
 
-        // Optional: show gift in chat
         const giftChatMessage = {
+          messageId: `gift-${Date.now()}`,
           user: "You",
           text: `🎁 Sent ${giftData.giftName}`,
           timestamp: new Date().toLocaleTimeString([], {
@@ -257,23 +324,13 @@ export default function LiveStream() {
 
         setComments((prev) => [...prev, giftChatMessage]);
 
-        // Close panel after successful gift
         setSelectedGift(null);
         setShowGiftPanel(false);
 
         console.log("Gift sent successfully:", giftData);
-
-        /*
-        Backend returns:
-        giftName
-        icon
-        senderName
-        newWalletBalance
-      */
       }
     } catch (error) {
       console.error("Send Gift Error:", error.response?.data || error.message);
-
       setGiftMessage(error.response?.data?.message || "Unable to send gift");
     } finally {
       setSendingGift(false);
@@ -296,38 +353,47 @@ export default function LiveStream() {
 
   const handleSendComment = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+
+    const text = newComment.trim();
+    if (!text) return;
+
+    const client = agoraClientRef.current;
+
+    if (!client) {
+      console.warn("RTC client is not connected");
+      return;
+    }
+
+    const messageId = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(2, 8)}`;
 
     const messageData = {
+      messageId,
       user: "You",
-      text: newComment.trim(),
+      text,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       }),
     };
 
-    setComments((prev) => [...prev, messageData]);
-    const textToSend = newComment.trim();
-    setNewComment("");
+    try {
+      // Show instantly in own chat (sender doesn't need to wait for the echo)
+      setComments((prev) => [...prev, messageData]);
+      setNewComment("");
 
-    if (rtmChannelRef.current) {
-      try {
-        await rtmChannelRef.current.sendMessage({
-          text: JSON.stringify(messageData),
-        });
-        console.log("RTM Message Successfully Sent:", messageData);
-      } catch (error) {
-        console.error("RTM Send Message Error:", error);
-        try {
-          await rtmChannelRef.current.sendMessage({ text: textToSend });
-          console.log("RTM Fallback Plain Text Sent Successfully");
-        } catch (fallbackError) {
-          console.error("RTM Fallback Error:", fallbackError);
-        }
-      }
-    } else {
-      console.warn("RTM Channel not connected. Message shown locally.");
+      await client.sendStreamMessage(JSON.stringify(messageData), false);
+
+      console.log("Message Sent Successfully:", messageData);
+    } catch (error) {
+      console.error("Send Stream Message Error:", error);
+
+      // Remove optimistic message if sending failed
+      setComments((prev) =>
+        prev.filter((item) => item.messageId !== messageId),
+      );
+      setNewComment(text);
     }
   };
 
@@ -659,7 +725,7 @@ export default function LiveStream() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {comments.map((c, index) => (
                     <div
-                      key={index}
+                      key={c.messageId || index}
                       className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1"
                     >
                       <div className="flex items-center justify-between">
@@ -703,139 +769,126 @@ export default function LiveStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
       <AnimatePresence>
-  {showGiftPanel && (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
-      onClick={() => setShowGiftPanel(false)}
-    >
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-slate-900 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden"
-      >
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div>
-            <h3 className="text-white font-bold text-lg">
-              Send a Gift 🎁
-            </h3>
-
-            <p className="text-xs text-slate-400 mt-1">
-              Support the astrologer during the live session
-            </p>
-          </div>
-
-          <button
+        {showGiftPanel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
             onClick={() => setShowGiftPanel(false)}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Gifts */}
-        <div className="p-5">
-
-          {gifts.length === 0 ? (
-            <div className="text-center py-10">
-              <Gift className="w-10 h-10 text-purple-400 mx-auto mb-3" />
-
-              <p className="text-slate-300 text-sm">
-                No gifts available right now.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 gap-3">
-              {gifts.map((gift) => (
-                <button
-                  key={gift._id}
-                  onClick={() => setSelectedGift(gift)}
-                  className={`rounded-2xl p-3 border transition-all ${
-                    selectedGift?._id === gift._id
-                      ? "border-amber-400 bg-amber-400/10 scale-105"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
-                  }`}
-                >
-                  <div className="w-14 h-14 mx-auto flex items-center justify-center">
-                    <img
-                      src={gift.iconUrl}
-                      alt={gift.giftName}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-
-                  <p className="text-white text-xs font-semibold mt-2 truncate">
-                    {gift.giftName}
-                  </p>
-
-                  <p className="text-amber-400 text-xs font-bold mt-1">
-                    {gift.price}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Selected gift */}
-          {selectedGift && (
-            <div className="mt-5 p-4 rounded-2xl bg-white/5 border border-white/10">
-
-              <div className="flex items-center gap-3">
-
-                <div className="w-14 h-14 rounded-xl bg-purple-900/40 flex items-center justify-center">
-                  <img
-                    src={selectedGift.iconUrl}
-                    alt={selectedGift.giftName}
-                    className="w-10 h-10 object-contain"
-                  />
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-white font-bold">
-                    {selectedGift.giftName}
-                  </p>
-
-                  <p className="text-xs text-slate-400">
-                    Gift value:{" "}
-                    <span className="text-amber-400 font-bold">
-                      {selectedGift.price}
-                    </span>
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-slate-900 border border-purple-500/30 rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <div>
+                  <h3 className="text-white font-bold text-lg">
+                    Send a Gift 🎁
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Support the astrologer during the live session
                   </p>
                 </div>
 
                 <button
-                  onClick={handleSendGift}
-                  disabled={sendingGift}
-                  className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs flex items-center gap-2"
+                  onClick={() => setShowGiftPanel(false)}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center"
                 >
-                  <Gift className="w-4 h-4" />
-
-                  {sendingGift ? "Sending..." : "Send Gift"}
+                  <X className="w-4 h-4" />
                 </button>
-
               </div>
-            </div>
-          )}
 
-          {/* Success / Error */}
-          {giftMessage && (
-            <div className="mt-4 text-center text-xs font-semibold text-emerald-400">
-              {giftMessage}
-            </div>
-          )}
+              <div className="p-5">
+                {gifts.length === 0 ? (
+                  <div className="text-center py-10">
+                    <Gift className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                    <p className="text-slate-300 text-sm">
+                      No gifts available right now.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-3">
+                    {gifts.map((gift) => (
+                      <button
+                        key={gift._id}
+                        onClick={() => setSelectedGift(gift)}
+                        className={`rounded-2xl p-3 border transition-all ${
+                          selectedGift?._id === gift._id
+                            ? "border-amber-400 bg-amber-400/10 scale-105"
+                            : "border-white/10 bg-white/5 hover:bg-white/10"
+                        }`}
+                      >
+                        <div className="w-14 h-14 mx-auto flex items-center justify-center">
+                          <img
+                            src={gift.iconUrl}
+                            alt={gift.giftName}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
 
-        </div>
-      </motion.div>
-    </motion.div>
-  )}
-</AnimatePresence>
+                        <p className="text-white text-xs font-semibold mt-2 truncate">
+                          {gift.giftName}
+                        </p>
+
+                        <p className="text-amber-400 text-xs font-bold mt-1">
+                          {gift.price}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {selectedGift && (
+                  <div className="mt-5 p-4 rounded-2xl bg-white/5 border border-white/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl bg-purple-900/40 flex items-center justify-center">
+                        <img
+                          src={selectedGift.iconUrl}
+                          alt={selectedGift.giftName}
+                          className="w-10 h-10 object-contain"
+                        />
+                      </div>
+
+                      <div className="flex-1">
+                        <p className="text-white font-bold">
+                          {selectedGift.giftName}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Gift value:{" "}
+                          <span className="text-amber-400 font-bold">
+                            {selectedGift.price}
+                          </span>
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={handleSendGift}
+                        disabled={sendingGift}
+                        className="px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs flex items-center gap-2"
+                      >
+                        <Gift className="w-4 h-4" />
+                        {sendingGift ? "Sending..." : "Send Gift"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {giftMessage && (
+                  <div className="mt-4 text-center text-xs font-semibold text-emerald-400">
+                    {giftMessage}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.div
         className="fixed bottom-8 right-8 z-40"
