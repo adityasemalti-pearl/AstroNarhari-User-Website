@@ -57,3 +57,37 @@ export const cancelInstantChat = (requestId) => {
     requestId,
   });
 };
+
+// ==========================================
+// VIDEO CALL APIs
+// ==========================================
+
+// Initiate Video Call
+export const initiateVideoCall = (bookingId) => {
+  return api.post("/video/call/initiate", {
+    bookingId,
+  });
+};
+
+// Join Video Call
+export const joinVideoCall = (bookingId) => {
+  return api.post("/video/call/join-call", {
+    bookingId,
+  });
+};
+
+// Settle Video Call
+export const settleVideoCall = (bookingId, actualDuration) => {
+  return api.post("/video/call/settle", {
+    bookingId,
+    actualDuration,
+  });
+};
+
+// Terminate Video Call
+export const terminateVideoCall = (bookingId, actualDuration) => {
+  return api.post("/video/call/terminate", {
+    bookingId,
+    actualDuration,
+  });
+};

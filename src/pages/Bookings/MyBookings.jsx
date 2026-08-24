@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { getMyBookings, cancelBooking } from "../../API/bookingApis";
-import { initiateCall, terminateCall } from "../../API/callApi";
+import {
+  initiateCall,
+  terminateCall,
+  initiateVideoCall,
+  terminateVideoCall,
+} from "../../API/callApi";
 import { useNavigate } from "react-router-dom";
-import {getAstrologerById} from '../../API/homeApis'
+import { getAstrologerById } from "../../API/homeApis";
 
 import {
   Phone,
@@ -27,17 +32,15 @@ export default function MyBookings() {
   const [activeCallModal, setActiveCallModal] = useState(null);
   const [callLoading, setCallLoading] = useState(false);
 
-
   const [currentTime, setCurrentTime] = useState(new Date());
 
-
   useEffect(() => {
-  const timer = setInterval(() => {
-    setCurrentTime(new Date());
-  }, 1000);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
 
-  return () => clearInterval(timer);
-}, []);
+    return () => clearInterval(timer);
+  }, []);
 
   // Message popup
   const [messagePopup, setMessagePopup] = useState({
@@ -100,46 +103,43 @@ export default function MyBookings() {
     fetchBookings();
   }, []);
 
-
-
-
   const getBookingDateTime = (booking) => {
-  if (!booking?.date || !booking?.timeSlot) return null;
+    if (!booking?.date || !booking?.timeSlot) return null;
 
-  const date = new Date(booking.date);
+    const date = new Date(booking.date);
 
-  if (Number.isNaN(date.getTime())) return null;
+    if (Number.isNaN(date.getTime())) return null;
 
-  const time = booking.timeSlot.trim();
+    const time = booking.timeSlot.trim();
 
-  const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
 
-  if (!match) return null;
+    if (!match) return null;
 
-  let hours = Number(match[1]);
-  const minutes = Number(match[2]);
-  const meridiem = match[3].toUpperCase();
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const meridiem = match[3].toUpperCase();
 
-  if (meridiem === "PM" && hours !== 12) {
-    hours += 12;
-  }
+    if (meridiem === "PM" && hours !== 12) {
+      hours += 12;
+    }
 
-  if (meridiem === "AM" && hours === 12) {
-    hours = 0;
-  }
+    if (meridiem === "AM" && hours === 12) {
+      hours = 0;
+    }
 
-  date.setHours(hours, minutes, 0, 0);
+    date.setHours(hours, minutes, 0, 0);
 
-  return date;
-};
+    return date;
+  };
 
-const hasBookingStarted = (booking) => {
-  const bookingDateTime = getBookingDateTime(booking);
+  const hasBookingStarted = (booking) => {
+    const bookingDateTime = getBookingDateTime(booking);
 
-  if (!bookingDateTime) return false;
+    if (!bookingDateTime) return false;
 
-  return new Date() >= bookingDateTime;
-};
+    return new Date() >= bookingDateTime;
+  };
 
   // --------------------------------------------------
   // FORMAT DATE
@@ -205,93 +205,82 @@ const hasBookingStarted = (booking) => {
   // CHAT
   // --------------------------------------------------
 
+  const handleChat = async (booking) => {
+    try {
+      const id = booking?.partner?._id;
 
-  
-  
-const handleChat = async (booking) => {
-  try {
-    const id = booking?.partner?._id;
+      console.log("BOOKING:", booking);
+      console.log("PARTNER ID:", id);
 
-    console.log("BOOKING:", booking);
-    console.log("PARTNER ID:", id);
+      if (!id) {
+        showMessage(
+          "Invalid Partner",
+          "Astrologer information is missing.",
+          "error",
+        );
+        return;
+      }
 
-    if (!id) {
+      if (!booking?._id) {
+        showMessage(
+          "Invalid Booking",
+          "Booking information is missing.",
+          "error",
+        );
+        return;
+      }
+
+      if (!isAcceptedStatus(booking.status)) {
+        showMessage(
+          "Chat Not Available",
+          "Chat will be available once the astrologer accepts your booking.",
+          "error",
+        );
+        return;
+      }
+
+      if (!isChatBooking(booking.mode)) {
+        showMessage(
+          "Invalid Booking Type",
+          "This booking is not a chat booking.",
+          "error",
+        );
+        return;
+      }
+
+      // Fetch proper/latest partner details
+      const res = await getAstrologerById(id);
+
+      console.log("ASTROLOGER API RESPONSE:", res);
+
+      const partnerDetails = res?.data?.data;
+
+      if (!partnerDetails) {
+        showMessage(
+          "Partner Not Found",
+          "Unable to fetch astrologer details.",
+          "error",
+        );
+        return;
+      }
+
+      navigate(`/dashboard/chat/${id}`, {
+        state: {
+          partner: partnerDetails,
+          partnerId: id,
+          bookingId: booking._id,
+        },
+      });
+    } catch (error) {
+      console.error("HANDLE CHAT ERROR:", error);
+
       showMessage(
-        "Invalid Partner",
-        "Astrologer information is missing.",
-        "error"
+        "Unable to Open Chat",
+        error?.response?.data?.message || "Unable to fetch astrologer details.",
+        "error",
       );
-      return;
     }
-
-    if (!booking?._id) {
-      showMessage(
-        "Invalid Booking",
-        "Booking information is missing.",
-        "error"
-      );
-      return;
-    }
-
-    if (!isAcceptedStatus(booking.status)) {
-      showMessage(
-        "Chat Not Available",
-        "Chat will be available once the astrologer accepts your booking.",
-        "error"
-      );
-      return;
-    }
-
-    if (!isChatBooking(booking.mode)) {
-      showMessage(
-        "Invalid Booking Type",
-        "This booking is not a chat booking.",
-        "error"
-      );
-      return;
-    }
-
-    // Fetch proper/latest partner details
-    const res = await getAstrologerById(id);
-
-    console.log("ASTROLOGER API RESPONSE:", res);
-
-    const partnerDetails = res?.data?.data;
-
-    console.log("PARTNER DETAILS:", partnerDetails);
-    console.log(
-      "PARTNER FIREBASE UID:",
-      partnerDetails?.firebaseUid
-    );
-
-    if (!partnerDetails) {
-      showMessage(
-        "Partner Not Found",
-        "Unable to fetch astrologer details.",
-        "error"
-      );
-      return;
-    }
-
-    navigate(`/dashboard/chat/${id}`, {
-      state: {
-        partner: partnerDetails,
-        partnerId: id,
-        bookingId: booking._id,
-      },
-    });
-
-  } catch (error) {
-    console.error("HANDLE CHAT ERROR:", error);
-
-    showMessage(
-      "Unable to Open Chat",
-      error?.response?.data?.message ||
-        "Unable to fetch astrologer details.",
-      "error"
-    );
-  }
-};
+  };
 
   // --------------------------------------------------
   // VOICE CALL
@@ -387,6 +376,9 @@ const handleChat = async (booking) => {
   // --------------------------------------------------
   // VIDEO CALL
   // --------------------------------------------------
+  // --------------------------------------------------
+  // VIDEO CALL
+  // --------------------------------------------------
 
   const handleVideoCall = async (booking) => {
     try {
@@ -396,7 +388,6 @@ const handleChat = async (booking) => {
           "Booking information is missing.",
           "error",
         );
-
         return;
       }
 
@@ -406,7 +397,6 @@ const handleChat = async (booking) => {
           "You can start the video call once the astrologer accepts your booking.",
           "error",
         );
-
         return;
       }
 
@@ -416,40 +406,43 @@ const handleChat = async (booking) => {
           "This booking is not a video call booking.",
           "error",
         );
+        return;
+      }
+
+      setCallLoading(true);
+
+
+     const res = await initiateVideoCall(booking._id);
+
+      console.log("VIDEO CALL INITIATE RESPONSE:", res);
+
+      if (res?.data?.success) {
+        const callData = {
+          rtcToken: res.data.rtcToken,
+          rtmToken: res.data.rtmToken,
+          channelName: res.data.channelName,
+          uid: res.data.uid,
+          appId: res.data.appId,
+        };
+
+        console.log("VIDEO CALL DATA:", callData);
+
+        navigate(`/dashboard/video-call/${booking._id}`, {
+          state: {
+            booking,
+            partner: booking.partner,
+            callData,
+          },
+        });
 
         return;
       }
 
-      /*
-       * ------------------------------------------------
-       * CONNECT YOUR VIDEO CALL API HERE
-       * ------------------------------------------------
-       *
-       * Example:
-       *
-       * const res = await initiateVideoCall({
-       *   bookingId: booking._id
-       * });
-       *
-       * navigate(`/dashboard/video-call/${booking._id}`, {
-       *   state: {
-       *     booking,
-       *     partner: booking.partner,
-       *     callData: res?.data
-       *   }
-       * });
-       *
-       * ------------------------------------------------
-       */
-
-      console.log("VIDEO CALL BOOKING:", booking);
-
-      navigate(`/dashboard/video-call/${booking._id}`, {
-        state: {
-          booking,
-          partner: booking.partner,
-        },
-      });
+      showMessage(
+        "Unable to Start Video Call",
+        res?.data?.message || "Unable to start video call. Please try again.",
+        "error",
+      );
     } catch (error) {
       console.error("VIDEO CALL ERROR:", error);
 
@@ -459,9 +452,10 @@ const handleChat = async (booking) => {
           "Unable to start video call. Please try again.",
         "error",
       );
+    } finally {
+      setCallLoading(false);
     }
   };
-
   // --------------------------------------------------
   // END VOICE CALL
   // --------------------------------------------------
@@ -593,78 +587,78 @@ const handleChat = async (booking) => {
   // MODE BUTTONS
   // --------------------------------------------------
 
- const renderModeButton = (booking) => {
-  const mode = normalizeMode(booking.mode);
+  const renderModeButton = (booking) => {
+    const mode = normalizeMode(booking.mode);
 
-  const bookingStarted = hasBookingStarted(booking);
+    const bookingStarted = hasBookingStarted(booking);
 
-  // CHAT
-  if (mode === "chat") {
-    return (
-      <button
-        onClick={() => handleChat(booking)}
-        disabled={!bookingStarted}
-        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all md:flex-none ${
-          bookingStarted
-            ? "bg-purple-50 text-purple-700 hover:bg-purple-100 active:scale-95"
-            : "cursor-not-allowed bg-gray-100 text-gray-400"
-        }`}
-      >
-        <MessageCircle size={17} />
+    // CHAT
+    if (mode === "chat") {
+      return (
+        <button
+          onClick={() => handleChat(booking)}
+          disabled={!bookingStarted}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all md:flex-none ${
+            bookingStarted
+              ? "bg-purple-50 text-purple-700 hover:bg-purple-100 active:scale-95"
+              : "cursor-not-allowed bg-gray-100 text-gray-400"
+          }`}
+        >
+          <MessageCircle size={17} />
 
-        {bookingStarted ? "Chat" : "Chat Not Started"}
-      </button>
-    );
-  }
+          {bookingStarted ? "Chat" : "Chat Not Started"}
+        </button>
+      );
+    }
 
-  // VOICE CALL
-  if (mode === "voice call") {
-    return (
-      <button
-        onClick={() => handleVoiceCall(booking)}
-        disabled={!bookingStarted || callLoading}
-        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
-          bookingStarted
-            ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-purple-600/30 hover:opacity-95 active:scale-95"
-            : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
-        }`}
-      >
-        {callLoading ? (
-          <Loader2 size={17} className="animate-spin" />
-        ) : (
-          <Phone size={17} />
-        )}
+    // VOICE CALL
+    if (mode === "voice call") {
+      return (
+        <button
+          onClick={() => handleVoiceCall(booking)}
+          disabled={!bookingStarted || callLoading}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
+            bookingStarted
+              ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-purple-600/30 hover:opacity-95 active:scale-95"
+              : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
+          }`}
+        >
+          {callLoading ? (
+            <Loader2 size={17} className="animate-spin" />
+          ) : (
+            <Phone size={17} />
+          )}
 
-        {callLoading
-          ? "Connecting..."
-          : bookingStarted
-            ? "Voice Call"
-            : "Call Not Started"}
-      </button>
-    );
-  }
+          {callLoading
+            ? "Connecting..."
+            : bookingStarted
+              ? "Voice Call"
+              : "Call Not Started"}
+        </button>
+      );
+    }
 
-  // VIDEO CALL
-  if (mode === "video call") {
-    return (
-      <button
-        onClick={() => handleVideoCall(booking)}
-        disabled={!bookingStarted}
-        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
-          bookingStarted
-            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 hover:opacity-95 active:scale-95"
-            : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
-        }`}
-      >
-        <Video size={17} />
+    // VIDEO CALL
+    if (mode === "video call") {
+      return (
+        <button
+          onClick={() => handleVideoCall(booking)}
+          disabled={!bookingStarted}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
+            bookingStarted
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 hover:opacity-95 active:scale-95"
+              : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
+          }`}
+        >
+          <Video size={17} />
 
-        {bookingStarted ? "Video Call" : "Call Not Started"}
-      </button>
-    );
-  }
+          {bookingStarted ? "Video Call" : "Call Not Started"}
+        </button>
+      );
+    }
 
-  return null;
-};
+    return null;
+  };
 
   // --------------------------------------------------
   // BOOKING LIST

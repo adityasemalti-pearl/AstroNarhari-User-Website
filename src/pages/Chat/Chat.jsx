@@ -22,6 +22,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 
+import { getRestrictedKeywords } from "../../API/homeApis";
+
 import { getAuth } from "firebase/auth";
 
 import { db } from "../../firebase/firebase";
@@ -30,6 +32,29 @@ export default function Chat() {
   const location = useLocation();
   const navigate = useNavigate();
 
+
+  const [keywords, setKeywords] = useState([])
+  const [alert, setAlert] = useState(null);
+
+
+  
+
+
+  const fetchKeywords=async()=>{
+    try {
+      const res = await getRestrictedKeywords()
+      setKeywords(res.data.data || res.data)
+      console.log("resfehwgrf", res.data.data )
+      
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(()=>{
+    fetchKeywords()
+  },[])
+
   // --------------------------------------------------
   // PARTNER / BOOKING
   // --------------------------------------------------
@@ -37,13 +62,7 @@ export default function Chat() {
   const partner = location.state?.partner;
   const bookingId = location.state?.bookingId;
 
-  /*
-   * IMPORTANT:
-   * Partner must have Firebase UID.
-   *
-   * Example:
-   * partner.firebaseUid = "xxxxxxxx"
-   */
+
   const partnerId = partner?.firebaseUid;
 
   // --------------------------------------------------
@@ -187,87 +206,125 @@ export default function Chat() {
     };
   }, [conversationId, userId, partnerId]);
 
+  const showRestrictedAlert = (message) => {
+  setAlert(message);
+
+  setTimeout(() => {
+    setAlert(null);
+  }, 3000);
+};
+
+const checkRestrictedMessage = (text) => {
+  if (!keywords || keywords.length === 0) {
+    return null;
+  }
+
+  const lowerText = text.toLowerCase();
+
+  return keywords.find((item) =>
+    lowerText.includes(String(item.keyword).toLowerCase())
+  );
+};
+
   // --------------------------------------------------
   // SEND MESSAGE
   // --------------------------------------------------
 
-  const handleSendMessage = async (e) => {
-    e?.preventDefault();
+  const sendChatMessage = async (text) => {
+  if (!userId || !partnerId || !conversationId) {
+    return;
+  }
 
-    const trimmedMessage = message.trim();
+  try {
+    setSending(true);
 
-    if (!trimmedMessage) {
-      return;
-    }
+    const messagesRef = collection(
+      db,
+      "conversations",
+      conversationId,
+      "messages"
+    );
 
-    if (!userId) {
-      console.error("Cannot send message: Firebase UID missing");
-      return;
-    }
+    await addDoc(messagesRef, {
+      senderId: userId,
+      receiverId: partnerId,
+      type: "text",
+      text,
+      createdAt: serverTimestamp(),
+      readBy: [userId],
+    });
 
-    if (!partnerId) {
-      console.error("Cannot send message: Partner Firebase UID missing");
-      return;
-    }
+    await setDoc(
+      doc(db, "conversations", conversationId),
+      {
+        lastMessage: {
+          text,
+          senderId: userId,
+        },
+        lastMessageAt: serverTimestamp(),
+        lastReadAt: {
+          [userId]: serverTimestamp(),
+        },
+      },
+      {
+        merge: true,
+      }
+    );
 
-    if (!conversationId) {
-      console.error("Cannot send message: Conversation ID missing");
-      return;
-    }
+    setMessage("");
+    scrollToBottom();
 
-    try {
-      setSending(true);
+  } catch (error) {
+    console.error("Send message error:", error);
+  } finally {
+    setSending(false);
+  }
+};
 
-      console.log("Sending message...");
-      console.log("Sender Firebase UID:", userId);
-      console.log("Receiver Firebase UID:", partnerId);
-      console.log("Conversation:", conversationId);
+const handleSendMessage = async (e) => {
+  e?.preventDefault();
 
-      const messagesRef = collection(
-        db,
-        "conversations",
-        conversationId,
-        "messages",
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) return;
+
+  // Check restricted keyword
+  const matchedKeyword = checkRestrictedMessage(trimmedMessage);
+
+  if (matchedKeyword) {
+
+    // BLOCK
+    if (matchedKeyword.action === "block") {
+      showRestrictedAlert(
+        `"${matchedKeyword.keyword}" is a restricted word and cannot be sent.`
       );
 
-      await addDoc(messagesRef, {
-        senderId: userId,
-        type: "text",
-        text: trimmedMessage,
-        createdAt: serverTimestamp(),
-        readBy: [userId],
-      });
+      return;
+    }
 
-      await setDoc(
-        doc(db, "conversations", conversationId),
-        {
-          lastMessage: {
-            text: trimmedMessage,
-            senderId: userId,
-          },
-
-          lastMessageAt: serverTimestamp(),
-
-          lastReadAt: {
-            [userId]: serverTimestamp(),
-          },
-        },
-        {
-          merge: true,
-        },
+    // MASK
+    if (matchedKeyword.action === "mask") {
+      const escapedKeyword = String(matchedKeyword.keyword).replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
       );
 
-      console.log("Message sent successfully");
+      const maskRegex = new RegExp(escapedKeyword, "gi");
 
-      setMessage("");
+      const maskedMessage = trimmedMessage.replace(
+        maskRegex,
+        "****"
+      );
 
-      scrollToBottom();
-    } catch (error) {
-      console.error("Send message error:", error);
-    } finally {
-      setSending(false);
+      await sendChatMessage(maskedMessage);
+
+      return;
     }
-  };
+  }
+
+  // NORMAL MESSAGE
+  await sendChatMessage(trimmedMessage);
+};
 
   // --------------------------------------------------
   // ENTER TO SEND
@@ -327,6 +384,7 @@ export default function Chat() {
   if (!userId || !partnerId) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#faf7ff] p-5">
+
         <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-xl">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <MessageCircle size={30} className="text-red-500" />
@@ -360,7 +418,34 @@ export default function Chat() {
   return (
     <div className="flex h-screen flex-col bg-[#faf7ff]">
       {/* ================= HEADER ================= */}
+       {alert && (
+  <div className="fixed right-5 top-5 z-[99999] w-[360px] max-w-[calc(100vw-40px)] animate-in slide-in-from-right-5">
+    <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-white p-4 shadow-2xl">
 
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+        <span className="text-lg">⚠️</span>
+      </div>
+
+      <div className="flex-1">
+        <h3 className="text-sm font-bold text-gray-900">
+          Message Restricted
+        </h3>
+
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          {alert}
+        </p>
+      </div>
+
+      <button
+        onClick={() => setAlert(null)}
+        className="text-gray-400 transition hover:text-gray-700"
+      >
+        ✕
+      </button>
+
+    </div>
+  </div>
+)}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-purple-100 bg-white px-4 py-4 shadow-sm sm:px-6">
         <div className="flex items-center gap-3">
           {/* Back */}

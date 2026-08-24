@@ -50,3 +50,8 @@ export const deletePartnerByMobile = (number) => {
 export const getblogs=()=>{
   return api.get('/admin/insights/get-articles')
 }
+
+
+export const getRestrictedKeywords=()=>{
+  return api.get('/admin/restrictKeyword/keyWordsforChat')
+}

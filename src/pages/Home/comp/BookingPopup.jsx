@@ -132,7 +132,7 @@ export default function BookAppointmentPopup({
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedTime, setSelectedTime] = useState("10:30 AM");
   const [selectedDuration, setSelectedDuration] = useState(30);
-  const [consultationMode, setConsultationMode] = useState("chat");
+  const [consultationMode, setConsultationMode] = useState("Chat");
 
   const [loading, setLoading] = useState(false);
 
@@ -172,39 +172,19 @@ export default function BookAppointmentPopup({
    */
   const handleProceed = async () => {
     try {
-      console.log("🔥 ===== BOOKING CHECK =====");
-      console.log("🔥 BALANCE RECEIVED IN POPUP:", balance);
-      console.log("🔥 ASTRO MIN RATE:", astrologer?.minRate);
-      console.log("🔥 FEE:", fee);
-      console.log("🔥 DISPLAY FEE:", displayFee);
-      console.log("🔥 SELECTED DATE:", selectedDate);
-      console.log("🔥 SELECTED TIME:", selectedTime);
-      console.log("🔥 SELECTED DURATION:", selectedDuration);
-      console.log("🔥 CONSULTATION MODE:", consultationMode);
-
       const currentBalance = Number(balance) || 0;
       const minimumRate = Number(displayFee) || 0;
-
-      /**
-       * Wallet balance check
-       */
       if (currentBalance < minimumRate) {
         setShowWallet(true);
         return;
       }
 
-      /**
-       * Astrologer validation
-       */
       if (!astrologer?._id) {
         console.error("Partner ID is missing");
         alert("Astrologer information is missing.");
         return;
       }
 
-      /**
-       * Booking fields validation
-       */
       if (
         !selectedDate ||
         !selectedTime ||
@@ -217,18 +197,6 @@ export default function BookAppointmentPopup({
 
       setLoading(true);
 
-      /**
-       * IMPORTANT:
-       *
-       * selectedDate is already in:
-       *
-       * YYYY-MM-DD
-       *
-       * Example:
-       * 2026-08-24
-       *
-       * So we directly send it to API.
-       */
       const payload = {
         partnerId: astrologer._id,
 
@@ -238,16 +206,9 @@ export default function BookAppointmentPopup({
 
         duration: selectedDuration,
 
-        mode: consultationMode === "voice" ? "Voice Call" : "Chat",
+        mode: consultationMode ,
       };
 
-      console.log("🔥 ASTROLOGER OBJECT:", astrologer);
-      console.log("🔥 ASTROLOGER ID:", astrologer?._id);
-      console.log("🔥 FINAL BOOKING PAYLOAD:", payload);
-
-      /**
-       * API CALL
-       */
       const response = await scheduleBooking(payload);
 
       console.log("🔥 BOOKING API RESPONSE:", response);
@@ -473,9 +434,9 @@ export default function BookAppointmentPopup({
 
             {/* Chat */}
             <button
-              onClick={() => setConsultationMode("chat")}
+              onClick={() => setConsultationMode("Chat")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                consultationMode === "chat"
+                consultationMode === "Chat"
                   ? "border-purple-700 bg-purple-700 text-white"
                   : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
               }`}
@@ -486,15 +447,27 @@ export default function BookAppointmentPopup({
 
             {/* Voice */}
             <button
-              onClick={() => setConsultationMode("voice")}
+              onClick={() => setConsultationMode("Voice Call")}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
-                consultationMode === "voice"
+                consultationMode === "Voice Call"
                   ? "border-purple-700 bg-purple-700 text-white"
                   : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
               }`}
             >
               <Phone size={16} />
               Voice Call
+            </button>
+
+             <button
+              onClick={() => setConsultationMode("Video Call")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
+                consultationMode === "Video Call"
+                  ? "border-purple-700 bg-purple-700 text-white"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-purple-300"
+              }`}
+            >
+              <Phone size={16} />
+              Video Call
             </button>
 
           </div>

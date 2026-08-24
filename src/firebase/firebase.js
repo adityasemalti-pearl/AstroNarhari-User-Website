@@ -1,8 +1,8 @@
-// firebase.js
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging, isSupported } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBTE0OFRibSmhcqFsU3n7P6-gCV2Jdqz3k",
@@ -17,9 +17,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const analytics = getAnalytics(app);
+
 export const auth = getAuth(app);
 
-// Firestore
 export const db = getFirestore(app);
+
+export const getFirebaseMessaging = async () => {
+  const supported = await isSupported();
+
+  if (!supported) {
+    return null;
+  }
+
+  return getMessaging(app);
+};
 
 export default app;

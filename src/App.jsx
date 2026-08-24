@@ -41,6 +41,7 @@ import PrivacyPolicy from "./pages/Home/PublicPages/PrivacyPolicy";
 import DeletePartner from "./pages/Home/PublicPages/DeletePartner";
 import ChildSafety from "./pages/Home/PublicPages/ChildSafety";
 import ChatList from "./pages/Chat/ChatList";
+import VideoCall from "./pages/Chat/VideoCall";
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -106,6 +107,7 @@ function App() {
             <Route path="orders" element={<MyOrders />} />
             <Route path="chat/:partnerId" element={<Chat />}/>
             <Route path="chat-list" element={<ChatList />}/>
+            <Route path="video-call/:id" element={<VideoCall />}/>
           </Route>
         </Route>
 
