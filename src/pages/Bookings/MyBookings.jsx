@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getMyBookings, cancelBooking } from "../../API/bookingApis";
 import { initiateCall, terminateCall } from "../../API/callApi";
 import { useNavigate } from "react-router-dom";
+import {getAstrologerById} from '../../API/homeApis'
 
 import {
   Phone,
@@ -25,6 +26,18 @@ export default function MyBookings() {
   // Call modal
   const [activeCallModal, setActiveCallModal] = useState(null);
   const [callLoading, setCallLoading] = useState(false);
+
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+
+  useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrentTime(new Date());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
 
   // Message popup
   const [messagePopup, setMessagePopup] = useState({
@@ -86,6 +99,47 @@ export default function MyBookings() {
   useEffect(() => {
     fetchBookings();
   }, []);
+
+
+
+
+  const getBookingDateTime = (booking) => {
+  if (!booking?.date || !booking?.timeSlot) return null;
+
+  const date = new Date(booking.date);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  const time = booking.timeSlot.trim();
+
+  const match = time.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const meridiem = match[3].toUpperCase();
+
+  if (meridiem === "PM" && hours !== 12) {
+    hours += 12;
+  }
+
+  if (meridiem === "AM" && hours === 12) {
+    hours = 0;
+  }
+
+  date.setHours(hours, minutes, 0, 0);
+
+  return date;
+};
+
+const hasBookingStarted = (booking) => {
+  const bookingDateTime = getBookingDateTime(booking);
+
+  if (!bookingDateTime) return false;
+
+  return new Date() >= bookingDateTime;
+};
 
   // --------------------------------------------------
   // FORMAT DATE
@@ -151,12 +205,30 @@ export default function MyBookings() {
   // CHAT
   // --------------------------------------------------
 
-  const handleChat = (booking) => {
+
+  
+  
+const handleChat = async (booking) => {
+  try {
+    const id = booking?.partner?._id;
+
+    console.log("BOOKING:", booking);
+    console.log("PARTNER ID:", id);
+
+    if (!id) {
+      showMessage(
+        "Invalid Partner",
+        "Astrologer information is missing.",
+        "error"
+      );
+      return;
+    }
+
     if (!booking?._id) {
       showMessage(
         "Invalid Booking",
         "Booking information is missing.",
-        "error",
+        "error"
       );
       return;
     }
@@ -165,9 +237,8 @@ export default function MyBookings() {
       showMessage(
         "Chat Not Available",
         "Chat will be available once the astrologer accepts your booking.",
-        "error",
+        "error"
       );
-
       return;
     }
 
@@ -175,19 +246,52 @@ export default function MyBookings() {
       showMessage(
         "Invalid Booking Type",
         "This booking is not a chat booking.",
-        "error",
+        "error"
       );
-
       return;
     }
 
-    navigate(`/dashboard/chat/${booking?.partner?._id}`, {
+    // Fetch proper/latest partner details
+    const res = await getAstrologerById(id);
+
+    console.log("ASTROLOGER API RESPONSE:", res);
+
+    const partnerDetails = res?.data?.data;
+
+    console.log("PARTNER DETAILS:", partnerDetails);
+    console.log(
+      "PARTNER FIREBASE UID:",
+      partnerDetails?.firebaseUid
+    );
+
+    if (!partnerDetails) {
+      showMessage(
+        "Partner Not Found",
+        "Unable to fetch astrologer details.",
+        "error"
+      );
+      return;
+    }
+
+    navigate(`/dashboard/chat/${id}`, {
       state: {
-        partner: booking?.partner,
-        bookingId: booking?._id,
+        partner: partnerDetails,
+        partnerId: id,
+        bookingId: booking._id,
       },
     });
-  };
+
+  } catch (error) {
+    console.error("HANDLE CHAT ERROR:", error);
+
+    showMessage(
+      "Unable to Open Chat",
+      error?.response?.data?.message ||
+        "Unable to fetch astrologer details.",
+      "error"
+    );
+  }
+};
 
   // --------------------------------------------------
   // VOICE CALL
@@ -489,56 +593,78 @@ export default function MyBookings() {
   // MODE BUTTONS
   // --------------------------------------------------
 
-  const renderModeButton = (booking) => {
-    const mode = normalizeMode(booking.mode);
+ const renderModeButton = (booking) => {
+  const mode = normalizeMode(booking.mode);
 
-    // CHAT
-    if (mode === "chat") {
-      return (
-        <button
-          onClick={() => handleChat(booking)}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-purple-50 px-5 py-3 text-sm font-bold text-purple-700 transition-all hover:bg-purple-100 active:scale-95 md:flex-none"
-        >
-          <MessageCircle size={17} />
-          Chat
-        </button>
-      );
-    }
+  const bookingStarted = hasBookingStarted(booking);
 
-    // VOICE CALL
-    if (mode === "voice call") {
-      return (
-        <button
-          onClick={() => handleVoiceCall(booking)}
-          disabled={callLoading}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-purple-600/30 transition-all hover:opacity-95 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
-        >
-          {callLoading ? (
-            <Loader2 size={17} className="animate-spin" />
-          ) : (
-            <Phone size={17} />
-          )}
+  // CHAT
+  if (mode === "chat") {
+    return (
+      <button
+        onClick={() => handleChat(booking)}
+        disabled={!bookingStarted}
+        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition-all md:flex-none ${
+          bookingStarted
+            ? "bg-purple-50 text-purple-700 hover:bg-purple-100 active:scale-95"
+            : "cursor-not-allowed bg-gray-100 text-gray-400"
+        }`}
+      >
+        <MessageCircle size={17} />
 
-          {callLoading ? "Connecting..." : "Voice Call"}
-        </button>
-      );
-    }
+        {bookingStarted ? "Chat" : "Chat Not Started"}
+      </button>
+    );
+  }
 
-    // VIDEO CALL
-    if (mode === "video call") {
-      return (
-        <button
-          onClick={() => handleVideoCall(booking)}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition-all hover:opacity-95 active:scale-95 md:flex-none"
-        >
-          <Video size={17} />
-          Video Call
-        </button>
-      );
-    }
+  // VOICE CALL
+  if (mode === "voice call") {
+    return (
+      <button
+        onClick={() => handleVoiceCall(booking)}
+        disabled={!bookingStarted || callLoading}
+        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
+          bookingStarted
+            ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg shadow-purple-600/30 hover:opacity-95 active:scale-95"
+            : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
+        }`}
+      >
+        {callLoading ? (
+          <Loader2 size={17} className="animate-spin" />
+        ) : (
+          <Phone size={17} />
+        )}
 
-    return null;
-  };
+        {callLoading
+          ? "Connecting..."
+          : bookingStarted
+            ? "Voice Call"
+            : "Call Not Started"}
+      </button>
+    );
+  }
+
+  // VIDEO CALL
+  if (mode === "video call") {
+    return (
+      <button
+        onClick={() => handleVideoCall(booking)}
+        disabled={!bookingStarted}
+        className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all md:flex-none ${
+          bookingStarted
+            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 hover:opacity-95 active:scale-95"
+            : "cursor-not-allowed bg-gray-200 text-gray-400 shadow-none"
+        }`}
+      >
+        <Video size={17} />
+
+        {bookingStarted ? "Video Call" : "Call Not Started"}
+      </button>
+    );
+  }
+
+  return null;
+};
 
   // --------------------------------------------------
   // BOOKING LIST
