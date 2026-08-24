@@ -59,9 +59,6 @@ export default function Chat() {
   const auth = getAuth();
   const firebaseUser = auth.currentUser;
 
-  console.log("Firebase Auth Current User:", auth);
-console.log("Firebase Auth App:", auth.app);
-
   const userId = firebaseUser?.uid || null;
 
   console.log("================================");
