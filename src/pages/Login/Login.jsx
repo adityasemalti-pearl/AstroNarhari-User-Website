@@ -307,7 +307,7 @@ export default function Login() {
                   <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" strokeLinecap="round" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
+              <h1 onClick={()=>navigate('/home')} className="text-xl font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
                 Namah-Astro
               </h1>
             </div>
