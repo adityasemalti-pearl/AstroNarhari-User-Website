@@ -872,198 +872,228 @@ export default function Astrologers() {
       </main>
 
       {/* PROFILE DRAWER - Changed background backdrop and borders to purple theme */}
-      {activeProfileExpert && (
-        <div className="fixed inset-0 z-50 bg-[#1A1429]/50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity duration-300">
-          <div className="bg-white w-full max-w-xl rounded-3xl border border-[#E2E0EF] p-8 space-y-7 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-fadeInUp">
-            {/* Close button updated */}
-            <button
-              onClick={() => setActiveProfileExpert(null)}
-              className="absolute top-6 right-6 p-2.5 rounded-2xl bg-[#F8F7FF] text-[#6C5F8B] hover:text-[#6D28D9] hover:bg-[#EDE9FE]"
-            >
-              <X className="w-5 h-5" />
-            </button>
+     {activeProfileExpert && (
+  <div className="fixed inset-0 z-50 bg-[#1A1429]/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 transition-opacity duration-300">
+    <div className="relative bg-white w-full max-w-xl rounded-2xl sm:rounded-3xl border border-[#E2E0EF] shadow-2xl max-h-[94vh] sm:max-h-[90vh] overflow-y-auto animate-fadeInUp">
 
-            <div className="flex items-center gap-6">
-              {/* Profile image border */}
-              <img
-                src={
-                  selectedPartner?.profilePic ||
-                  "https://ui-avatars.com/api/?name=" +
-                    encodeURIComponent(activeProfileExpert.fullName) +
-                    "&background=EDE9FE&color=6D28D9"
-                }
-                alt={selectedPartner?.fullName}
-                className="w-24 h-24 rounded-3xl object-cover border-4 border-[#EDE9FE] shadow-md"
-              />
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <h3 className="font-serif font-bold text-3xl text-[#1A1429]">
-                    {selectedPartner?.fullName}
-                  </h3>
-                  {selectedPartner?.isVerified && (
-                    <ShieldCheck
-                      className="w-6 h-6 text-[#6D28D9]"
-                      fill="#EDE9FE"
-                    />
-                  )}
-                </div>
-                <p className="text-sm font-medium text-[#6D28D9]">
-                  {selectedPartner?.specialties?.join(" • ")}
-                </p>
-                {/* Star color change */}
-                <div className="flex items-center gap-2 text-[#1A1429] font-bold text-sm pt-1.5">
-                  <Star className="w-5 h-5 fill-[#6D28D9] text-[#6D28D9]" />
-                  <span>
-                    {Number(selectedPartner?.averageRating || 0).toFixed(1)} (
-                    {selectedPartner?.totalReviews || 0} reviews)
-                  </span>
-                </div>
-              </div>
+      {/* Close Button */}
+      <button
+        onClick={() => setActiveProfileExpert(null)}
+        className="absolute top-3 right-3 sm:top-6 sm:right-6 z-10 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-[#F8F7FF] text-[#6C5F8B] hover:text-[#6D28D9] hover:bg-[#EDE9FE] transition"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      <div className="p-4 sm:p-8 space-y-5 sm:space-y-7">
+
+        {/* ================= PROFILE HEADER ================= */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 pr-8 sm:pr-10">
+
+          {/* Profile Image */}
+          <img
+            src={
+              selectedPartner?.profilePic ||
+              "https://ui-avatars.com/api/?name=" +
+                encodeURIComponent(activeProfileExpert.fullName) +
+                "&background=EDE9FE&color=6D28D9"
+            }
+            alt={selectedPartner?.fullName}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl object-cover border-4 border-[#EDE9FE] shadow-md flex-shrink-0"
+          />
+
+          {/* Profile Info */}
+          <div className="space-y-1.5 text-center sm:text-left min-w-0 w-full">
+
+            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+              <h3 className="font-serif font-bold text-2xl sm:text-3xl text-[#1A1429] break-words">
+                {selectedPartner?.fullName}
+              </h3>
+
+              {selectedPartner?.isVerified && (
+                <ShieldCheck
+                  className="w-5 h-5 sm:w-6 sm:h-6 text-[#6D28D9] flex-shrink-0"
+                  fill="#EDE9FE"
+                />
+              )}
             </div>
 
-            {/* Accent color changed to purple */}
-            <div className="space-y-3 text-sm text-[#1A1429]">
-              <h4 className="font-bold text-[#6D28D9] uppercase tracking-wider text-xs">
-                About the Guide
-              </h4>
-              {/* Background and border changes */}
-              <p className="leading-relaxed bg-[#F8F7FF] p-5 rounded-2xl border border-[#E2E0EF]">
-                {selectedPartner?.bio || "No bio available."}
-              </p>
+            <p className="text-xs sm:text-sm font-medium text-[#6D28D9] break-words">
+              {selectedPartner?.specialties?.join(" • ")}
+            </p>
+
+            <div className="flex items-center justify-center sm:justify-start gap-2 text-[#1A1429] font-bold text-xs sm:text-sm pt-1.5">
+              <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-[#6D28D9] text-[#6D28D9] flex-shrink-0" />
+
+              <span>
+                {Number(selectedPartner?.averageRating || 0).toFixed(1)} (
+                {selectedPartner?.totalReviews || 0} reviews)
+              </span>
             </div>
 
-            {/* Info grid updated to purple theme */}
-            <div className="grid grid-cols-2 gap-4 text-sm text-[#6C5F8B]">
-              {[
-                {
-                  label: "Experience",
-                  value: `${selectedPartner?.experience} Years`,
-                  icon: Clock,
-                },
-                {
-                  label: "Qualification",
-                  value: selectedPartner?.qualification || "N/A",
-                  icon: Award,
-                },
-                {
-                  label: "City",
-                  value: selectedPartner?.city || "N/A",
-                  icon: Globe,
-                },
-                {
-                  label: "Languages",
-                  value: selectedPartner?.languages?.join(", ") || "N/A",
-                  icon: Users,
-                },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="bg-[#F8F7FF] p-4 rounded-2xl border border-[#E2E0EF] flex items-center gap-3.5"
-                >
-                  <item.icon className="w-5 h-5 text-[#8B5CF6] flex-shrink-0" />
-                  <div>
-                    <span className="block text-[11px] font-medium text-[#A9A2CC] uppercase tracking-wider">
-                      {item.label}
-                    </span>
-                    <span className="font-bold text-[#1A1429]">
-                      {item.value}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              {/* Specialties col-span update */}
-              <div className="bg-[#F8F7FF] p-4 rounded-2xl border border-[#E2E0EF] col-span-2 space-y-1">
-                <span className="block text-[11px] font-medium text-[#A9A2CC] uppercase tracking-wider">
-                  Specialties
-                </span>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {selectedPartner?.specialties?.map((s) => (
-                    <span
-                      key={s}
-                      className="bg-[#EDE9FE] text-[#6D28D9] text-xs font-semibold px-3 py-1 rounded-full border border-[#D8D1F7]"
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Fee + Button changed to Purple */}
-            <div className="pt-6 mt-2 border-t border-[#E2E0EF] space-y-4">
-              {/* Fee */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-[#6C5F8B] block font-medium">
-                    Consultation Fee
-                  </span>
-
-                  <span className="font-extrabold text-[#1A1429] text-2xl">
-                    ₹{selectedPartner?.minRate || 0}
-                    <span className="text-sm font-medium text-[#6C5F8B]">
-                      /min
-                    </span>
-                  </span>
-                </div>
-
-                {/* Online Status */}
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                    selectedPartner?.isOnline
-                      ? "bg-[#A7F3D0] text-[#065F46]"
-                      : "bg-[#F1F0F7] text-[#6C5F8B]"
-                  }`}
-                >
-                  {selectedPartner?.isOnline ? "Online" : "Offline"}
-                </span>
-              </div>
-
-              {/* CHAT + CALL */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* CHAT */}
-                <button
-                  disabled={isChatting || !selectedPartner?.isOnline}
-                  onClick={() => {
-                    const partner = selectedPartner || activeProfileExpert;
-
-                    if (!partner?._id) return;
-
-                    handleInstantChat(partner);
-                  }}
-                  className="flex items-center justify-center gap-2 bg-[#EDE9FE] hover:bg-[#DDD6FE] disabled:opacity-50 disabled:cursor-not-allowed text-[#6D28D9] py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95"
-                >
-                  <MessageCircle className="w-5 h-5" />
-
-                  {isChatting ? "Requesting..." : "Chat"}
-                </button>
-
-                {/* CALL */}
-                <button
-                  disabled={isCalling || !selectedPartner?.isOnline}
-                  onClick={() => handleInstantCall(selectedPartner)}
-                  className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95"
-                >
-                  <Phone className="w-5 h-5" />
-
-                  {isCalling ? "Calling..." : "Call"}
-                </button>
-              </div>
-
-              {/* BOOK APPOINTMENT */}
-              <button
-                onClick={() => {
-                  setActiveProfileExpert(null);
-                  setShowBooking(true);
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-[#6D28D9] hover:bg-[#5B21B6] text-white py-4 rounded-2xl font-bold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
-              >
-                <CalendarDays className="w-5 h-5" />
-                Book Appointment
-              </button>
-            </div>
           </div>
         </div>
-      )}
+
+        {/* ================= ABOUT ================= */}
+        <div className="space-y-3 text-sm text-[#1A1429]">
+
+          <h4 className="font-bold text-[#6D28D9] uppercase tracking-wider text-[10px] sm:text-xs">
+            About the Guide
+          </h4>
+
+          <p className="leading-6 sm:leading-relaxed bg-[#F8F7FF] p-4 sm:p-5 rounded-xl sm:rounded-2xl border border-[#E2E0EF] text-xs sm:text-sm">
+            {selectedPartner?.bio || "No bio available."}
+          </p>
+
+        </div>
+
+        {/* ================= INFO GRID ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-[#6C5F8B]">
+
+          {[
+            {
+              label: "Experience",
+              value: `${selectedPartner?.experience} Years`,
+              icon: Clock,
+            },
+            {
+              label: "Qualification",
+              value: selectedPartner?.qualification || "N/A",
+              icon: Award,
+            },
+            {
+              label: "City",
+              value: selectedPartner?.city || "N/A",
+              icon: Globe,
+            },
+            {
+              label: "Languages",
+              value: selectedPartner?.languages?.join(", ") || "N/A",
+              icon: Users,
+            },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              className="bg-[#F8F7FF] p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#E2E0EF] flex items-center gap-3 min-w-0"
+            >
+              <item.icon className="w-5 h-5 text-[#8B5CF6] flex-shrink-0" />
+
+              <div className="min-w-0">
+                <span className="block text-[9px] sm:text-[11px] font-medium text-[#A9A2CC] uppercase tracking-wider">
+                  {item.label}
+                </span>
+
+                <span className="block font-bold text-[#1A1429] text-xs sm:text-sm break-words">
+                  {item.value}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {/* Specialties */}
+          <div className="bg-[#F8F7FF] p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-[#E2E0EF] col-span-1 sm:col-span-2 space-y-2">
+
+            <span className="block text-[9px] sm:text-[11px] font-medium text-[#A9A2CC] uppercase tracking-wider">
+              Specialties
+            </span>
+
+            <div className="flex flex-wrap gap-2 pt-1">
+              {selectedPartner?.specialties?.map((s) => (
+                <span
+                  key={s}
+                  className="bg-[#EDE9FE] text-[#6D28D9] text-[10px] sm:text-xs font-semibold px-2.5 sm:px-3 py-1 rounded-full border border-[#D8D1F7]"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* ================= FOOTER ================= */}
+        <div className="pt-5 sm:pt-6 mt-1 sm:mt-2 border-t border-[#E2E0EF] space-y-4">
+
+          {/* Fee + Status */}
+          <div className="flex items-center justify-between gap-3">
+
+            <div>
+              <span className="text-[10px] sm:text-xs text-[#6C5F8B] block font-medium">
+                Consultation Fee
+              </span>
+
+              <span className="font-extrabold text-[#1A1429] text-xl sm:text-2xl">
+                ₹{selectedPartner?.minRate || 0}
+                <span className="text-xs sm:text-sm font-medium text-[#6C5F8B]">
+                  /min
+                </span>
+              </span>
+            </div>
+
+            {/* Online Status */}
+            <span
+              className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-2.5 sm:px-3 py-1.5 rounded-full whitespace-nowrap ${
+                selectedPartner?.isOnline
+                  ? "bg-[#A7F3D0] text-[#065F46]"
+                  : "bg-[#F1F0F7] text-[#6C5F8B]"
+              }`}
+            >
+              {selectedPartner?.isOnline ? "Online" : "Offline"}
+            </span>
+
+          </div>
+
+          {/* ================= CHAT + CALL ================= */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+
+            {/* CHAT */}
+            <button
+              disabled={isChatting || !selectedPartner?.isOnline}
+              onClick={() => {
+                const partner = selectedPartner || activeProfileExpert;
+
+                if (!partner?._id) return;
+
+                handleInstantChat(partner);
+              }}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-[#EDE9FE] hover:bg-[#DDD6FE] disabled:opacity-50 disabled:cursor-not-allowed text-[#6D28D9] py-3 sm:py-3.5 px-2 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all active:scale-95"
+            >
+              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+
+              {isChatting ? "Requesting..." : "Chat"}
+            </button>
+
+            {/* CALL */}
+            <button
+              disabled={isCalling || !selectedPartner?.isOnline}
+              onClick={() => handleInstantCall(selectedPartner)}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 sm:py-3.5 px-2 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all active:scale-95"
+            >
+              <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+
+              {isCalling ? "Calling..." : "Call"}
+            </button>
+
+          </div>
+
+          {/* ================= BOOK APPOINTMENT ================= */}
+          <button
+            onClick={() => {
+              setActiveProfileExpert(null);
+              setShowBooking(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 bg-[#6D28D9] hover:bg-[#5B21B6] text-white py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
+          >
+            <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" />
+            Book Appointment
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
 
       {showBooking && (
         <BookAppointmentPopup
