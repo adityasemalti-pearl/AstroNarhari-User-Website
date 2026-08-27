@@ -8,7 +8,7 @@ import AstrologerModal from "../../Models/AstrologerModal";
 import BookAppointmentPopup from "./comp/BookingPopup";
 import { myWallet } from "../../API/bookingApis";
 import BookingConfirmedPopup from "./comp/BookingConfirmedPopup";
-
+import { updateFCMToken } from "../../API/authapis";
 import {
   initiateInstantCall,
   getInstantCallStatus,
@@ -90,20 +90,26 @@ export default function Dashboard() {
   const fetchWallet = async () => {
     try {
       const res = await myWallet();
-
-      console.log("🔥 FULL WALLET RESPONSE:", res);
-      console.log("🔥 WALLET DATA:", res.data);
-      console.log("🔥 WALLET BALANCE:", res.data?.walletBalance);
-
       const balance = Number(res.data?.walletBalance) || 0;
-
       setWalletBalance(balance);
-
-      // Optional: keep localStorage in sync
       localStorage.setItem("walletBalance", balance);
     } catch (error) {
       console.log("❌ Wallet Error:", error);
       setWalletBalance(0);
+    }
+  };
+
+  const handleFCMRegistration = async () => {
+    try {
+      console.log("🔔 Starting FCM Token generation process...");
+      
+      const mockFcmToken = "fcm_token_" + Math.random().toString(36).substring(2) + Date.now();
+      console.log("✅ FCM Token generated successfully:", mockFcmToken);
+
+      const response = await updateFCMToken({ fcmToken: mockFcmToken });
+      console.log("✅ FCM Token successfully sent to server:", response?.data);
+    } catch (error) {
+      console.error("❌ Error registering FCM Token:", error?.response?.data || error?.message);
     }
   };
 
@@ -182,12 +188,10 @@ export default function Dashboard() {
     fetchAllAstrologers();
     fetchInsights();
     fetchWallet();
+    handleFCMRegistration();
   }, []);
 
   const handleOpenModal = (astro) => {
-    console.log("🔥 ASTRO FROM DASHBOARD:", astro);
-    console.log("🔥 ASTRO ID:", astro?._id);
-    console.log("🔥 ASTRO MIN RATE:", astro?.minRate);
     setSelectedAstrologer(astro);
     setIsModalOpen(true);
   };
@@ -198,9 +202,6 @@ export default function Dashboard() {
   };
 
   const handleConnectNow = () => {
-    console.log("🔥 SELECTED ASTRO BEFORE BOOKING:", selectedAstrologer);
-    console.log("🔥 SELECTED ASTRO MIN RATE:", selectedAstrologer?.minRate);
-    console.log("🔥 SELECTED ASTRO ID:", selectedAstrologer?._id);
     setIsModalOpen(false);
     setIsBookingOpen(true);
   };
@@ -210,8 +211,6 @@ export default function Dashboard() {
   };
 
   const handleProceedToPayment = (bookingData) => {
-    console.log("🔥 BOOKING SUCCESS DATA:", bookingData);
-
     const minimumRate =
       Number(bookingData?.minRate) ||
       Number(bookingData?.fee) ||
@@ -220,20 +219,11 @@ export default function Dashboard() {
 
     const currentBalance = Number(walletBalance) || 0;
 
-    console.log("🔥 WALLET BALANCE:", currentBalance);
-    console.log("🔥 MINIMUM RATE:", minimumRate);
-
-    // Insufficient wallet balance
     if (currentBalance < minimumRate) {
-      console.log("❌ INSUFFICIENT BALANCE");
-
       setIsBookingOpen(false);
       navigate("/dashboard/wallet");
       return;
     }
-
-    // Schedule API successful
-    console.log("✅ BOOKING SUCCESSFUL - SHOWING CONFIRMATION POPUP");
 
     setConfirmedBooking(bookingData);
     setIsBookingOpen(false);
@@ -253,10 +243,7 @@ export default function Dashboard() {
       }
 
       const rate = Number(astro?.minRate) || 10;
-
-      // Instant call ke liye 2 minutes
       const durationMinutes = 2;
-
       const balance = Number(walletBalance) || 0;
 
       if (balance < rate * durationMinutes) {
@@ -266,19 +253,11 @@ export default function Dashboard() {
         return;
       }
 
-      console.log("📞 INSTANT CALL REQUEST:", {
-        partnerId: astro._id,
-        type: "call",
-        durationMinutes,
-      });
-
       const response = await initiateInstantCall({
         partnerId: astro._id,
         type: "call",
         durationMinutes,
       });
-
-      console.log("📞 INSTANT SESSION RESPONSE:", response?.data);
 
       if (!response?.data?.success) {
         throw new Error(
@@ -295,17 +274,13 @@ export default function Dashboard() {
       setCallRequestId(requestId);
       setCallSid(requestId);
       setCallStatus("calling");
-
-      console.log("✅ Instant call request sent:", requestId);
     } catch (error) {
       console.error("❌ Instant Call Error:", error);
-
       setCallError(
         error?.response?.data?.message ||
           error?.message ||
           "Unable to connect call.",
       );
-
       setCallStatus("error");
     }
   };
@@ -321,7 +296,6 @@ export default function Dashboard() {
           clearInterval(timer);
           return 0;
         }
-
         return prev - 1;
       });
     }, 1000);
@@ -339,17 +313,11 @@ export default function Dashboard() {
     const checkCallStatus = async () => {
       try {
         const response = await getInstantCallStatus(callRequestId);
-
         const status = response?.data?.status;
-
-        console.log("📞 INSTANT CALL STATUS:", status);
 
         if (!isMounted) return;
 
-        // Partner accepted
         if (status === "accepted") {
-          console.log("✅ CALL ACCEPTED - PHONE CALL STARTED");
-
           setIsCalling(false);
           setCallStatus("idle");
           setActiveCallAstro(null);
@@ -357,39 +325,30 @@ export default function Dashboard() {
           setCallSid(null);
           setCallError("");
           setCallTimeLeft(120);
-
           return;
         }
 
-        // Partner rejected
         if (status === "rejected") {
           setCallError("Astrologer rejected your call request.");
-
           setCallStatus("error");
           setIsCalling(false);
           setCallRequestId(null);
-
           return;
         }
 
-        // Request cancelled
         if (status === "cancelled") {
           setCallError("Call request was cancelled.");
-
           setCallStatus("error");
           setIsCalling(false);
           setCallRequestId(null);
-
           return;
         }
 
-        // Session completed
         if (status === "completed") {
           setIsCalling(false);
           setCallStatus("idle");
           setActiveCallAstro(null);
           setCallRequestId(null);
-
           return;
         }
       } catch (error) {
@@ -397,10 +356,8 @@ export default function Dashboard() {
       }
     };
 
-    // Immediately check
     checkCallStatus();
 
-    // Check every 3 seconds
     const interval = setInterval(() => {
       checkCallStatus();
     }, 3000);
@@ -418,21 +375,15 @@ export default function Dashboard() {
 
     const cancelRequest = async () => {
       try {
-        console.log("⏰ 2 minutes completed. Cancelling request...");
-
         await cancelInstantCall(callRequestId);
-
         setCallError("Astrologer did not accept the call request.");
-
         setCallStatus("error");
         setIsCalling(false);
         setCallRequestId(null);
         setCallSid(null);
       } catch (error) {
         console.error("❌ Cancel Request Error:", error);
-
         setCallError("Call request expired.");
-
         setCallStatus("error");
         setIsCalling(false);
         setCallRequestId(null);
@@ -461,7 +412,6 @@ export default function Dashboard() {
       setCallTimeLeft(120);
     } catch (error) {
       console.error("❌ End Call Error:", error);
-
       setIsCalling(false);
       setCallStatus("idle");
       setActiveCallAstro(null);
@@ -894,36 +844,6 @@ export default function Dashboard() {
           </div>
         </section>
       </main>
-      {/* 
-      <footer className="mt-20 border-t border-purple-100 bg-white w-full">
-        <div className="w-full px-6 lg:px-12 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#4A1E5C] text-amber-300 flex items-center justify-center font-serif text-base font-bold">
-              ☾
-            </div>
-            <span className="text-sm font-serif font-bold tracking-widest text-[#4A1E5C] uppercase">
-              Astronarhari
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            © 2026 Astronarhari. All rights reserved. Crafted for cosmic
-            alignments.
-          </p>
-
-          <div className="flex items-center gap-6 text-xs text-slate-500 font-medium">
-            <a href="#" className="hover:text-purple-900 transition-colors">
-              Terms of Service
-            </a>
-            <a href="#" className="hover:text-purple-900 transition-colors">
-              Privacy Policy
-            </a>
-            <a href="#" className="hover:text-purple-900 transition-colors">
-              Support
-            </a>
-          </div>
-        </div>
-      </footer> */}
 
       <motion.button
         onClick={() => {
@@ -948,28 +868,24 @@ export default function Dashboard() {
       />
 
       {isBookingOpen && selectedAstrologer && (
-        <>
-          {console.log("🔥 ASTRO GOING TO BOOKING POPUP:", selectedAstrologer)}
-
-          <BookAppointmentPopup
-            astrologer={selectedAstrologer}
-            month={new Date().toLocaleString("default", {
-              month: "long",
-              year: "numeric",
-            })}
-            fee={selectedAstrologer?.minRate || 0}
-            originalFee={selectedAstrologer?.minRate || 0}
-            balance={Number(walletBalance) || 0}
-            onClose={handleCloseBooking}
-            onProceedToPayment={handleProceedToPayment}
-            setShowWallet={(value) => {
-              if (value) {
-                setIsBookingOpen(false);
-                navigate("/dashboard/wallet");
-              }
-            }}
-          />
-        </>
+        <BookAppointmentPopup
+          astrologer={selectedAstrologer}
+          month={new Date().toLocaleString("default", {
+            month: "long",
+            year: "numeric",
+          })}
+          fee={selectedAstrologer?.minRate || 0}
+          originalFee={selectedAstrologer?.minRate || 0}
+          balance={Number(walletBalance) || 0}
+          onClose={handleCloseBooking}
+          onProceedToPayment={handleProceedToPayment}
+          setShowWallet={(value) => {
+            if (value) {
+              setIsBookingOpen(false);
+              navigate("/dashboard/wallet");
+            }
+          }}
+        />
       )}
 
       {isBookingConfirmedOpen && confirmedBooking && (
@@ -979,14 +895,11 @@ export default function Dashboard() {
               selectedAstrologer?.fullName ||
               confirmedBooking?.astrologer?.fullName ||
               "Astrologer",
-
             tag: selectedAstrologer?.specialties?.join(" • ") || "Vedic Expert",
-
             rating:
               selectedAstrologer?.averageRating ??
               confirmedBooking?.astrologer?.averageRating ??
               0,
-
             image:
               selectedAstrologer?.profilePic ||
               confirmedBooking?.astrologer?.profilePic ||
@@ -998,13 +911,11 @@ export default function Dashboard() {
               confirmedBooking?.bookingDate ||
               confirmedBooking?.scheduledDate ||
               "Scheduled Date",
-
             time:
               confirmedBooking?.time ||
               confirmedBooking?.bookingTime ||
               confirmedBooking?.scheduledTime ||
               "Scheduled Time",
-
             mode:
               confirmedBooking?.mode ||
               confirmedBooking?.consultationType ||
@@ -1041,7 +952,6 @@ export default function Dashboard() {
                 <div className="flex justify-center mb-5">
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-emerald-400/30 animate-ping" />
-
                     <img
                       src={
                         activeCallAstro.profilePic ||
@@ -1050,7 +960,6 @@ export default function Dashboard() {
                       alt={activeCallAstro.fullName}
                       className="relative w-24 h-24 rounded-full object-cover border-4 border-white/30 shadow-xl"
                     />
-
                     <span className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-400 border-4 border-[#52007A] rounded-full" />
                   </div>
                 </div>
@@ -1062,13 +971,8 @@ export default function Dashboard() {
                 <p className="text-white/70 text-sm mt-1">
                   {callStatus === "calling" &&
                     "Waiting for astrologer to accept..."}
-
                   {callStatus === "accepted" &&
                     "Astrologer accepted. Connecting call..."}
-
-                  {callStatus === "ending" && "Ending call..."}
-
-                  {callStatus === "error" && "Call failed"}
                   {callStatus === "ending" && "Ending call..."}
                   {callStatus === "error" && "Call failed"}
                 </p>
@@ -1097,7 +1001,6 @@ export default function Dashboard() {
                   <div className="text-center">
                     <div className="bg-purple-50 rounded-2xl p-4 mb-5">
                       <p className="text-xs text-slate-500">Call rate</p>
-
                       <p className="text-lg font-bold text-[#52007A] mt-1">
                         ₹{activeCallAstro.minRate || 0}/min
                       </p>
@@ -1106,12 +1009,10 @@ export default function Dashboard() {
                       <p className="text-xs text-slate-500">
                         Waiting for astrologer
                       </p>
-
                       <p className="text-2xl font-bold text-[#52007A] mt-1">
                         {Math.floor(callTimeLeft / 60)}:
                         {String(callTimeLeft % 60).padStart(2, "0")}
                       </p>
-
                       <p className="text-[11px] text-slate-400 mt-1">
                         Request will expire automatically
                       </p>

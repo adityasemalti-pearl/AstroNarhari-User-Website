@@ -229,7 +229,11 @@ export default function Login() {
         return;
       }
 
-      const permission = await Notification.requestPermission();
+      // Safe permission check
+      let permission = Notification.permission;
+      if (permission !== "granted") {
+        permission = await Notification.requestPermission();
+      }
 
       if (permission !== "granted") {
         console.log("Notification permission denied.");
@@ -237,19 +241,22 @@ export default function Login() {
       }
 
       const messaging = await getFirebaseMessaging();
-
       if (!messaging) {
         console.log("Firebase Messaging is not supported.");
         return;
       }
 
-      const registration = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js"
-      );
+      // Service Worker registration with try-catch so it doesn't break login if it fails
+      let registration = null;
+      try {
+        registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      } catch (swErr) {
+        console.warn("Service Worker registration failed:", swErr);
+      }
 
       const fcmToken = await getToken(messaging, {
         vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
-        serviceWorkerRegistration: registration,
+        ...(registration ? { serviceWorkerRegistration: registration } : {}),
       });
 
       if (!fcmToken) {
@@ -258,7 +265,6 @@ export default function Login() {
       }
 
       console.log("FCM Token Generate Hua:", fcmToken);
-      console.log("FCM Token API me update hone gya:", fcmToken);
 
       await updateFCMToken({
         fcmToken: fcmToken,
@@ -266,7 +272,8 @@ export default function Login() {
 
       console.log("API me FCM token update ho gaya successfully.");
     } catch (error) {
-      console.error("FCM Token Error:", error);
+      // Yeh catch block ensure karega ki agar FCM fail ho, toh bhi user ka login nahi rukega!
+      console.error("FCM Token Error (Non-blocking):", error);
     }
   };
 
@@ -297,7 +304,8 @@ export default function Login() {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.data));
 
-      await saveFCMToken();
+      // FCM token ko background me run karenge taaki agar ye fail ho toh bhi login/navigation na ruke
+      saveFCMToken().catch(err => console.log("FCM background error:", err));
 
       if (authMode === "register") {
         setPopup({
@@ -466,7 +474,7 @@ export default function Login() {
                 {step === "otp"
                   ? `Enter the 6-digit code sent to +91 ${phoneNumber}`
                   : authMode === "login"
-                  ? "Enter your mobile number to signss in."
+                  ? "Enter your mobile number to sign in."
                   : "Enter your mobile number to register."}
               </p>
             </div>
