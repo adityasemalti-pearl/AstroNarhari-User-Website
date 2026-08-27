@@ -25,7 +25,7 @@ export const verifyOtp = (data)=>{
     return api.post('/user/verify-otp',data)
 }
 
-
+//update api
 export const updateFCMToken = (data) => {
   return api.patch("/user/update-fcm", data);
 };
