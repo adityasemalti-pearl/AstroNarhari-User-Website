@@ -223,51 +223,52 @@ export default function Login() {
   };
 
   const saveFCMToken = async () => {
-  try {
-    if (!("Notification" in window)) {
-      console.log("Browser notifications are not supported.");
-      return;
+    try {
+      if (!("Notification" in window)) {
+        console.log("Browser notifications are not supported.");
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        console.log("Notification permission denied.");
+        return;
+      }
+
+      const messaging = await getFirebaseMessaging();
+
+      if (!messaging) {
+        console.log("Firebase Messaging is not supported.");
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js"
+      );
+
+      const fcmToken = await getToken(messaging, {
+        vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
+        serviceWorkerRegistration: registration,
+      });
+
+      if (!fcmToken) {
+        console.log("FCM token not generated.");
+        return;
+      }
+
+      console.log("FCM Token Generate Hua:", fcmToken);
+      console.log("FCM Token API me update hone gya:", fcmToken);
+
+      await updateFCMToken({
+        fcmToken: fcmToken,
+      });
+
+      console.log("API me FCM token update ho gaya successfully.");
+    } catch (error) {
+      console.error("FCM Token Error:", error);
     }
-
-    const permission = await Notification.requestPermission();
-
-    if (permission !== "granted") {
-      console.log("Notification permission denied.");
-      return;
-    }
-
-    const messaging = await getFirebaseMessaging();
-
-    if (!messaging) {
-      console.log("Firebase Messaging is not supported.");
-      return;
-    }
-
-    const registration = await navigator.serviceWorker.register(
-      "/firebase-messaging-sw.js"
-    );
-
-    const fcmToken = await getToken(messaging, {
-      vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
-      serviceWorkerRegistration: registration,
-    });
-
-    if (!fcmToken) {
-      console.log("FCM token not generated.");
-      return;
-    }
-
-    console.log("FCM TOKEN:", fcmToken);
-
-    await updateFCMToken({
-      fcmToken: fcmToken,
-    });
-
-    console.log("FCM token saved successfully.");
-  } catch (error) {
-    console.error("FCM Token Error:", error);
-  }
-};
+  };
 
   const handleVerifyOtp = async () => {
     if (!window.confirmationResult) {
@@ -295,6 +296,8 @@ export default function Login() {
 
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.data));
+
+      await saveFCMToken();
 
       if (authMode === "register") {
         setPopup({
