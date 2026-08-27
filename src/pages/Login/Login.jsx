@@ -222,61 +222,141 @@ export default function Login() {
     }
   };
 
+  // const saveFCMToken = async () => {
+  //   try {
+  //     if (!("Notification" in window)) {
+  //       console.log("Browser notifications are not supported.");
+  //       return;
+  //     }
+
+  //     // Safe permission check
+  //     let permission = Notification.permission;
+  //     if (permission !== "granted") {
+  //       permission = await Notification.requestPermission();
+  //     }
+
+  //     if (permission !== "granted") {
+  //       console.log("Notification permission denied.");
+  //       return;
+  //     }
+
+  //     const messaging = await getFirebaseMessaging();
+  //     if (!messaging) {
+  //       console.log("Firebase Messaging is not supported.");
+  //       return;
+  //     }
+
+  //     // Service Worker registration with try-catch so it doesn't break login if it fails
+  //     let registration = null;
+  //     try {
+  //       registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  //     } catch (swErr) {
+  //       console.warn("Service Worker registration failed:", swErr);
+  //     }
+
+  //     const fcmToken = await getToken(messaging, {
+  //       vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
+  //       ...(registration ? { serviceWorkerRegistration: registration } : {}),
+  //     });
+
+  //     if (!fcmToken) {
+  //       console.log("FCM token not generated.");
+  //       return;
+  //     }
+
+  //     console.log("FCM Token Generate Hua:", fcmToken);
+
+  //     await updateFCMToken({
+  //       fcmToken: fcmToken,   // fcm 
+  //     });
+
+  //     console.log("API me FCM token update ho gaya successfully.");
+  //   } catch (error) {
+  //     // Yeh catch block ensure karega ki agar FCM fail ho, toh bhi user ka login nahi rukega!
+  //     console.error("FCM Token Error (Non-blocking):", error);
+  //   }
+  // };
+
+
+
   const saveFCMToken = async () => {
-    try {
-      if (!("Notification" in window)) {
-        console.log("Browser notifications are not supported.");
-        return;
-      }
+  console.log("🔥 saveFCMToken START");
 
-      // Safe permission check
-      let permission = Notification.permission;
-      if (permission !== "granted") {
-        permission = await Notification.requestPermission();
-      }
-
-      if (permission !== "granted") {
-        console.log("Notification permission denied.");
-        return;
-      }
-
-      const messaging = await getFirebaseMessaging();
-      if (!messaging) {
-        console.log("Firebase Messaging is not supported.");
-        return;
-      }
-
-      // Service Worker registration with try-catch so it doesn't break login if it fails
-      let registration = null;
-      try {
-        registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-      } catch (swErr) {
-        console.warn("Service Worker registration failed:", swErr);
-      }
-
-      const fcmToken = await getToken(messaging, {
-        vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
-        ...(registration ? { serviceWorkerRegistration: registration } : {}),
-      });
-
-      if (!fcmToken) {
-        console.log("FCM token not generated.");
-        return;
-      }
-
-      console.log("FCM Token Generate Hua:", fcmToken);
-
-      await updateFCMToken({
-        fcmToken: fcmToken,   // fcm 
-      });
-
-      console.log("API me FCM token update ho gaya successfully.");
-    } catch (error) {
-      // Yeh catch block ensure karega ki agar FCM fail ho, toh bhi user ka login nahi rukega!
-      console.error("FCM Token Error (Non-blocking):", error);
+  try {
+    if (!("Notification" in window)) {
+      console.log("❌ Notification API not supported");
+      return;
     }
-  };
 
+    console.log("1️⃣ Notification permission:", Notification.permission);
+
+    let permission = Notification.permission;
+
+    if (permission !== "granted") {
+      console.log("2️⃣ Requesting notification permission...");
+      permission = await Notification.requestPermission();
+      console.log("3️⃣ Permission result:", permission);
+    }
+
+    if (permission !== "granted") {
+      console.log("❌ Notification permission denied");
+      return;
+    }
+
+    console.log("4️⃣ Getting Firebase Messaging...");
+
+    const messaging = await getFirebaseMessaging();
+
+    console.log("5️⃣ Messaging:", messaging);
+
+    if (!messaging) {
+      console.log("❌ Firebase Messaging is not supported");
+      return;
+    }
+
+    let registration = null;
+
+    try {
+      console.log("6️⃣ Registering service worker...");
+
+      registration = await navigator.serviceWorker.register(
+        "/firebase-messaging-sw.js"
+      );
+
+      console.log("7️⃣ Service Worker registered:", registration);
+    } catch (swErr) {
+      console.error("❌ Service Worker registration failed:", swErr);
+    }
+
+    console.log("8️⃣ Generating FCM token...");
+
+    const fcmToken = await getToken(messaging, {
+      vapidKey:
+        "BNN5keG3vVNJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
+      ...(registration
+        ? { serviceWorkerRegistration: registration }
+        : {}),
+    });
+
+    console.log("9️⃣ FCM Token:", fcmToken);
+
+    if (!fcmToken) {
+      console.log("❌ FCM token not generated");
+      return;
+    }
+
+    console.log("🔟 Calling updateFCMToken API...");
+
+    const response = await updateFCMToken({
+      fcmToken,
+    });
+
+    console.log("✅ FCM API RESPONSE:", response);
+
+  } catch (error) {
+    console.error("❌ FCM ERROR:", error);
+  }
+};
   const handleVerifyOtp = async () => {
     if (!window.confirmationResult) {
       return setPopup({
