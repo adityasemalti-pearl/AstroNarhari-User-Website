@@ -4,6 +4,9 @@ import { auth } from "../../firebase/firebase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { verifyOtp } from "../../API/authapis";
 import ResponseModal from "./ResponseModal";
+import { getFirebaseMessaging } from "../../firebase/firebase";
+import { getToken } from "firebase/messaging";
+import { updateFCMToken } from "../../API/authapis";
 
 export default function Login() {
   const [authMode, setAuthMode] = useState("login");
@@ -219,6 +222,53 @@ export default function Login() {
     }
   };
 
+  const saveFCMToken = async () => {
+  try {
+    if (!("Notification" in window)) {
+      console.log("Browser notifications are not supported.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      console.log("Notification permission denied.");
+      return;
+    }
+
+    const messaging = await getFirebaseMessaging();
+
+    if (!messaging) {
+      console.log("Firebase Messaging is not supported.");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.register(
+      "/firebase-messaging-sw.js"
+    );
+
+    const fcmToken = await getToken(messaging, {
+      vapidKey: "BNN5keG3vVNcJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
+      serviceWorkerRegistration: registration,
+    });
+
+    if (!fcmToken) {
+      console.log("FCM token not generated.");
+      return;
+    }
+
+    console.log("FCM TOKEN:", fcmToken);
+
+    await updateFCMToken({
+      fcmToken: fcmToken,
+    });
+
+    console.log("FCM token saved successfully.");
+  } catch (error) {
+    console.error("FCM Token Error:", error);
+  }
+};
+
   const handleVerifyOtp = async () => {
     if (!window.confirmationResult) {
       return setPopup({
@@ -307,7 +357,9 @@ export default function Login() {
                   <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" strokeLinecap="round" />
                 </svg>
               </div>
-              <h1 onClick={()=>navigate('/home')} className="text-xl font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
+              <h1
+              onClick={()=>navigate('/home')}
+              className="text-xl cursor-pointer font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
                 Namah-Astro
               </h1>
             </div>

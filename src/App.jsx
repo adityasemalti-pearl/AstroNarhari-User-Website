@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
+import { onMessage } from "firebase/messaging";
+import { getFirebaseMessaging } from "./firebase/firebase";
+
 import SplashScreen from "./pages/SplashScreen/SplashScreen";
 import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Home/Dashboard";
@@ -43,6 +46,7 @@ import ChildSafety from "./pages/Home/PublicPages/ChildSafety";
 import ChatList from "./pages/Chat/ChatList";
 import VideoCall from "./pages/Chat/VideoCall";
 
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
@@ -57,15 +61,76 @@ const ScrollToTop = () => {
   return null;
 };
 
+
 function App() {
+
+  // 🔔 Global Firebase Foreground Notifications
+  useEffect(() => {
+    let unsubscribe;
+
+    const setupForegroundNotifications = async () => {
+      try {
+        const messaging = await getFirebaseMessaging();
+
+        if (!messaging) {
+          console.log("Firebase Messaging not supported");
+          return;
+        }
+
+        unsubscribe = onMessage(messaging, (payload) => {
+          console.log("🔔 Foreground Notification:", payload);
+
+          const title =
+            payload.notification?.title ||
+            payload.data?.title ||
+            "Namah-Astro";
+
+          const body =
+            payload.notification?.body ||
+            payload.data?.body ||
+            "You have a new notification.";
+
+          if (Notification.permission === "granted") {
+            new Notification(title, {
+              body: body,
+              icon: "/logo192.png",
+              data: payload.data || {},
+            });
+          }
+        });
+
+        console.log("✅ Firebase foreground notification listener ready");
+
+      } catch (error) {
+        console.error(
+          "❌ Foreground notification setup error:",
+          error
+        );
+      }
+    };
+
+    setupForegroundNotifications();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
+
+
   return (
     <BrowserRouter>
       <ScrollToTop />
+
       <Routes>
-        <Route path ='/child-safety' element={<ChildSafety/>} />
+
+        <Route path="/child-safety" element={<ChildSafety />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/request-deletion" element={<DeletePartner />} />
+
         <Route element={<PublicRoute />}>
+
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<HomePage />} />
@@ -76,12 +141,16 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
-          
+
         </Route>
 
+
         <Route element={<ProtectedRoute />}>
+
           <Route path="/dashboard" element={<DashboardLayout />}>
+
             <Route index element={<Dashboard />} />
+
             <Route path="kundali" element={<KundliPage />} />
             <Route path="horoscope" element={<Horoscope />} />
             <Route path="match" element={<MatchingMaking />} />
@@ -105,13 +174,17 @@ function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="wallet" element={<WalletPage />} />
             <Route path="orders" element={<MyOrders />} />
-            <Route path="chat/:partnerId" element={<Chat />}/>
-            <Route path="chat-list" element={<ChatList />}/>
-            <Route path="video-call/:id" element={<VideoCall />}/>
+            <Route path="chat/:partnerId" element={<Chat />} />
+            <Route path="chat-list" element={<ChatList />} />
+            <Route path="video-call/:id" element={<VideoCall />} />
+
           </Route>
+
         </Route>
 
+
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </BrowserRouter>
   );

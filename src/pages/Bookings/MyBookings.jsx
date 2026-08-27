@@ -461,35 +461,44 @@ export default function MyBookings() {
   // --------------------------------------------------
 
   const handleEndCall = async (bookingId) => {
-    try {
-      if (!bookingId) return;
+  try {
+    if (!bookingId) return;
 
-      setCallLoading(true);
+    setCallLoading(true);
 
-      await terminateCall({
-        bookingId,
-      });
+    const res = await terminateCall({
+      bookingId,
+    });
 
-      setActiveCallModal(null);
+    console.log("TERMINATE CALL RESPONSE:", res);
 
-      showMessage(
-        "Call Ended",
+    // Backend response successful
+    setActiveCallModal(null);
+
+    showMessage(
+      "Call Ended",
+      res?.data?.message ||
         "Your consultation call has been ended successfully.",
-        "success",
-      );
-    } catch (error) {
-      console.error("End call error:", error);
+      "success"
+    );
 
-      showMessage(
-        "Unable to End Call",
-        error?.response?.data?.message ||
-          "Something went wrong while ending the call.",
-        "error",
-      );
-    } finally {
-      setCallLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error("End call error:", error);
+
+    // IMPORTANT:
+    // Backend Exotel 403 de raha hai, lekin UI ko stuck nahi rehna hai.
+    // Modal close kar do.
+    setActiveCallModal(null);
+
+    showMessage(
+      "Call Ended",
+      "The call has been closed from your side.",
+      "success"
+    );
+  } finally {
+    setCallLoading(false);
+  }
+};
 
   // --------------------------------------------------
   // RESCHEDULE

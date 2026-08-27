@@ -26,3 +26,6 @@ export const verifyOtp = (data)=>{
 }
 
 
+export const updateFCMToken = (data) => {
+  return api.put("/user/update-fcm", data);
+};

@@ -1,5 +1,3 @@
-/* eslint-disable no-undef */
-
 importScripts(
   "https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"
 );
@@ -14,23 +12,27 @@ firebase.initializeApp({
   projectId: "astroshriyam",
   storageBucket: "astroshriyam.firebasestorage.app",
   messagingSenderId: "256699637886",
-  appId: "1:256699637886:web:40748223d97541eedd782f",
+  appId: "1:256699637886:web:40748223d97541eedd782f"
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log("🔥 BACKGROUND NOTIFICATION:", payload);
+  console.log(
+    "[firebase-messaging-sw.js] Background message:",
+    payload
+  );
 
   const notificationTitle =
-    payload?.notification?.title || "Namahastro";
+    payload.notification?.title || payload.data?.title || "Namah-Astro";
 
   const notificationOptions = {
     body:
-      payload?.notification?.body ||
+      payload.notification?.body ||
+      payload.data?.body ||
       "You have a new notification.",
-    icon: "/logo.png",
-    data: payload?.data || {},
+    icon: "/logo192.png",
+    data: payload.data || {},
   };
 
   self.registration.showNotification(
@@ -41,10 +43,6 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-
-  const data = event.notification.data || {};
-
-  console.log("Notification clicked:", data);
 
   event.waitUntil(
     clients.matchAll({
