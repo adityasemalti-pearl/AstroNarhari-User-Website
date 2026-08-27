@@ -384,8 +384,20 @@ export default function Login() {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.data));
 
+
+      console.log("🔥 OTP VERIFY SUCCESS");
+
+localStorage.setItem("token", response.data.token);
+localStorage.setItem("user", JSON.stringify(response.data.data));
+
+console.log("🔥 Token saved:", localStorage.getItem("token"));
+
+saveFCMToken().catch((err) => {
+  console.error("🔥 Background FCM error:", err);
+});
+
       // FCM token ko background me run karenge taaki agar ye fail ho toh bhi login/navigation na ruke
-      saveFCMToken().catch(err => console.log("FCM background error:", err));
+      // saveFCMToken().catch(err => console.log("FCM background error:", err));
 
       if (authMode === "register") {
         setPopup({
