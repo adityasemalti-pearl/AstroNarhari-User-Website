@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-
 import { onMessage } from "firebase/messaging";
 import { getFirebaseMessaging } from "./firebase/firebase";
 
@@ -46,7 +45,6 @@ import ChildSafety from "./pages/Home/PublicPages/ChildSafety";
 import ChatList from "./pages/Chat/ChatList";
 import VideoCall from "./pages/Chat/VideoCall";
 
-
 const ScrollToTop = () => {
   const { pathname } = useLocation();
 
@@ -61,10 +59,7 @@ const ScrollToTop = () => {
   return null;
 };
 
-
 function App() {
-
-  // 🔔 Global Firebase Foreground Notifications
   useEffect(() => {
     let unsubscribe;
 
@@ -73,13 +68,10 @@ function App() {
         const messaging = await getFirebaseMessaging();
 
         if (!messaging) {
-          console.log("Firebase Messaging not supported");
           return;
         }
 
         unsubscribe = onMessage(messaging, (payload) => {
-          console.log("🔔 Foreground Notification:", payload);
-
           const title =
             payload.notification?.title ||
             payload.data?.title ||
@@ -98,15 +90,7 @@ function App() {
             });
           }
         });
-
-        console.log("✅ Firebase foreground notification listener ready");
-
-      } catch (error) {
-        console.error(
-          "❌ Foreground notification setup error:",
-          error
-        );
-      }
+      } catch (error) {}
     };
 
     setupForegroundNotifications();
@@ -118,19 +102,16 @@ function App() {
     };
   }, []);
 
-
   return (
     <BrowserRouter>
       <ScrollToTop />
 
       <Routes>
-
         <Route path="/child-safety" element={<ChildSafety />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/request-deletion" element={<DeletePartner />} />
 
         <Route element={<PublicRoute />}>
-
           <Route path="/" element={<SplashScreen />} />
           <Route path="/login" element={<Login />} />
           <Route path="/home" element={<HomePage />} />
@@ -141,16 +122,11 @@ function App() {
           <Route path="/contact" element={<ContactUs />} />
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/refund-policy" element={<RefundPolicy />} />
-
         </Route>
 
-
         <Route element={<ProtectedRoute />}>
-
           <Route path="/dashboard" element={<DashboardLayout />}>
-
             <Route index element={<Dashboard />} />
-
             <Route path="kundali" element={<KundliPage />} />
             <Route path="horoscope" element={<Horoscope />} />
             <Route path="match" element={<MatchingMaking />} />
@@ -177,14 +153,10 @@ function App() {
             <Route path="chat/:partnerId" element={<Chat />} />
             <Route path="chat-list" element={<ChatList />} />
             <Route path="video-call/:id" element={<VideoCall />} />
-
           </Route>
-
         </Route>
 
-
         <Route path="*" element={<NotFound />} />
-
       </Routes>
     </BrowserRouter>
   );
