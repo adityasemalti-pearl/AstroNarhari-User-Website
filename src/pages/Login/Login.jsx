@@ -267,7 +267,7 @@ export default function Login() {
       console.log("FCM Token Generate Hua:", fcmToken);
 
       await updateFCMToken({
-        fcmToken: fcmToken,
+        fcmToken: fcmToken,   // fcm 
       });
 
       console.log("API me FCM token update ho gaya successfully.");
