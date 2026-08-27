@@ -362,7 +362,7 @@ export default function MyBookings() {
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-gray-900">My Bookings</h1>
-            <p className="mt-1 text-sm font-medium text-gray-500">Manage your consultation sessions with experts.</p>
+            <p className="mt-1 text-sm font-medium text-gray-500">Manage yours consultation sessions with experts.</p>
           </div>
           <div className="flex flex-wrap rounded-2xl border border-purple-100 bg-white p-1.5 shadow-sm">
             {["all", "pending", "accepted", "completed", "cancelled"].map((tab) => (
