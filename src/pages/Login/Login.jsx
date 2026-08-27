@@ -466,7 +466,7 @@ export default function Login() {
                 {step === "otp"
                   ? `Enter the 6-digit code sent to +91 ${phoneNumber}`
                   : authMode === "login"
-                  ? "Enter your mobile number to sign in."
+                  ? "Enter your mobile number to signss in."
                   : "Enter your mobile number to register."}
               </p>
             </div>
