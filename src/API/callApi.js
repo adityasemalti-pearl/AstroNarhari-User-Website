@@ -76,6 +76,14 @@ export const joinVideoCall = (bookingId) => {
   });
 };
 
+// Terminate Video Call
+export const terminateVideoCall = (bookingId, actualDuration) => {
+  return api.post("/video/call/terminate", {
+    bookingId,
+    actualDuration,
+  });
+};
+
 // Settle Video Call
 export const settleVideoCall = (bookingId, actualDuration) => {
   return api.post("/video/call/settle", {
@@ -84,10 +92,10 @@ export const settleVideoCall = (bookingId, actualDuration) => {
   });
 };
 
-// Terminate Video Call
-export const terminateVideoCall = (bookingId, actualDuration) => {
-  return api.post("/video/call/terminate", {
+// Cancel Video Call + Refund
+export const cancelVideoAndRefund = (bookingId, reason) => {
+  return api.post("/video/call/refund", {
     bookingId,
-    actualDuration,
+    reason,
   });
 };

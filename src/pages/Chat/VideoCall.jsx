@@ -1,5 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
 import AgoraRTC from "agora-rtc-sdk-ng";
 
 import {
@@ -23,11 +35,12 @@ import {
 
 const VideoCall = () => {
   const { bookingId: paramBookingId } = useParams();
+
   const location = useLocation();
   const navigate = useNavigate();
 
   /* =========================================================
-     BOOKING / PARTNER DATA
+     BOOKING DATA
   ========================================================= */
 
   const booking = location.state?.booking;
@@ -50,6 +63,7 @@ const VideoCall = () => {
     partner?.profileImage ||
     partner?.image ||
     booking?.partner?.profilePic ||
+    booking?.partner?.profileImage ||
     "";
 
   /* =========================================================
@@ -59,13 +73,14 @@ const VideoCall = () => {
   const clientRef = useRef(null);
 
   const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
 
   const localAudioTrackRef = useRef(null);
   const localVideoTrackRef = useRef(null);
 
-  const remoteVideoRef = useRef(null);
+  const remoteUserRef = useRef(null);
 
-  const isMountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const initializingRef = useRef(false);
   const endingRef = useRef(false);
 
@@ -73,21 +88,17 @@ const VideoCall = () => {
 
   const elapsedSecondsRef = useRef(0);
 
-  const remoteUserRef = useRef(null);
-
   /* =========================================================
      STATE
   ========================================================= */
 
   const [callData, setCallData] = useState(null);
 
-  const [callStatus, setCallStatus] = useState("connecting");
+  const [connecting, setConnecting] = useState(true);
 
   const [joined, setJoined] = useState(false);
 
   const [remoteJoined, setRemoteJoined] = useState(false);
-
-  const [connecting, setConnecting] = useState(true);
 
   const [muted, setMuted] = useState(false);
 
@@ -101,10 +112,13 @@ const VideoCall = () => {
 
   const [duration, setDuration] = useState(0);
 
+  const [callStatus, setCallStatus] =
+    useState("connecting");
+
   const [error, setError] = useState("");
 
   /* =========================================================
-     FORMAT TIMER
+     FORMAT DURATION
   ========================================================= */
 
   const formatDuration = useCallback((seconds) => {
@@ -129,13 +143,14 @@ const VideoCall = () => {
     }
 
     elapsedSecondsRef.current = 0;
-
     setDuration(0);
 
     timerRef.current = setInterval(() => {
       elapsedSecondsRef.current += 1;
 
-      setDuration(elapsedSecondsRef.current);
+      setDuration(
+        elapsedSecondsRef.current
+      );
     }, 1000);
   }, []);
 
@@ -151,36 +166,7 @@ const VideoCall = () => {
   }, []);
 
   /* =========================================================
-     RENDER REMOTE VIDEO
-  ========================================================= */
-
-  const renderRemoteVideo = useCallback((user) => {
-    remoteUserRef.current = user;
-
-    setRemoteJoined(true);
-    setCallStatus("in-progress");
-
-    setTimeout(() => {
-      if (
-        remoteVideoRef.current &&
-        user.videoTrack
-      ) {
-        try {
-          user.videoTrack.play(
-            remoteVideoRef.current
-          );
-        } catch (error) {
-          console.error(
-            "Remote video play error:",
-            error
-          );
-        }
-      }
-    }, 100);
-  }, []);
-
-  /* =========================================================
-     STOP REMOTE VIDEO
+     CLEAR REMOTE VIDEO
   ========================================================= */
 
   const clearRemoteVideo = useCallback(() => {
@@ -188,47 +174,90 @@ const VideoCall = () => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.innerHTML = "";
       }
-    } catch (error) {
+    } catch (err) {
       console.error(
         "Clear remote video error:",
-        error
+        err
       );
     }
   }, []);
 
   /* =========================================================
+     PLAY REMOTE VIDEO
+  ========================================================= */
+
+  const playRemoteVideo = useCallback(
+    (user) => {
+      if (
+        !remoteVideoRef.current ||
+        !user?.videoTrack
+      ) {
+        return;
+      }
+
+      try {
+        remoteVideoRef.current.innerHTML = "";
+
+        user.videoTrack.play(
+          remoteVideoRef.current
+        );
+
+        console.log(
+          "▶️ Remote video playing:",
+          user.uid
+        );
+      } catch (err) {
+        console.error(
+          "❌ Remote video play error:",
+          err
+        );
+      }
+    },
+    []
+  );
+
+  /* =========================================================
+     PLAY REMOTE AUDIO
+  ========================================================= */
+
+  const playRemoteAudio = useCallback(
+    (user) => {
+      if (!user?.audioTrack) {
+        return;
+      }
+
+      try {
+        user.audioTrack.setVolume(
+          speakerOn ? 100 : 0
+        );
+
+        user.audioTrack.play();
+
+        console.log(
+          "🔊 Remote audio playing:",
+          user.uid
+        );
+      } catch (err) {
+        console.error(
+          "❌ Remote audio play error:",
+          err
+        );
+      }
+    },
+    [speakerOn]
+  );
+
+  /* =========================================================
      AGORA CLEANUP
   ========================================================= */
 
-  const cleanupAgora = useCallback(async () => {
-    stopTimer();
+  const cleanupAgora = useCallback(
+    async () => {
+      stopTimer();
 
-    try {
-      const client = clientRef.current;
-
-      if (client) {
-        try {
-          client.removeAllListeners();
-        } catch (error) {
-          console.error(
-            "Agora remove listeners error:",
-            error
-          );
-        }
-
-        try {
-          if (
-            client.connectionState !== "DISCONNECTED"
-          ) {
-            await client.leave();
-          }
-        } catch (error) {
-          console.error(
-            "Agora leave error:",
-            error
-          );
-        }
-      }
+      console.log(
+        "🧹 Cleaning Agora session..."
+      );
 
       /* -----------------------------------------
          LOCAL AUDIO
@@ -262,24 +291,55 @@ const VideoCall = () => {
         localVideoTrackRef.current = null;
       }
 
-      clearRemoteVideo();
+      /* -----------------------------------------
+         AGORA CLIENT
+      ----------------------------------------- */
 
-      remoteUserRef.current = null;
+      const client = clientRef.current;
+
+      if (client) {
+        try {
+          client.removeAllListeners();
+        } catch {}
+
+        try {
+          if (
+            client.connectionState !==
+            "DISCONNECTED"
+          ) {
+            await client.leave();
+          }
+        } catch (err) {
+          console.error(
+            "Agora leave error:",
+            err
+          );
+        }
+      }
 
       clientRef.current = null;
 
-      setJoined(false);
-      setRemoteJoined(false);
-    } catch (error) {
-      console.error(
-        "Agora cleanup error:",
-        error
+      remoteUserRef.current = null;
+
+      clearRemoteVideo();
+
+      if (mountedRef.current) {
+        setJoined(false);
+        setRemoteJoined(false);
+      }
+
+      console.log(
+        "✅ Agora cleanup completed"
       );
-    }
-  }, [clearRemoteVideo, stopTimer]);
+    },
+    [
+      clearRemoteVideo,
+      stopTimer,
+    ]
+  );
 
   /* =========================================================
-     INITIALIZE AGORA
+     JOIN AGORA
   ========================================================= */
 
   const joinAgora = useCallback(
@@ -289,6 +349,14 @@ const VideoCall = () => {
       rtcToken,
       uid
     ) => {
+      console.log(
+        "🔵 Starting Agora connection..."
+      );
+
+      /* -----------------------------------------
+         VALIDATION
+      ----------------------------------------- */
+
       if (!appId) {
         throw new Error(
           "Agora App ID is missing."
@@ -307,10 +375,25 @@ const VideoCall = () => {
         );
       }
 
-      if (uid === undefined || uid === null) {
+      if (
+        uid === undefined ||
+        uid === null
+      ) {
         throw new Error(
           "Agora UID is missing."
         );
+      }
+
+      /* -----------------------------------------
+         CLEAN OLD CLIENT
+      ----------------------------------------- */
+
+      if (clientRef.current) {
+        console.log(
+          "⚠️ Existing Agora client found. Cleaning..."
+        );
+
+        await cleanupAgora();
       }
 
       /* -----------------------------------------
@@ -325,18 +408,23 @@ const VideoCall = () => {
 
       clientRef.current = client;
 
-      /* -----------------------------------------
+      /* =====================================================
          USER PUBLISHED
-      ----------------------------------------- */
+      ===================================================== */
 
       client.on(
         "user-published",
-        async (user, mediaType) => {
+        async (
+          user,
+          mediaType
+        ) => {
           try {
             console.log(
-              "📡 Remote user published:",
-              user.uid,
-              mediaType
+              "📡 USER PUBLISHED:",
+              {
+                uid: user.uid,
+                mediaType,
+              }
             );
 
             await client.subscribe(
@@ -345,121 +433,120 @@ const VideoCall = () => {
             );
 
             console.log(
-              "✅ Remote user subscribed:",
-              user.uid,
-              mediaType
+              "✅ USER SUBSCRIBED:",
+              {
+                uid: user.uid,
+                mediaType,
+              }
             );
 
-            remoteUserRef.current = user;
+            remoteUserRef.current =
+              user;
 
-            /* -------------------------------
-               REMOTE VIDEO
-            -------------------------------- */
+            setRemoteJoined(true);
+            setCallStatus(
+              "in-progress"
+            );
 
-            if (mediaType === "video") {
-              setRemoteJoined(true);
-              setCallStatus("in-progress");
-
-              setTimeout(() => {
-                if (
-                  remoteVideoRef.current &&
-                  user.videoTrack
-                ) {
-                  remoteVideoRef.current.innerHTML =
-                    "";
-
-                  user.videoTrack.play(
-                    remoteVideoRef.current
-                  );
-                }
-              }, 100);
+            if (
+              mediaType === "video"
+            ) {
+              playRemoteVideo(user);
             }
 
-            /* -------------------------------
-               REMOTE AUDIO
-            -------------------------------- */
-
-            if (mediaType === "audio") {
-              try {
-                user.audioTrack?.play();
-              } catch (audioError) {
-                console.error(
-                  "Remote audio play error:",
-                  audioError
-                );
-              }
-
-              setRemoteJoined(true);
-              setCallStatus("in-progress");
+            if (
+              mediaType === "audio"
+            ) {
+              playRemoteAudio(user);
             }
-          } catch (error) {
+          } catch (err) {
             console.error(
-              "Remote subscribe error:",
-              error
+              "❌ Remote subscribe error:",
+              err
             );
           }
         }
       );
 
-      /* -----------------------------------------
+      /* =====================================================
          USER UNPUBLISHED
-      ----------------------------------------- */
+      ===================================================== */
 
       client.on(
         "user-unpublished",
-        (user, mediaType) => {
+        (
+          user,
+          mediaType
+        ) => {
           console.log(
-            "📴 Remote user unpublished:",
-            user.uid,
-            mediaType
+            "📴 USER UNPUBLISHED:",
+            {
+              uid: user.uid,
+              mediaType,
+            }
           );
 
-          if (mediaType === "video") {
+          if (
+            mediaType === "video"
+          ) {
             clearRemoteVideo();
           }
         }
       );
 
-      /* -----------------------------------------
+      /* =====================================================
          USER LEFT
-      ----------------------------------------- */
+      ===================================================== */
 
       client.on(
         "user-left",
         (user) => {
           console.log(
-            "❌ Remote user left:",
+            "❌ REMOTE USER LEFT:",
             user.uid
           );
 
-          remoteUserRef.current = null;
+          remoteUserRef.current =
+            null;
 
           clearRemoteVideo();
 
           setRemoteJoined(false);
 
-          setCallStatus("completed");
+          setCallStatus(
+            "completed"
+          );
 
           stopTimer();
         }
       );
 
-      /* -----------------------------------------
+      /* =====================================================
          CONNECTION STATE
-      ----------------------------------------- */
+      ===================================================== */
 
       client.on(
         "connection-state-change",
         (
-          curState,
-          prevState
+          currentState,
+          previousState
         ) => {
           console.log(
-            `Agora connection: ${prevState} → ${curState}`
+            `🔌 Agora connection: ${previousState} → ${currentState}`
           );
 
           if (
-            curState === "DISCONNECTED"
+            currentState ===
+            "CONNECTED"
+          ) {
+            console.log(
+              "✅ Agora connected"
+            );
+          }
+
+          if (
+            currentState ===
+            "DISCONNECTED"
           ) {
             if (
               !endingRef.current
@@ -474,9 +561,9 @@ const VideoCall = () => {
         }
       );
 
-      /* -----------------------------------------
+      /* =====================================================
          EXCEPTION
-      ----------------------------------------- */
+      ===================================================== */
 
       client.on(
         "exception",
@@ -488,9 +575,9 @@ const VideoCall = () => {
         }
       );
 
-      /* -----------------------------------------
+      /* =====================================================
          JOIN CHANNEL
-      ----------------------------------------- */
+      ===================================================== */
 
       console.log(
         "🔵 Joining Agora channel..."
@@ -506,57 +593,56 @@ const VideoCall = () => {
 
       let joinedAgora = false;
 
-      const attemptJoin = async (
-        retries = 5
-      ) => {
-        try {
-          await client.join(
-            appId,
-            channelName,
-            rtcToken,
-            uid
-          );
+      const attemptJoin =
+        async (retries = 5) => {
+          try {
+            await client.join(
+              appId,
+              channelName,
+              rtcToken,
+              uid
+            );
 
-          joinedAgora = true;
+            joinedAgora = true;
 
-          console.log(
-            "✅ Agora channel joined"
-          );
-        } catch (error) {
-          console.error(
-            "Agora join error:",
-            error
-          );
-
-          const errorMessage =
-            error?.message || "";
-
-          if (
-            errorMessage.includes(
-              "UID_CONFLICT"
-            ) &&
-            retries > 0
-          ) {
             console.log(
-              `⚠️ UID conflict. Retrying... ${retries}`
+              "✅ Agora channel joined successfully"
+            );
+          } catch (err) {
+            console.error(
+              "❌ Agora join error:",
+              err
             );
 
-            await new Promise(
-              (resolve) =>
-                setTimeout(
-                  resolve,
-                  2000
-                )
-            );
+            const message =
+              err?.message || "";
 
-            return attemptJoin(
-              retries - 1
-            );
+            if (
+              message.includes(
+                "UID_CONFLICT"
+              ) &&
+              retries > 0
+            ) {
+              console.log(
+                `⚠️ UID conflict. Retrying... ${retries} attempts left`
+              );
+
+              await new Promise(
+                (resolve) =>
+                  setTimeout(
+                    resolve,
+                    2000
+                  )
+              );
+
+              return attemptJoin(
+                retries - 1
+              );
+            }
+
+            throw err;
           }
-
-          throw error;
-        }
-      };
+        };
 
       await attemptJoin();
 
@@ -566,86 +652,68 @@ const VideoCall = () => {
         );
       }
 
-      if (!isMountedRef.current) {
+      if (!mountedRef.current) {
         await client.leave();
         return;
       }
 
-      /* -----------------------------------------
+      /* =====================================================
          CREATE LOCAL TRACKS
-      ----------------------------------------- */
+      ===================================================== */
 
       let audioTrack = null;
       let videoTrack = null;
 
       try {
         console.log(
-          "🎙️ Creating microphone + camera tracks..."
+          "🎙️ Creating microphone..."
         );
 
-        const tracks =
-          await AgoraRTC.createMicrophoneAndCameraTracks();
-
-        audioTrack = tracks[0];
-        videoTrack = tracks[1];
+        audioTrack =
+          await AgoraRTC.createMicrophoneAudioTrack();
 
         console.log(
-          "✅ Microphone + camera tracks created"
+          "✅ Microphone created"
         );
-      } catch (trackError) {
+      } catch (err) {
         console.error(
-          "Camera + microphone creation failed:",
-          trackError
+          "❌ Microphone creation failed:",
+          err
         );
 
-        /* ---------------------------------------
-           TRY AUDIO SEPARATELY
-        --------------------------------------- */
-
-        try {
-          audioTrack =
-            await AgoraRTC.createMicrophoneAudioTrack();
-
-          console.log(
-            "✅ Microphone created separately"
-          );
-        } catch (audioError) {
-          console.error(
-            "Microphone failed:",
-            audioError
-          );
-
-          if (isMountedRef.current) {
-            setMuted(true);
-          }
-        }
-
-        /* ---------------------------------------
-           TRY CAMERA SEPARATELY
-        --------------------------------------- */
-
-        try {
-          videoTrack =
-            await AgoraRTC.createCameraVideoTrack();
-
-          console.log(
-            "✅ Camera created separately"
-          );
-        } catch (videoError) {
-          console.error(
-            "Camera failed:",
-            videoError
-          );
-
-          if (isMountedRef.current) {
-            setCameraOff(true);
-          }
+        if (mountedRef.current) {
+          setMuted(true);
         }
       }
 
-      if (!audioTrack && !videoTrack) {
+      try {
+        console.log(
+          "📷 Creating camera..."
+        );
+
+        videoTrack =
+          await AgoraRTC.createCameraVideoTrack();
+
+        console.log(
+          "✅ Camera created"
+        );
+      } catch (err) {
+        console.error(
+          "❌ Camera creation failed:",
+          err
+        );
+
+        if (mountedRef.current) {
+          setCameraOff(true);
+        }
+      }
+
+      if (
+        !audioTrack &&
+        !videoTrack
+      ) {
         throw new Error(
-          "Could not access Camera or Microphone. Please check your browser permissions."
+          "Could not access camera or microphone. Please check browser permissions."
         );
       }
 
@@ -655,38 +723,45 @@ const VideoCall = () => {
       localVideoTrackRef.current =
         videoTrack;
 
-      /* -----------------------------------------
-         LOCAL VIDEO PLAY
-      ----------------------------------------- */
+      /* =====================================================
+         PLAY LOCAL VIDEO
+      ===================================================== */
 
       if (
         videoTrack &&
         localVideoRef.current
       ) {
-        videoTrack.play(
-          localVideoRef.current
-        );
+        try {
+          videoTrack.play(
+            localVideoRef.current
+          );
+
+          console.log(
+            "▶️ Local video playing"
+          );
+        } catch (err) {
+          console.error(
+            "❌ Local video play error:",
+            err
+          );
+        }
       }
 
-      /* -----------------------------------------
-         PUBLISH LOCAL TRACKS
-      ----------------------------------------- */
+      /* =====================================================
+         PUBLISH TRACKS
+      ===================================================== */
 
-      const tracksToPublish = [];
+      const tracks = [];
 
       if (audioTrack) {
-        tracksToPublish.push(
-          audioTrack
-        );
+        tracks.push(audioTrack);
       }
 
       if (videoTrack) {
-        tracksToPublish.push(
-          videoTrack
-        );
+        tracks.push(videoTrack);
       }
 
-      if (!isMountedRef.current) {
+      if (!mountedRef.current) {
         audioTrack?.close();
         videoTrack?.close();
 
@@ -695,34 +770,57 @@ const VideoCall = () => {
         return;
       }
 
+      console.log(
+        "📤 Publishing local tracks..."
+      );
+
       await client.publish(
-        tracksToPublish
+        tracks
       );
 
       console.log(
         "✅ Local tracks published"
       );
 
-      if (isMountedRef.current) {
+      if (mountedRef.current) {
         setJoined(true);
-
         setConnecting(false);
-
         setCallStatus("waiting");
       }
     },
-    [clearRemoteVideo, stopTimer]
+    [
+      cleanupAgora,
+      clearRemoteVideo,
+      playRemoteAudio,
+      playRemoteVideo,
+      stopTimer,
+    ]
   );
 
   /* =========================================================
-     START VIDEO CALL
+     INITIATE VIDEO CALL
   ========================================================= */
 
-  const startVideoCall = useCallback(
-    async () => {
+  const startVideoCall =
+    useCallback(async () => {
       if (
         initializingRef.current
       ) {
+        console.log(
+          "⚠️ Video call initialization already running"
+        );
+
+        return;
+      }
+
+      if (!bookingId) {
+        setError(
+          "Booking ID is missing."
+        );
+
+        setConnecting(false);
+        setCallStatus("failed");
+
         return;
       }
 
@@ -731,50 +829,43 @@ const VideoCall = () => {
       try {
         setConnecting(true);
         setError("");
-
-        setCallStatus("connecting");
-
-        /* ---------------------------------------
-           BOOKING VALIDATION
-        --------------------------------------- */
-
-        if (
-          !bookingId
-        ) {
-          throw new Error(
-            "Booking ID is missing."
-          );
-        }
-
-        /* ---------------------------------------
-           CAMERA PERMISSION
-        --------------------------------------- */
-
-        try {
-          await navigator.mediaDevices.getUserMedia(
-            {
-              video: true,
-              audio: true,
-            }
-          );
-        } catch (permissionError) {
-          console.error(
-            "Browser permission error:",
-            permissionError
-          );
-
-          throw new Error(
-            "Camera and microphone permissions are required for a video call."
-          );
-        }
-
-        /* ---------------------------------------
-           INITIATE CALL API
-        --------------------------------------- */
+        setCallStatus(
+          "connecting"
+        );
 
         console.log(
-          "🔵 Calling initiateVideoCall:",
+          "========================================"
+        );
+
+        console.log(
+          "📞 STARTING VIDEO CALL"
+        );
+
+        console.log(
+          "Booking ID:",
           bookingId
+        );
+
+        console.log(
+          "========================================"
+        );
+
+        /* =====================================================
+           IMPORTANT
+           
+           DO NOT call getUserMedia() here.
+           
+           Agora itself will request camera/mic.
+           Calling getUserMedia() separately causes
+           duplicate camera/mic streams on mobile.
+        ===================================================== */
+
+        /* =====================================================
+           INITIATE API
+        ===================================================== */
+
+        console.log(
+          "🔵 Calling initiateVideoCall..."
         );
 
         const response =
@@ -800,25 +891,53 @@ const VideoCall = () => {
           response.data;
 
         console.log(
-          "✅ Video call session:",
-          data
+          "✅ Video call session received:",
+          {
+            appId: data.appId,
+            channelName:
+              data.channelName,
+            uid: data.uid,
+            tokenLength:
+              data.rtcToken?.length,
+          }
         );
 
+        /* =====================================================
+           SESSION VALIDATION
+        ===================================================== */
+
+        if (!data.appId) {
+          throw new Error(
+            "Agora App ID is missing from server response."
+          );
+        }
+
+        if (!data.channelName) {
+          throw new Error(
+            "Agora channel name is missing from server response."
+          );
+        }
+
+        if (!data.rtcToken) {
+          throw new Error(
+            "Agora RTC token is missing from server response."
+          );
+        }
+
         if (
-          !data.appId ||
-          !data.channelName ||
-          !data.rtcToken
+          data.uid === undefined ||
+          data.uid === null
         ) {
           throw new Error(
-            "Invalid video call session received from server."
+            "Agora UID is missing from server response."
           );
         }
 
         setCallData(data);
 
-        /* ---------------------------------------
+        /* =====================================================
            JOIN AGORA
-        --------------------------------------- */
+        ===================================================== */
 
         await joinAgora(
           data.appId,
@@ -826,24 +945,24 @@ const VideoCall = () => {
           data.rtcToken,
           data.uid
         );
-      } catch (error) {
+      } catch (err) {
         console.error(
-          "❌ Video call start error:",
-          error
+          "❌ VIDEO CALL START ERROR:",
+          err
         );
 
         if (
-          isMountedRef.current
+          mountedRef.current
         ) {
-          setError(
-            error?.response
-              ?.data?.message ||
-              error?.message ||
-              "Unable to start video call."
-          );
+          const message =
+            err?.response?.data
+              ?.message ||
+            err?.message ||
+            "Unable to start video call.";
+
+          setError(message);
 
           setConnecting(false);
-
           setCallStatus("failed");
         }
 
@@ -852,20 +971,18 @@ const VideoCall = () => {
         initializingRef.current =
           false;
       }
-    },
-    [
+    }, [
       bookingId,
       cleanupAgora,
       joinAgora,
-    ]
-  );
+    ]);
 
   /* =========================================================
-     INIT
+     INITIALIZE COMPONENT
   ========================================================= */
 
   useEffect(() => {
-    isMountedRef.current = true;
+    mountedRef.current = true;
 
     if (!bookingId) {
       setError(
@@ -873,16 +990,21 @@ const VideoCall = () => {
       );
 
       setConnecting(false);
-
       setCallStatus("failed");
 
-      return;
+      return () => {
+        mountedRef.current = false;
+      };
     }
 
     startVideoCall();
 
     return () => {
-      isMountedRef.current = false;
+      mountedRef.current = false;
+
+      console.log(
+        "🔴 VideoCall component unmounted"
+      );
 
       cleanupAgora();
     };
@@ -893,156 +1015,205 @@ const VideoCall = () => {
   ]);
 
   /* =========================================================
-     START TIMER WHEN REMOTE JOINS
+     START TIMER WHEN BOTH USERS CONNECT
   ========================================================= */
 
   useEffect(() => {
     if (
-      remoteJoined &&
-      joined
+      joined &&
+      remoteJoined
     ) {
+      console.log(
+        "⏱️ Both users connected. Timer started."
+      );
+
       startTimer();
     }
 
     return () => {
+      if (
+        !remoteJoined ||
+        !joined
+      ) {
+        return;
+      }
+
       stopTimer();
     };
   }, [
-    remoteJoined,
     joined,
+    remoteJoined,
     startTimer,
     stopTimer,
   ]);
 
   /* =========================================================
-     MICROPHONE TOGGLE
+     MICROPHONE
   ========================================================= */
 
   const toggleMicrophone =
     async () => {
+      const track =
+        localAudioTrackRef.current;
+
+      if (!track) {
+        console.warn(
+          "⚠️ Microphone track not available"
+        );
+
+        return;
+      }
+
       try {
-        const track =
-          localAudioTrackRef.current;
-
-        if (!track) {
-          return;
-        }
-
-        const newMuted =
+        const nextMuted =
           !muted;
 
         await track.setEnabled(
-          !newMuted
+          !nextMuted
         );
 
-        setMuted(
-          newMuted
+        setMuted(nextMuted);
+
+        console.log(
+          nextMuted
+            ? "🔇 Microphone muted"
+            : "🎙️ Microphone unmuted"
         );
-      } catch (error) {
+      } catch (err) {
         console.error(
-          "Microphone toggle error:",
-          error
+          "❌ Microphone toggle error:",
+          err
         );
       }
     };
 
   /* =========================================================
-     CAMERA TOGGLE
+     CAMERA
   ========================================================= */
 
   const toggleCamera =
     async () => {
+      const track =
+        localVideoTrackRef.current;
+
+      if (!track) {
+        console.warn(
+          "⚠️ Camera track not available"
+        );
+
+        return;
+      }
+
       try {
-        const track =
-          localVideoTrackRef.current;
-
-        if (!track) {
-          return;
-        }
-
-        const newCameraOff =
+        const nextCameraOff =
           !cameraOff;
 
         await track.setEnabled(
-          !newCameraOff
+          !nextCameraOff
         );
 
         setCameraOff(
-          newCameraOff
+          nextCameraOff
         );
-      } catch (error) {
+
+        console.log(
+          nextCameraOff
+            ? "📷 Camera disabled"
+            : "📷 Camera enabled"
+        );
+      } catch (err) {
         console.error(
-          "Camera toggle error:",
-          error
+          "❌ Camera toggle error:",
+          err
         );
       }
     };
 
   /* =========================================================
-     FLIP CAMERA
+     SWITCH CAMERA
   ========================================================= */
 
   const flipCamera =
     async () => {
-      try {
-        const track =
-          localVideoTrackRef.current;
+      const track =
+        localVideoTrackRef.current;
 
-        if (!track) {
+      if (!track) {
+        return;
+      }
+
+      try {
+        const devices =
+          await AgoraRTC.getCameras();
+
+        if (
+          !devices ||
+          devices.length < 2
+        ) {
+          console.warn(
+            "⚠️ Only one camera is available"
+          );
+
           return;
         }
 
+        const currentDeviceId =
+          track.getTrackLabel?.();
+
+        console.log(
+          "📷 Available cameras:",
+          devices
+        );
+
+        /*
+         * Agora Web SDK supports switchDevice
+         * with a specific deviceId.
+         */
+
+        const currentLabel =
+          track.getTrackLabel?.() ||
+          "";
+
+        const nextDevice =
+          devices.find(
+            (device) =>
+              device.label !==
+              currentLabel
+          ) || devices[0];
+
         await track.switchDevice(
-          "videoinput"
-        ).catch(async () => {
-          await track.switchDevice(
-            "environment"
-          );
-        });
+          nextDevice.deviceId
+        );
 
         setFrontCamera(
           (prev) => !prev
         );
-      } catch (error) {
-        console.error(
-          "Camera switch error:",
-          error
+
+        console.log(
+          "✅ Camera switched:",
+          nextDevice.label
         );
-
-        try {
-          await track?.switchDevice(
-            frontCamera
-              ? "environment"
-              : "user"
-          );
-
-          setFrontCamera(
-            (prev) => !prev
-          );
-        } catch {}
+      } catch (err) {
+        console.error(
+          "❌ Camera switch error:",
+          err
+        );
       }
     };
 
   /* =========================================================
-     SPEAKER TOGGLE
+     SPEAKER
   ========================================================= */
 
   const toggleSpeaker =
-    async () => {
+    () => {
       try {
-        const client =
-          clientRef.current;
-
-        if (!client) {
-          return;
-        }
-
-        const newSpeaker =
+        const nextSpeaker =
           !speakerOn;
 
-        /* Agora Web SDK browser
-           audio playback is controlled
-           through audio track volume */
+        setSpeakerOn(
+          nextSpeaker
+        );
 
         const remoteUser =
           remoteUserRef.current;
@@ -1051,19 +1222,21 @@ const VideoCall = () => {
           remoteUser?.audioTrack
         ) {
           remoteUser.audioTrack.setVolume(
-            newSpeaker
+            nextSpeaker
               ? 100
               : 0
           );
         }
 
-        setSpeakerOn(
-          newSpeaker
+        console.log(
+          nextSpeaker
+            ? "🔊 Speaker ON"
+            : "🔇 Speaker OFF"
         );
-      } catch (error) {
+      } catch (err) {
         console.error(
-          "Speaker toggle error:",
-          error
+          "❌ Speaker toggle error:",
+          err
         );
       }
     };
@@ -1082,87 +1255,115 @@ const VideoCall = () => {
       }
 
       endingRef.current = true;
+      setEnding(true);
 
       try {
-        setEnding(true);
-
         stopTimer();
 
-        const actualDuration =
+        const elapsedSeconds =
           elapsedSecondsRef.current;
 
+        /*
+         * IMPORTANT:
+         *
+         * Backend expects actualDuration
+         * in MINUTES.
+         *
+         * Backend:
+         *
+         * actualDuration * ratePerMinute
+         *
+         * Therefore seconds MUST be converted
+         * into minutes before sending.
+         */
+
+        const actualDurationMinutes =
+          Math.ceil(
+            elapsedSeconds / 60
+          );
+
         console.log(
-          "📞 Ending call:",
+          "📞 Ending video call:",
           {
             bookingId,
-            actualDuration,
+            elapsedSeconds,
+            actualDurationMinutes,
           }
         );
 
-        /* ---------------------------------------
+        /* =====================================================
            TERMINATE API
-        --------------------------------------- */
+        ===================================================== */
 
-        if (
-          bookingId
-        ) {
+        if (bookingId) {
           try {
-            await terminateVideoCall(
-              bookingId,
-              actualDuration
-            );
+            const response =
+              await terminateVideoCall(
+                bookingId,
+                actualDurationMinutes
+              );
 
             console.log(
-              "✅ terminateVideoCall success"
+              "✅ terminateVideoCall response:",
+              response
             );
           } catch (apiError) {
             console.error(
-              "terminateVideoCall error:",
+              "❌ terminateVideoCall error:",
               apiError
             );
 
             /*
-             * Call cleanup should still happen
-             * even if API fails.
+             * Even if backend termination fails,
+             * Agora must still be cleaned.
              */
           }
         }
 
-        /* ---------------------------------------
-           AGORA CLEANUP
-        --------------------------------------- */
+        /* =====================================================
+           CLEAN AGORA
+        ===================================================== */
 
         await cleanupAgora();
 
-        /* ---------------------------------------
+        /* =====================================================
            REDIRECT
-        --------------------------------------- */
+        ===================================================== */
 
-        navigate(
-          "/dashboard/my-bookings",
-          {
-            replace: true,
-            state: {
-              callEnded: true,
-            },
-          }
-        );
-      } catch (error) {
+        if (
+          mountedRef.current
+        ) {
+          navigate(
+            "/dashboard/my-bookings",
+            {
+              replace: true,
+              state: {
+                callEnded: true,
+              },
+            }
+          );
+        }
+      } catch (err) {
         console.error(
-          "End call error:",
-          error
+          "❌ End call error:",
+          err
         );
 
-        setError(
-          error?.response
-            ?.data?.message ||
-            error?.message ||
-            "Unable to end video call."
-        );
+        if (
+          mountedRef.current
+        ) {
+          setError(
+            err?.response?.data
+              ?.message ||
+              err?.message ||
+              "Unable to end video call."
+          );
+        }
+
+        endingRef.current =
+          false;
 
         setEnding(false);
-
-        endingRef.current = false;
       }
     };
 
@@ -1174,17 +1375,27 @@ const VideoCall = () => {
     const handleBeforeUnload =
       () => {
         try {
-          const client =
-            clientRef.current;
+          stopTimer();
 
-          client?.leave();
+          const audio =
+            localAudioTrackRef.current;
 
-          localAudioTrackRef.current?.stop();
-          localAudioTrackRef.current?.close();
+          const video =
+            localVideoTrackRef.current;
 
-          localVideoTrackRef.current?.stop();
-          localVideoTrackRef.current?.close();
-        } catch {}
+          audio?.stop();
+          audio?.close();
+
+          video?.stop();
+          video?.close();
+
+          clientRef.current?.leave();
+        } catch (err) {
+          console.error(
+            "beforeunload cleanup error:",
+            err
+          );
+        }
       };
 
     window.addEventListener(
@@ -1198,7 +1409,7 @@ const VideoCall = () => {
         handleBeforeUnload
       );
     };
-  }, []);
+  }, [stopTimer]);
 
   /* =========================================================
      FAILED SCREEN
@@ -1211,6 +1422,7 @@ const VideoCall = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#08050d] px-4">
         <div className="w-full max-w-md rounded-3xl border border-red-500/20 bg-white/5 p-8 text-center text-white backdrop-blur-xl">
+
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
             <AlertCircle
               size={32}
@@ -1227,6 +1439,7 @@ const VideoCall = () => {
           </p>
 
           <div className="mt-6 flex justify-center gap-3">
+
             <button
               onClick={() =>
                 navigate(-1)
@@ -1240,6 +1453,10 @@ const VideoCall = () => {
               onClick={() => {
                 setError("");
                 setConnecting(true);
+                setCallStatus(
+                  "connecting"
+                );
+
                 startVideoCall();
               }}
               className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 text-sm font-bold text-white"
@@ -1247,6 +1464,7 @@ const VideoCall = () => {
               <RefreshCw size={16} />
               Retry
             </button>
+
           </div>
         </div>
       </div>
@@ -1299,13 +1517,14 @@ const VideoCall = () => {
                 ? "Connecting..."
                 : "Waiting"}
             </span>
+
           </div>
 
         </div>
       </div>
 
       {/* =====================================================
-          REMOTE VIDEO AREA
+          REMOTE VIDEO
       ===================================================== */}
 
       <div className="absolute inset-0">
@@ -1314,10 +1533,6 @@ const VideoCall = () => {
           ref={remoteVideoRef}
           className="h-full w-full bg-gradient-to-br from-purple-950 via-[#100b18] to-black"
         />
-
-        {/* -----------------------------------------------
-            WAITING SCREEN
-        ------------------------------------------------ */}
 
         {!remoteJoined && (
           <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -1339,6 +1554,7 @@ const VideoCall = () => {
                 )}
 
               </div>
+
             </div>
 
             <h2 className="mt-7 text-xl font-black">
@@ -1393,7 +1609,7 @@ const VideoCall = () => {
       </div>
 
       {/* =====================================================
-          CALL STATUS
+          CONNECTED STATUS
       ===================================================== */}
 
       {remoteJoined && (
@@ -1410,9 +1626,7 @@ const VideoCall = () => {
 
         <div className="flex items-center justify-center gap-3 md:gap-5">
 
-          {/* -----------------------------------------------
-              MICROPHONE
-          ------------------------------------------------ */}
+          {/* MICROPHONE */}
 
           <button
             onClick={toggleMicrophone}
@@ -1433,9 +1647,7 @@ const VideoCall = () => {
             )}
           </button>
 
-          {/* -----------------------------------------------
-              CAMERA
-          ------------------------------------------------ */}
+          {/* CAMERA */}
 
           <button
             onClick={toggleCamera}
@@ -1456,9 +1668,7 @@ const VideoCall = () => {
             )}
           </button>
 
-          {/* -----------------------------------------------
-              FLIP CAMERA
-          ------------------------------------------------ */}
+          {/* SWITCH CAMERA */}
 
           <button
             onClick={flipCamera}
@@ -1472,9 +1682,7 @@ const VideoCall = () => {
             <RefreshCw size={21} />
           </button>
 
-          {/* -----------------------------------------------
-              SPEAKER
-          ------------------------------------------------ */}
+          {/* SPEAKER */}
 
           <button
             onClick={toggleSpeaker}
@@ -1493,9 +1701,7 @@ const VideoCall = () => {
             )}
           </button>
 
-          {/* -----------------------------------------------
-              END CALL
-          ------------------------------------------------ */}
+          {/* END CALL */}
 
           <button
             onClick={handleEndCall}
@@ -1517,7 +1723,7 @@ const VideoCall = () => {
         <p className="mt-4 text-center text-[11px] text-gray-500">
           {remoteJoined
             ? "You are connected securely"
-            : "Establishing secure connection..."}
+            : "Waiting for the astrologer to join..."}
         </p>
 
       </div>
@@ -1527,3 +1733,4 @@ const VideoCall = () => {
 };
 
 export default VideoCall;
+
