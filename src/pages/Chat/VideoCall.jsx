@@ -27,26 +27,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-/**
- * Ported 1:1 from the Flutter `VideoCallController` (the initiating /
- * customer-side call screen). Mirrors its exact step order:
- *
- *   1. Request camera + mic permission up front (Flutter: Permission.camera /
- *      Permission.microphone). On the web this is done with a quick
- *      getUserMedia() probe so we can show the same
- *      "Camera and microphone permissions are required" error immediately,
- *      instead of only finding out when Agora tries to grab tracks later.
- *   2. Call `initiateVideoCall(bookingId)` (Flutter: `_repository.initiateCall`).
- *   3. Initialize the Agora engine/client and join the channel
- *      (Flutter: `_initAgoraEngine`).
- *   4. On successful join, enable the speakerphone
- *      (Flutter: `onJoinChannelSuccess` -> `setEnableSpeakerphone(true)`).
- *   5. On remote user joining, start the elapsed-time timer
- *      (Flutter: `onUserJoined` -> `_startElapsedTimer`).
- *   6. On end call, leave + release the engine, then call
- *      `terminateVideoCall(bookingId, durationMinutes)`
- *      (Flutter: `endCall`).
- */
+
 import {
   initiateVideoCall,
   terminateVideoCall,
