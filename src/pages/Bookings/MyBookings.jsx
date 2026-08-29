@@ -143,38 +143,31 @@ export default function MyBookings() {
     }
   };
 
-  const handleVideoCall = async (booking) => {
-    try {
-      if (!booking?._id) {
-        showMessage("Invalid Booking", "Booking information is missing.", "error");
-        return;
-      }
-
-      setCallLoading(true);
-      const res = await initiateVideoCall(booking._id);
-
-      if (res?.data?.success) {
-        const callData = {
-          rtcToken: res.data.rtcToken,
-          rtmToken: res.data.rtmToken,
-          channelName: res.data.channelName,
-          uid: res.data.uid,
-          appId: res.data.appId,
-        };
-
-        navigate(`/dashboard/video-call/${booking._id}`, {
-          state: { booking, partner: booking.partner, callData },
-        });
-        return;
-      }
-
-      showMessage("Unable to Start Video Call", res?.data?.message || "Unable to start video call. Please try again.", "error");
-    } catch (error) {
-      showMessage("Unable to Start Video Call", error?.response?.data?.message || "Unable to start video call. Please try again.", "error");
-    } finally {
-      setCallLoading(false);
+ const handleVideoCall = async (booking) => {
+  try {
+    if (!booking?._id) {
+      showMessage(
+        "Invalid Booking",
+        "Booking information is missing.",
+        "error"
+      );
+      return;
     }
-  };
+
+    navigate(`/dashboard/video-call/${booking._id}`, {
+      state: {
+        booking,
+        partner: booking.partner,
+      },
+    });
+  } catch (error) {
+    showMessage(
+      "Unable to Start Video Call",
+      "Unable to open video call screen.",
+      "error"
+    );
+  }
+};
 
   const handleEndCall = async (bookingId) => {
     try {

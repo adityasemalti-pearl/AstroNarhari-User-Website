@@ -58,44 +58,71 @@ export const cancelInstantChat = (requestId) => {
   });
 };
 
-// ==========================================
-// VIDEO CALL APIs
-// ==========================================
 
-// Initiate Video Call
-export const initiateVideoCall = (bookingId) => {
+
+
+
+
+// =====================================================
+// INITIATE VIDEO CALL
+// POST /video-call/initiate
+// =====================================================
+
+export const initiateVideoCall = async (bookingId) => {
   return api.post("/video/call/initiate", {
     bookingId,
   });
 };
 
-// Join Video Call
-export const joinVideoCall = (bookingId) => {
+// =====================================================
+// JOIN VIDEO CALL
+// POST /video-call/join-call
+// =====================================================
+
+export const joinVideoCall = async (bookingId) => {
   return api.post("/video/call/join-call", {
     bookingId,
   });
 };
 
-// Terminate Video Call
-export const terminateVideoCall = (bookingId, actualDuration) => {
+// =====================================================
+// TERMINATE VIDEO CALL
+// POST /video-call/terminate
+// =====================================================
+
+export const terminateVideoCall = async (
+  bookingId,
+  actualDuration
+) => {
   return api.post("/video/call/terminate", {
     bookingId,
     actualDuration,
   });
 };
 
-// Settle Video Call
-export const settleVideoCall = (bookingId, actualDuration) => {
+// =====================================================
+// SETTLE CALL
+// POST /video-call/settle
+//
+// Normally backend/internal use ke liye.
+// Frontend se directly call mat karo.
+// =====================================================
+
+export const settleVideoCall = async (bookingId) => {
   return api.post("/video/call/settle", {
     bookingId,
-    actualDuration,
   });
 };
 
-// Cancel Video Call + Refund
-export const cancelVideoAndRefund = (bookingId, reason) => {
+// =====================================================
+// REFUND VIDEO CALL
+// POST /video-call/refund
+//
+// Normally backend/internal use ke liye.
+// =====================================================
+
+export const refundVideoCall = async (bookingId) => {
   return api.post("/video/call/refund", {
     bookingId,
-    reason,
   });
 };

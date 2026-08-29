@@ -34,25 +34,31 @@ export default function Login() {
       specialty: "Vedic & Kundli Specialist",
       experience: "21+ Years Exp",
       rating: "4.9 ★ (12k+ Consults)",
-      image: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&q=80&w=800",
-      quote: "Planetary alignments guide your path, but wisdom and karma shape your ultimate destiny."
+      image:
+        "https://images.unsplash.com/photo-1566492031773-4f4e44671857?auto=format&fit=crop&q=80&w=800",
+      quote:
+        "Planetary alignments guide your path, but wisdom and karma shape your ultimate destiny.",
     },
     {
       title: "Dr. Kalyani Upadhyay",
       specialty: "Tarot Reader & Numerologist",
       experience: "16+ Years Exp",
       rating: "5.0 ★ (8.5k+ Consults)",
-      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
-      quote: "Understand the subtle cosmic vibrations impacting your career, love, and spiritual growth."
+      image:
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800",
+      quote:
+        "Understand the subtle cosmic vibrations impacting your career, love, and spiritual growth.",
     },
     {
       title: "Pandit Ramanath Iyer",
       specialty: "Nadi Astrologer & Gemologist",
       experience: "25+ Years Exp",
       rating: "4.9 ★ (15k+ Consults)",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
-      quote: "Ancient palm leaves and planetary dashas hold direct answers to your deepest questions."
-    }
+      image:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800",
+      quote:
+        "Ancient palm leaves and planetary dashas hold direct answers to your deepest questions.",
+    },
   ];
 
   useEffect(() => {
@@ -72,11 +78,15 @@ export default function Login() {
       window.recaptchaVerifier = null;
     }
 
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible",
-      callback: () => {},
-      "expired-callback": () => {},
-    });
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: () => {},
+        "expired-callback": () => {},
+      },
+    );
 
     return window.recaptchaVerifier;
   };
@@ -111,7 +121,11 @@ export default function Login() {
       });
 
       const appVerifier = setupRecaptcha();
-      const confirmation = await signInWithPhoneNumber(auth, `+91${phoneNumber}`, appVerifier);
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        `+91${phoneNumber}`,
+        appVerifier,
+      );
       window.confirmationResult = confirmation;
 
       setTimeout(() => {
@@ -199,7 +213,11 @@ export default function Login() {
 
     try {
       const appVerifier = setupRecaptcha();
-      const confirmation = await signInWithPhoneNumber(auth, `+91${phoneNumber}`, appVerifier);
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        `+91${phoneNumber}`,
+        appVerifier,
+      );
       window.confirmationResult = confirmation;
 
       setPopup({
@@ -267,7 +285,7 @@ export default function Login() {
   //     console.log("FCM Token Generate Hua:", fcmToken);
 
   //     await updateFCMToken({
-  //       fcmToken: fcmToken,   // fcm 
+  //       fcmToken: fcmToken,   // fcm
   //     });
 
   //     console.log("API me FCM token update ho gaya successfully.");
@@ -277,163 +295,265 @@ export default function Login() {
   //   }
   // };
 
-
-
   const saveFCMToken = async () => {
-  console.log("🔥 saveFCMToken START");
-
-  try {
-    if (!("Notification" in window)) {
-      console.log("❌ Notification API not supported");
-      return;
-    }
-
-    console.log("1️⃣ Notification permission:", Notification.permission);
-
-    let permission = Notification.permission;
-
-    if (permission !== "granted") {
-      console.log("2️⃣ Requesting notification permission...");
-      permission = await Notification.requestPermission();
-      console.log("3️⃣ Permission result:", permission);
-    }
-
-    if (permission !== "granted") {
-      console.log("❌ Notification permission denied");
-      return;
-    }
-
-    console.log("4️⃣ Getting Firebase Messaging...");
-
-    const messaging = await getFirebaseMessaging();
-
-    console.log("5️⃣ Messaging:", messaging);
-
-    if (!messaging) {
-      console.log("❌ Firebase Messaging is not supported");
-      return;
-    }
-
-    let registration = null;
+    console.log("🔥 saveFCMToken START");
 
     try {
-      console.log("6️⃣ Registering service worker...");
-
-      registration = await navigator.serviceWorker.register(
-        "/firebase-messaging-sw.js"
-      );
-
-      console.log("7️⃣ Service Worker registered:", registration);
-    } catch (swErr) {
-      console.error("❌ Service Worker registration failed:", swErr);
-    }
-
-    console.log("8️⃣ Generating FCM token...");
-
-    const fcmToken = await getToken(messaging, {
-      vapidKey:
-        "BNN5keG3vVNJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
-      ...(registration
-        ? { serviceWorkerRegistration: registration }
-        : {}),
-    });
-
-    console.log("9️⃣ FCM Token:", fcmToken);
-
-    if (!fcmToken) {
-      console.log("❌ FCM token not generated");
-      return;
-    }
-
-    console.log("🔟 Calling updateFCMToken API...");
-
-    const response = await updateFCMToken({
-      fcmToken,
-    });
-
-    console.log("✅ FCM API RESPONSE:", response);
-
-  } catch (error) {
-    console.error("❌ FCM ERROR:", error);
-  }
-};
-  const handleVerifyOtp = async () => {
-    if (!window.confirmationResult) {
-      return setPopup({
-        open: true,
-        type: "error",
-        title: "Session Expired",
-        message: "Please request a new OTP.",
-      });
-    }
-
-    try {
-      setPopup({
-        open: true,
-        type: "loading",
-        title: "Verifying",
-        message: "Checking your OTP...",
-        loading: true,
-      });
-
-      const code = otp.join("");
-      const result = await window.confirmationResult.confirm(code);
-      const idToken = await result.user.getIdToken();
-      const response = await verifyOtp({ idToken });
-
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.data));
-
-
-      console.log("🔥 OTP VERIFY SUCCESS");
-
-localStorage.setItem("token", response.data.token);
-localStorage.setItem("user", JSON.stringify(response.data.data));
-
-console.log("🔥 Token saved:", localStorage.getItem("token"));
-
-saveFCMToken().catch((err) => {
-  console.error("🔥 Background FCM error:", err);
-});
-
-      // FCM token ko background me run karenge taaki agar ye fail ho toh bhi login/navigation na ruke
-      // saveFCMToken().catch(err => console.log("FCM background error:", err));
-
-      if (authMode === "register") {
-        setPopup({
-          open: true,
-          type: "success",
-          title: "Account Verified ✨",
-          message: "Your account has been verified. Let's complete your profile.",
-        });
-
-        setTimeout(() => {
-          navigate("/create-profile");
-        }, 1800);
-
+      if (!("Notification" in window)) {
+        console.log("❌ Notification API not supported");
         return;
       }
+
+      console.log("1️⃣ Notification permission:", Notification.permission);
+
+      let permission = Notification.permission;
+
+      if (permission !== "granted") {
+        console.log("2️⃣ Requesting notification permission...");
+        permission = await Notification.requestPermission();
+        console.log("3️⃣ Permission result:", permission);
+      }
+
+      if (permission !== "granted") {
+        console.log("❌ Notification permission denied");
+        return;
+      }
+
+      console.log("4️⃣ Getting Firebase Messaging...");
+
+      const messaging = await getFirebaseMessaging();
+
+      console.log("5️⃣ Messaging:", messaging);
+
+      if (!messaging) {
+        console.log("❌ Firebase Messaging is not supported");
+        return;
+      }
+
+      let registration = null;
+
+      try {
+        console.log("6️⃣ Registering service worker...");
+
+        registration = await navigator.serviceWorker.register(
+          "/firebase-messaging-sw.js",
+        );
+
+        console.log("7️⃣ Service Worker registered:", registration);
+      } catch (swErr) {
+        console.error("❌ Service Worker registration failed:", swErr);
+      }
+
+      console.log("8️⃣ Generating FCM token...");
+
+      const fcmToken = await getToken(messaging, {
+        vapidKey:
+          "BNN5keG3vVNJ6m0UckqNfOfyMs-rmMHw4uEYhh7hpM_TQWSA7_ti_0an70xTjIOejhq4R_5UoQ_1ROo46wNA68",
+        ...(registration ? { serviceWorkerRegistration: registration } : {}),
+      });
+
+      console.log("9️⃣ FCM Token:", fcmToken);
+
+      if (!fcmToken) {
+        console.log("❌ FCM token not generated");
+        return;
+      }
+
+      console.log("🔟 Calling updateFCMToken API...");
+
+      const response = await updateFCMToken({
+        fcmToken,
+      });
+
+      console.log("✅ FCM API RESPONSE:", response);
+    } catch (error) {
+      console.error("❌ FCM ERROR:", error);
+    }
+  };
+  // const handleVerifyOtp = async () => {
+  //   if (!window.confirmationResult) {
+  //     return setPopup({
+  //       open: true,
+  //       type: "error",
+  //       title: "Session Expired",
+  //       message: "Please request a new OTP.",
+  //     });
+  //   }
+
+  //   try {
+  //     setPopup({
+  //       open: true,
+  //       type: "loading",
+  //       title: "Verifying",
+  //       message: "Checking your OTP...",
+  //       loading: true,
+  //     });
+
+  //     const code = otp.join("");
+  //     const result = await window.confirmationResult.confirm(code);
+  //     const idToken = await result.user.getIdToken();
+  //     const response = await verifyOtp({ idToken });
+
+  //     localStorage.setItem("token", response.data.token);
+  //     localStorage.setItem("user", JSON.stringify(response.data.data));
+
+  //     console.log("🔥 OTP VERIFY SUCCESS");
+
+  //     localStorage.setItem("token", response.data.token);
+  //     localStorage.setItem("user", JSON.stringify(response.data.data));
+
+  //     console.log("🔥 Token saved:", localStorage.getItem("token"));
+  //     try {
+  //       await saveFCMToken();
+  //     } catch (error) {
+  //       console.error("🔥 FCM error:", error);
+  //     }
+
+  //     // FCM token ko background me run karenge taaki agar ye fail ho toh bhi login/navigation na ruke
+  //     // saveFCMToken().catch(err => console.log("FCM background error:", err));
+
+  //     if (authMode === "register") {
+  //       setPopup({
+  //         open: true,
+  //         type: "success",
+  //         title: "Account Verified ✨",
+  //         message:
+  //           "Your account has been verified. Let's complete your profile.",
+  //       });
+
+  //       setTimeout(() => {
+  //         navigate("/create-profile");
+  //       }, 1800);
+
+  //       return;
+  //     }
+
+  //     setPopup({
+  //       open: true,
+  //       type: "success",
+  //       title: "Welcome Back ✨",
+  //       message: "You have been logged in successfully.",
+  //     });
+
+  //     setTimeout(() => {
+  //       navigate("/dashboard");
+  //     }, 1800);
+  //   } catch (err) {
+  //     setPopup({
+  //       open: true,
+  //       type: "error",
+  //       title: "Verification Failed",
+  //       message:
+  //         err?.response?.data?.message || "Incorrect OTP. Please try again.",
+  //     });
+  //   }
+  // };
+
+
+  const handleVerifyOtp = async () => {
+  if (!window.confirmationResult) {
+    return setPopup({
+      open: true,
+      type: "error",
+      title: "Session Expired",
+      message: "Please request a new OTP.",
+    });
+  }
+
+  try {
+    setPopup({
+      open: true,
+      type: "loading",
+      title: "Verifying",
+      message: "Checking your OTP...",
+      loading: true,
+    });
+
+    const code = otp.join("");
+
+    const result =
+      await window.confirmationResult.confirm(code);
+
+    const idToken =
+      await result.user.getIdToken();
+
+    const response =
+      await verifyOtp({ idToken });
+
+    // Save auth
+    localStorage.setItem(
+      "token",
+      response.data.token
+    );
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(response.data.data)
+    );
+
+    console.log(
+      "🔥 LOGIN TOKEN:",
+      localStorage.getItem("token")
+    );
+
+    // IMPORTANT
+    // FCM token update complete hone do
+    try {
+      await saveFCMToken();
+
+      console.log(
+        "🔥 USER FCM TOKEN UPDATED SUCCESSFULLY"
+      );
+    } catch (fcmError) {
+      console.error(
+        "🔥 USER FCM ERROR:",
+        fcmError
+      );
+    }
+
+    if (authMode === "register") {
 
       setPopup({
         open: true,
         type: "success",
-        title: "Welcome Back ✨",
-        message: "You have been logged in successfully.",
+        title: "Account Verified ✨",
+        message:
+          "Your account has been verified. Let's complete your profile.",
       });
 
       setTimeout(() => {
-        navigate("/dashboard");
+        navigate("/create-profile");
       }, 1800);
-    } catch (err) {
-      setPopup({
-        open: true,
-        type: "error",
-        title: "Verification Failed",
-        message: err?.response?.data?.message || "Incorrect OTP. Please try again.",
-      });
-    }
-  };
 
+      return;
+    }
+
+    setPopup({
+      open: true,
+      type: "success",
+      title: "Welcome Back ✨",
+      message:
+        "You have been logged in successfully.",
+    });
+
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1800);
+
+  } catch (err) {
+
+    console.error("OTP ERROR:", err);
+
+    setPopup({
+      open: true,
+      type: "error",
+      title: "Verification Failed",
+      message:
+        err?.response?.data?.message ||
+        "Incorrect OTP. Please try again.",
+    });
+  }
+};
   const formatTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -442,27 +562,37 @@ saveFCMToken().catch((err) => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#F4F2F8] relative font-sans text-slate-800 antialiased selection:bg-purple-200 selection:text-purple-950 p-4 sm:p-6 lg:p-8 overflow-hidden">
-      
       <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
         <div className="absolute top-10 left-1/4 w-[500px] h-[500px] bg-purple-200/50 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-violet-200/50 rounded-full blur-[140px] animate-pulse" style={{ animationDuration: "5s" }} />
+        <div
+          className="absolute bottom-10 right-1/4 w-[500px] h-[500px] bg-violet-200/50 rounded-full blur-[140px] animate-pulse"
+          style={{ animationDuration: "5s" }}
+        />
       </div>
 
       <div className="relative z-10 w-full max-w-5xl bg-white rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(109,40,217,0.14)] border border-purple-100/80 overflow-hidden flex flex-col lg:flex-row transition-all duration-500">
-        
         <div className="lg:w-1/2 relative flex flex-col justify-between p-8 sm:p-12 lg:p-12 bg-gradient-to-br from-white via-purple-50/40 to-violet-50/60 border-b lg:border-b-0 lg:border-r border-purple-100/80 overflow-hidden">
-          
           <div>
             <div className="flex items-center gap-3.5 mb-8">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-600 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/30 text-white transform hover:scale-105 transition-transform duration-300">
-                <svg className="w-6 h-6 animate-[spin_25s_linear_infinite]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <svg
+                  className="w-6 h-6 animate-[spin_25s_linear_infinite]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                >
                   <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41" strokeLinecap="round" />
+                  <path
+                    d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </div>
               <h1
-              onClick={()=>navigate('/home')}
-              className="text-xl cursor-pointer font-bold tracking-[0.25em] text-slate-900 uppercase font-serif">
+                onClick={() => navigate("/home")}
+                className="text-xl cursor-pointer font-bold tracking-[0.25em] text-slate-900 uppercase font-serif"
+              >
                 Namah-Astro
               </h1>
             </div>
@@ -470,11 +600,17 @@ saveFCMToken().catch((err) => {
             <h2 className="text-3xl font-extrabold font-serif text-slate-950 leading-[1.2] tracking-tight">
               {authMode === "login" ? (
                 <>
-                  Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">Back</span>
+                  Welcome{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">
+                    Back
+                  </span>
                 </>
               ) : (
                 <>
-                  Begin Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">Cosmic Journey</span>
+                  Begin Your{" "}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-violet-600">
+                    Cosmic Journey
+                  </span>
                 </>
               )}
             </h2>
@@ -507,13 +643,19 @@ saveFCMToken().catch((err) => {
                       <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-slate-900 text-sm font-serif truncate">{item.title}</h4>
-                      <p className="text-xs text-purple-700 font-medium truncate">{item.specialty}</p>
+                      <h4 className="font-bold text-slate-900 text-sm font-serif truncate">
+                        {item.title}
+                      </h4>
+                      <p className="text-xs text-purple-700 font-medium truncate">
+                        {item.specialty}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-[10px] font-bold rounded-md border border-purple-100">
                           {item.experience}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-semibold">{item.rating}</span>
+                        <span className="text-[10px] text-slate-500 font-semibold">
+                          {item.rating}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -545,29 +687,41 @@ saveFCMToken().catch((err) => {
           </div>
 
           <div className="text-xs font-medium text-slate-400 flex gap-6">
-            <a href="#" className="hover:text-purple-700 transition-colors">Help Center</a>
-            <a href="#" className="hover:text-purple-700 transition-colors">Verified Astrologers</a>
-            <a href="#" className="hover:text-purple-700 transition-colors">Terms</a>
+            <a href="#" className="hover:text-purple-700 transition-colors">
+              Help Center
+            </a>
+            <a href="#" className="hover:text-purple-700 transition-colors">
+              Verified Astrologers
+            </a>
+            <a href="#" className="hover:text-purple-700 transition-colors">
+              Terms
+            </a>
           </div>
-
         </div>
 
         <div className="lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-14 bg-white">
           <div className="w-full max-w-sm">
-
             <div className="text-center mb-8">
               <span className="text-[11px] font-bold tracking-[0.3em] text-purple-600 uppercase">
-                {step === "otp" ? "Cosmic Verification" : authMode === "login" ? "Secure Portal" : "New Account"}
+                {step === "otp"
+                  ? "Cosmic Verification"
+                  : authMode === "login"
+                    ? "Secure Portal"
+                    : "New Account"}
               </span>
               <h2 className="text-2xl font-serif font-bold text-slate-900 tracking-tight mt-2">
-                {step === "otp" ? "Verify Code" : authMode === "login" ? "Welcome Back" : "Create Account"}
+                {step === "otp"
+                  ? "Verify Code"
+                  : authMode === "login"
+                    ? "Welcome Back"
+                    : "Create Account"}
               </h2>
               <p className="text-xs text-slate-500 mt-1 font-normal">
                 {step === "otp"
                   ? `Enter the 6-digit code sent to +91 ${phoneNumber}`
                   : authMode === "login"
-                  ? "Enter your mobile number to sign in."
-                  : "Enter your mobile number to register."}
+                    ? "Enter your mobile number to sign in."
+                    : "Enter your mobile number to register."}
               </p>
             </div>
 
@@ -585,7 +739,9 @@ saveFCMToken().catch((err) => {
                       <input
                         type="tel"
                         value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) =>
+                          setPhoneNumber(e.target.value.replace(/\D/g, ""))
+                        }
                         placeholder="98765 43210"
                         maxLength={10}
                         className="w-full px-4 py-3 text-sm bg-transparent outline-none text-slate-900 placeholder:text-slate-400 font-semibold tracking-wide"
@@ -598,8 +754,14 @@ saveFCMToken().catch((err) => {
                     type="submit"
                     className="w-full py-4 px-4 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 active:scale-[0.99] text-white font-bold text-sm rounded-2xl shadow-xl shadow-purple-600/25 transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 group"
                   >
-                    <span>{authMode === "login" ? "Send Login OTP" : "Send Registration OTP"}</span>
-                    <span className="text-xs group-hover:translate-x-0.5 transition-transform">✨</span>
+                    <span>
+                      {authMode === "login"
+                        ? "Send Login OTP"
+                        : "Send Registration OTP"}
+                    </span>
+                    <span className="text-xs group-hover:translate-x-0.5 transition-transform">
+                      ✨
+                    </span>
                   </button>
                 </form>
 
@@ -655,16 +817,33 @@ saveFCMToken().catch((err) => {
                   onClick={handleVerifyOtp}
                   className="w-full py-4 px-4 bg-gradient-to-r from-purple-600 to-violet-600 disabled:opacity-40 disabled:cursor-not-allowed hover:from-purple-700 hover:to-violet-700 active:scale-[0.99] text-white font-bold text-sm rounded-2xl shadow-xl shadow-purple-600/25 flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer"
                 >
-                  <span>{authMode === "login" ? "Verify & Login" : "Verify & Register"}</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  <span>
+                    {authMode === "login"
+                      ? "Verify & Login"
+                      : "Verify & Register"}
+                  </span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
                   </svg>
                 </button>
 
                 <div className="text-center text-xs">
                   {timer > 0 ? (
                     <p className="text-slate-400 font-medium">
-                      Resend code in <span className="font-bold text-purple-600">{formatTimer(timer)}</span>
+                      Resend code in{" "}
+                      <span className="font-bold text-purple-600">
+                        {formatTimer(timer)}
+                      </span>
                     </p>
                   ) : (
                     <button
@@ -684,18 +863,26 @@ saveFCMToken().catch((err) => {
                     onClick={() => setStep("login")}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
                     </svg>
                     Change phone number
                   </button>
                 </div>
               </div>
             )}
-
           </div>
         </div>
-
       </div>
 
       <div id="recaptcha-container"></div>
@@ -708,7 +895,6 @@ saveFCMToken().catch((err) => {
         loading={popup.loading}
         onClose={() => setPopup((prev) => ({ ...prev, open: false }))}
       />
-
     </div>
   );
 }
