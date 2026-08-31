@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAllAstrologers, getDailyHoroscope } from "../../API/homeApis";
 import { useNavigate } from "react-router-dom";
-import { getAllProducts, getCosmicInsights } from "../../API/cosmicApis";
+import { getAllProducts, getCosmicInsights, getUserBanners } from "../../API/cosmicApis";
 import FullPageLoader from "./comp/FullPageLoader";
 import AstrologerModal from "../../Models/AstrologerModal";
 import BookAppointmentPopup from "./comp/BookingPopup";
@@ -55,12 +55,31 @@ const DUMMY_BANNERS = [
 ];
 
 export default function Dashboard() {
+
+    const [banners, setBanners] = useState([])
+
+
+   const fetchBanners = async () => {
+          try {
+              setLoading(true)
+              const res = await getUserBanners()
+              setBanners(res.data.data)
+              setLoading(false)
+          } catch (error) {
+              console.log(error)
+          }
+      }
+
+      useEffect(()=>{
+        fetchBanners()
+      },[])
+
   const [dailyHoroscope, setDailyHoroscope] = useState(null);
   const [astrologers, setAstrologers] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [insights, setInsights] = useState([]);
-  const [banners, setBanners] = useState(DUMMY_BANNERS);
+ 
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const [astroSlide, setAstroSlide] = useState(0);
@@ -419,6 +438,8 @@ export default function Dashboard() {
       setCallRequestId(null);
     }
   };
+
+
 
   if (loading) {
     return <FullPageLoader />;
