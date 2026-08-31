@@ -39,6 +39,11 @@ export default function Header({ menuOpen, setMenuOpen }) {
             Get App
           </a>
         </div>
+        <div className="nav-cta">
+          <a href="https://partner.namahastro.com" className="btn btn-primary">
+            Become an Astrologer
+          </a>
+        </div>
 
         <button
           className="burger"

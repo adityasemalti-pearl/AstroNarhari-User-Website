@@ -136,6 +136,8 @@ function StarField({ count = 130, className = "" }) {
 }
 
 export default function AstroSetuLanding() {
+
+  const [selectedVideo, setSelectedVideo] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [liveCount, setLiveCount] = useState(142);
   const [openFaq, setOpenFaq] = useState(0);
@@ -597,30 +599,8 @@ export default function AstroSetuLanding() {
         </div>
       </section>
 
-      {/* <section className="section" id="blogs">
-        <div className="wrap">
-          <Reveal className="section-head">
-            <span className="eyebrow">Astro Journal</span>
-            <h2>Read, learn & explore the stars</h2>
-          </Reveal>
-          <Reveal stagger className="blog-grid">
-            {BLOGS.map((b) => (
-              <div className="blog-card" key={b.title}>
-                <div className="blog-banner" style={{ background: b.grad }}>
-                  {b.icon}
-                </div>
-                <div className="blog-body">
-                  <span className="blog-tag">{b.tag}</span>
-                  <h4>{b.title}</h4>
-                  <p>{b.read}</p>
-                </div>
-              </div>
-            ))}
-          </Reveal>
-        </div>
-      </section> */}
 
-      <section className="section" id="journal">
+<section className="section" id="journal">
   <div className="wrap">
     <Reveal className="section-head">
       <span className="eyebrow">Astro Journal</span>
@@ -640,7 +620,9 @@ export default function AstroSetuLanding() {
       ) : blogs.length === 0 ? (
         <div className="blog-empty">
           <h4>Sorry for the inconvenience</h4>
-          <p>No articles are available right now. Please try again later.</p>
+          <p>
+            No articles are available right now. Please try again later.
+          </p>
         </div>
       ) : (
         blogs.slice(0, 3).map((blog) => (
@@ -648,6 +630,13 @@ export default function AstroSetuLanding() {
             className="blog-card"
             key={blog._id}
             onClick={() => {
+              // If video exists → open video popup
+              if (blog.video) {
+                setSelectedVideo(blog.video);
+                return;
+              }
+
+              // If no video → open article
               if (blog.blogLink) {
                 window.location.href = blog.blogLink;
               }
@@ -662,8 +651,40 @@ export default function AstroSetuLanding() {
                 })`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
+                position: "relative",
               }}
-            />
+            >
+              {/* VIDEO PLAY ICON */}
+              {blog.video && (
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "58px",
+                      height: "58px",
+                      borderRadius: "50%",
+                      background: "rgba(255,255,255,0.95)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "24px",
+                      color: "#000",
+                      boxShadow: "0 4px 15px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    ▶
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="blog-body">
               <span className="blog-tag">
@@ -686,7 +707,7 @@ export default function AstroSetuLanding() {
                   fontWeight: 700,
                 }}
               >
-                Read Article →
+                {blog.video ? "Watch Video →" : "Read Article →"}
               </div>
             </div>
           </div>
@@ -694,7 +715,76 @@ export default function AstroSetuLanding() {
       )}
     </Reveal>
   </div>
+
+  {/* VIDEO POPUP */}
+  {selectedVideo && (
+    <div
+      onClick={() => setSelectedVideo(null)}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0, 0, 0, 0.85)",
+        zIndex: 99999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "900px",
+          background: "#000",
+          borderRadius: "14px",
+          overflow: "hidden",
+          boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+        }}
+      >
+        {/* CLOSE BUTTON */}
+        <button
+          onClick={() => setSelectedVideo(null)}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            zIndex: 10,
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            border: "none",
+            background: "rgba(0,0,0,0.7)",
+            color: "#fff",
+            fontSize: "25px",
+            lineHeight: "1",
+            cursor: "pointer",
+          }}
+        >
+          ×
+        </button>
+
+        {/* VIDEO */}
+        <video
+          src={selectedVideo}
+          controls
+          autoPlay
+          playsInline
+          style={{
+            width: "100%",
+            maxHeight: "80vh",
+            display: "block",
+            background: "#000",
+          }}
+        />
+      </div>
+    </div>
+  )}
 </section>
+
+
+
 
       <section className="section alt" id="app">
         <div className="wrap">
