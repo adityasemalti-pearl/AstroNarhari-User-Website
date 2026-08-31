@@ -1,12 +1,16 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   collection,
-  query,
-  orderBy,
   onSnapshot,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+
+import {
+  getAuth,
+  onAuthStateChanged,
+} from "firebase/auth";
 
 import {
   Search,
@@ -21,30 +25,70 @@ export default function ChatList() {
 
   const [chats, setChats] = useState([]);
   const [search, setSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
 
-  // --------------------------------------------------
-  // FIREBASE USER
-  // --------------------------------------------------
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const auth = getAuth();
+  // ==================================================
+  // FIREBASE AUTH
+  // ==================================================
 
-  const firebaseUser = auth.currentUser;
+  useEffect(() => {
+    const auth = getAuth();
+
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => {
+        console.log("=================================");
+        console.log("FIREBASE AUTH USER:", user);
+        console.log(
+          "FIREBASE UID:",
+          user?.uid
+        );
+        console.log("=================================");
+
+        setFirebaseUser(user);
+        setAuthLoading(false);
+      },
+      (error) => {
+        console.error(
+          "Firebase Auth Error:",
+          error
+        );
+
+        setFirebaseUser(null);
+        setAuthLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // ==================================================
+  // CURRENT FIREBASE UID
+  // ==================================================
 
   const userId = firebaseUser?.uid || "";
 
-  console.log("ChatList Firebase UID:", userId);
-
-  // --------------------------------------------------
-  // LISTEN TO CONVERSATIONS
-  // --------------------------------------------------
+  // ==================================================
+  // LOAD ALL CONVERSATIONS
+  // ==================================================
 
   useEffect(() => {
-    if (!userId) {
-      console.log("Firebase user not logged in");
-      setLoading(false);
+    if (authLoading) {
       return;
     }
+
+    console.log("=================================");
+    console.log(
+      "CHAT LIST CURRENT USER:",
+      userId
+    );
+    console.log("=================================");
+
+    setLoading(true);
 
     const conversationsRef = collection(
       db,
@@ -52,108 +96,350 @@ export default function ChatList() {
     );
 
     /*
-     * Same as Flutter:
+     * IMPORTANT:
      *
-     * .where(
-     *   'participants',
-     *   arrayContains: uid
-     * )
+     * We are intentionally NOT using:
+     *
+     * where("participants", "array-contains", userId)
+     *
+     * right now.
+     *
+     * We first want to see/load all conversations
+     * from Firebase.
      */
 
-    const q = query(
-      conversationsRef,
-      orderBy("lastMessageAt", "desc")
-    );
-
     const unsubscribe = onSnapshot(
-      q,
+      conversationsRef,
+
       (snapshot) => {
-        const list = snapshot.docs
-          .map((item) => {
-            const data = item.data();
+        console.log("=================================");
+        console.log(
+          "TOTAL CONVERSATIONS:",
+          snapshot.size
+        );
+        console.log("=================================");
 
-            const participants =
-              Array.isArray(data.participants)
-                ? data.participants
-                : [];
+        const list = snapshot.docs.map(
+          (doc) => {
+            const data = doc.data();
 
-            // Only conversations of current Firebase user
-            if (!participants.includes(userId)) {
-              return null;
+            console.log(
+              "================================="
+            );
+
+            console.log(
+              "CONVERSATION ID:",
+              doc.id
+            );
+
+            console.log(
+              "CONVERSATION DATA:",
+              data
+            );
+
+            console.log(
+              "PARTICIPANTS:",
+              data.participants
+            );
+
+            console.log(
+              "PARTICIPANTS INFO:",
+              data.participantsInfo
+            );
+
+            console.log(
+              "LAST MESSAGE:",
+              data.lastMessage
+            );
+
+            console.log(
+              "================================="
+            );
+
+            // ========================================
+            // GET PARTICIPANTS
+            // ========================================
+
+            let participants = [];
+
+            if (
+              Array.isArray(
+                data.participants
+              )
+            ) {
+              participants =
+                data.participants;
             }
 
-            // Find other Firebase UID
-            const otherUserId =
-              participants.find(
-                (id) =>
-                  String(id) !==
-                  String(userId)
-              );
+            // Some projects may use participantIds
+            else if (
+              Array.isArray(
+                data.participantIds
+              )
+            ) {
+              participants =
+                data.participantIds;
+            }
+
+            // ========================================
+            // FIND OTHER USER
+            // ========================================
+
+            let otherUserId = "";
+
+            if (participants.length > 0) {
+              otherUserId =
+                participants.find(
+                  (id) =>
+                    String(id) !==
+                    String(userId)
+                ) || "";
+            }
+
+            // ========================================
+            // PARTICIPANTS INFO
+            // ========================================
 
             const participantsInfo =
               data.participantsInfo || {};
 
-            const otherUser =
-              otherUserId
-                ? participantsInfo[otherUserId]
-                : null;
+            let otherUser = null;
+
+            if (otherUserId) {
+              otherUser =
+                participantsInfo[
+                  otherUserId
+                ] || null;
+            }
+
+            // ========================================
+            // FALLBACK USER DATA
+            // ========================================
+
+            if (!otherUser) {
+              otherUser =
+                data.otherUser ||
+                data.partner ||
+                data.astrologer ||
+                null;
+            }
+
+            // ========================================
+            // NAME
+            // ========================================
+
+            const partnerName =
+              otherUser?.name ||
+              otherUser?.fullName ||
+              otherUser?.displayName ||
+              data.partnerName ||
+              data.astrologerName ||
+              data.name ||
+              "Astrologer";
+
+            // ========================================
+            // IMAGE
+            // ========================================
+
+            const partnerImage =
+              otherUser?.image ||
+              otherUser?.profilePic ||
+              otherUser?.photoURL ||
+              otherUser?.profileImage ||
+              data.partnerImage ||
+              data.astrologerImage ||
+              "";
+
+            // ========================================
+            // LAST MESSAGE
+            // ========================================
+
+            const lastMessage =
+              data.lastMessage || {};
+
+            // ========================================
+            // LAST MESSAGE TEXT
+            // ========================================
+
+            const lastMessageText =
+              lastMessage?.text ||
+              lastMessage?.message ||
+              data.lastMessageText ||
+              data.message ||
+              "Start conversation";
+
+            // ========================================
+            // LAST MESSAGE TIME
+            // ========================================
+
+            const lastMessageAt =
+              data.lastMessageAt ||
+              data.updatedAt ||
+              data.createdAt ||
+              null;
+
+            // ========================================
+            // RETURN CHAT
+            // ========================================
 
             return {
-              id: item.id,
+              id: doc.id,
+
               ...data,
+
+              participants,
+
+              participantsInfo,
 
               otherUserId,
 
               otherUser,
 
-              partnerName:
-                otherUser?.name ||
-                otherUser?.fullName ||
-                "Astrologer",
+              partnerName,
 
-              partnerImage:
-                otherUser?.image ||
-                otherUser?.profilePic ||
-                "",
+              partnerImage,
+
+              lastMessage: {
+                ...lastMessage,
+                text: lastMessageText,
+              },
+
+              lastMessageAt,
             };
-          })
-          .filter(Boolean);
+          }
+        );
+
+        // ==========================================
+        // SORT BY LAST MESSAGE
+        // ==========================================
+
+        list.sort((a, b) => {
+          const getTime = (value) => {
+            if (!value) {
+              return 0;
+            }
+
+            if (
+              typeof value.toDate ===
+              "function"
+            ) {
+              return value
+                .toDate()
+                .getTime();
+            }
+
+            if (value?.seconds) {
+              return (
+                value.seconds * 1000
+              );
+            }
+
+            const date = new Date(value);
+
+            return isNaN(
+              date.getTime()
+            )
+              ? 0
+              : date.getTime();
+          };
+
+          return (
+            getTime(b.lastMessageAt) -
+            getTime(a.lastMessageAt)
+          );
+        });
 
         console.log(
-          "Firebase Chat List:",
+          "FINAL CHAT LIST:",
           list
         );
 
         setChats(list);
         setLoading(false);
       },
+
       (error) => {
         console.error(
-          "Chats Error:",
+          "================================="
+        );
+
+        console.error(
+          "FIREBASE CONVERSATIONS ERROR:",
           error
         );
 
+        console.error(
+          "================================="
+        );
+
+        setChats([]);
         setLoading(false);
       }
     );
 
-    return () => unsubscribe();
-  }, [userId]);
+    return () => {
+      unsubscribe();
+    };
+  }, [userId, authLoading]);
 
-  // --------------------------------------------------
+  // ==================================================
   // FORMAT TIME
-  // --------------------------------------------------
+  // ==================================================
 
   const formatTime = (timestamp) => {
-    if (!timestamp) return "";
+    if (!timestamp) {
+      return "";
+    }
 
     try {
-      const date = timestamp.toDate
-        ? timestamp.toDate()
-        : new Date(timestamp);
+      let date;
+
+      // Firestore Timestamp
+      if (
+        timestamp &&
+        typeof timestamp.toDate ===
+          "function"
+      ) {
+        date = timestamp.toDate();
+      }
+
+      // Firebase timestamp object
+      else if (
+        timestamp?.seconds
+      ) {
+        date = new Date(
+          timestamp.seconds * 1000
+        );
+      }
+
+      // JS Date
+      else if (
+        timestamp instanceof Date
+      ) {
+        date = timestamp;
+      }
+
+      // String / normal date
+      else {
+        date = new Date(timestamp);
+      }
+
+      if (
+        !date ||
+        isNaN(date.getTime())
+      ) {
+        return "";
+      }
 
       const today = new Date();
 
+      const yesterday = new Date();
+
+      yesterday.setDate(
+        yesterday.getDate() - 1
+      );
+
+      // TODAY
       if (
         date.toDateString() ===
         today.toDateString()
@@ -168,6 +454,15 @@ export default function ChatList() {
         );
       }
 
+      // YESTERDAY
+      if (
+        date.toDateString() ===
+        yesterday.toDateString()
+      ) {
+        return "Yesterday";
+      }
+
+      // OLDER
       return date.toLocaleDateString(
         "en-IN",
         {
@@ -175,70 +470,143 @@ export default function ChatList() {
           month: "short",
         }
       );
-    } catch {
+    } catch (error) {
+      console.error(
+        "Time formatting error:",
+        error
+      );
+
       return "";
     }
   };
 
-  // --------------------------------------------------
+  // ==================================================
   // OPEN CHAT
-  // --------------------------------------------------
+  // ==================================================
 
   const openChat = (chat) => {
-    if (!chat.otherUserId) {
-      console.error(
-        "Other Firebase UID missing"
+    console.log(
+      "Opening conversation:",
+      chat
+    );
+
+    /*
+     * If otherUserId is available,
+     * open using that Firebase UID.
+     */
+
+    if (chat?.otherUserId) {
+      navigate(
+        `/dashboard/chat/${chat.otherUserId}`,
+        {
+          state: {
+            partner: {
+              firebaseUid:
+                chat.otherUserId,
+
+              fullName:
+                chat.partnerName,
+
+              profilePic:
+                chat.partnerImage,
+            },
+
+            conversationId:
+              chat.id,
+          },
+        }
       );
+
       return;
     }
 
-    console.log(
-      "Opening chat with:",
-      chat.otherUserId
-    );
+    /*
+     * If participant information is not available,
+     * still pass conversation ID.
+     */
 
     navigate(
-      `/dashboard/chat/${chat.otherUserId}`,
+      `/dashboard/chat/${chat.id}`,
       {
         state: {
-          partner: {
-            firebaseUid:
-              chat.otherUserId,
+          conversationId:
+            chat.id,
 
+          partner: {
             fullName:
               chat.partnerName,
 
             profilePic:
               chat.partnerImage,
           },
-
-          conversationId: chat.id,
         },
       }
     );
   };
 
-  // --------------------------------------------------
+  // ==================================================
   // SEARCH
-  // --------------------------------------------------
+  // ==================================================
 
-  const filteredChats = chats.filter(
-    (chat) =>
-      (chat.partnerName ||
-        "Astrologer")
-        .toLowerCase()
-        .includes(
-          search.toLowerCase()
-        )
-  );
+  const filteredChats =
+    chats.filter((chat) => {
+      const name =
+        chat.partnerName ||
+        "Astrologer";
 
-  // --------------------------------------------------
+      const message =
+        chat.lastMessage?.text ||
+        "";
+
+      const searchText =
+        search
+          .toLowerCase()
+          .trim();
+
+      if (!searchText) {
+        return true;
+      }
+
+      return (
+        name
+          .toLowerCase()
+          .includes(searchText) ||
+        message
+          .toLowerCase()
+          .includes(searchText)
+      );
+    });
+
+  // ==================================================
+  // AUTH LOADING
+  // ==================================================
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#faf7ff] flex items-center justify-center">
+
+        <div className="text-center">
+
+          <div className="mx-auto h-10 w-10 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin" />
+
+          <p className="mt-4 text-sm text-gray-500">
+            Loading chats...
+          </p>
+
+        </div>
+
+      </div>
+    );
+  }
+
+  // ==================================================
   // NO FIREBASE USER
-  // --------------------------------------------------
+  // ==================================================
 
   if (!userId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#faf7ff]">
+      <div className="min-h-screen flex items-center justify-center bg-[#faf7ff] px-4">
+
         <div className="text-center">
 
           <MessageCircle
@@ -246,23 +614,33 @@ export default function ChatList() {
             className="mx-auto text-purple-600"
           />
 
-          <h2 className="mt-4 text-xl font-bold">
+          <h2 className="mt-4 text-xl font-bold text-gray-900">
             Please login again
           </h2>
 
           <p className="mt-2 text-sm text-gray-500">
-            Firebase authentication is required
-            for chat.
+            Firebase authentication is
+            required for chat.
           </p>
 
+          <button
+            onClick={() =>
+              navigate("/login")
+            }
+            className="mt-5 rounded-xl bg-purple-600 px-5 py-3 text-sm font-semibold text-white hover:bg-purple-700"
+          >
+            Go to Login
+          </button>
+
         </div>
+
       </div>
     );
   }
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
+  // ==================================================
+  // MAIN UI
+  // ==================================================
 
   return (
     <div className="min-h-screen bg-[#faf7ff]">
@@ -279,7 +657,7 @@ export default function ChatList() {
               onClick={() =>
                 navigate(-1)
               }
-              className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-purple-50 hover:text-purple-700"
+              className="h-10 w-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-purple-50 hover:text-purple-700 transition"
             >
               <ArrowLeft size={21} />
             </button>
@@ -386,7 +764,11 @@ export default function ChatList() {
               (chat) => {
 
                 const lastMessage =
-                  chat.lastMessage;
+                  chat.lastMessage || {};
+
+                const messageText =
+                  lastMessage.text ||
+                  "Start conversation";
 
                 return (
                   <button
@@ -414,6 +796,13 @@ export default function ChatList() {
                           "Astrologer"
                         }
                         className="h-14 w-14 rounded-full object-cover ring-2 ring-purple-100"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              chat.partnerName ||
+                                "Astrologer"
+                            )}&background=EDE9FE&color=6D28D9`;
+                        }}
                       />
 
                       <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-500" />
@@ -445,8 +834,7 @@ export default function ChatList() {
 
                       <p className="mt-1 truncate text-xs sm:text-sm text-gray-500">
 
-                        {lastMessage?.text ||
-                          "Start conversation"}
+                        {messageText}
 
                       </p>
 
@@ -458,6 +846,7 @@ export default function ChatList() {
             )}
 
           </div>
+
         )}
 
       </main>
@@ -465,3 +854,4 @@ export default function ChatList() {
     </div>
   );
 }
+
